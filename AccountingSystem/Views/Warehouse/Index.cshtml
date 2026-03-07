@@ -52,7 +52,7 @@ items.Add().Location(ToolbarItemLocation.Before)
         .Columns(columns =>
         {
 
-            columns.Add().DataField("ID").Caption("شمېره").AllowEditing(false).Width(70).Format("#");
+            columns.Add().DataField("ID").Caption("شمېره").AllowEditing(false).Width(70);
 
             columns.Add().DataField("NativeName").Caption("نوم")
                 .ValidationRules(r => r.AddRequired());
@@ -69,7 +69,6 @@ items.Add().Location(ToolbarItemLocation.Before)
 
             columns.Add().DataField("MinimumQuantity").Caption("د کمښت خبرتیا")
                 .DataType(GridColumnDataType.Number)
-                .Format("#,##0.##")
                 .ValidationRules(r => { r.AddRange().Min(0).Message("کمښت خبرتیا باید منفي نه وي."); });
 
             columns.Add().DataField("CategoryId").Caption("کټیګوري")
@@ -395,7 +394,7 @@ items.Add().Location(ToolbarItemLocation.Before)
 	                                ]
 	                            },
                             { dataField: "Description", label: { text: "تشریح" }, editorType: "dxTextArea", editorOptions: { minHeight: 84, autoResizeEnabled: true } },
-                            { dataField: "MinimumQuantity", label: { text: "د کمښت خبرتیا" }, editorType: "dxNumberBox", editorOptions: { min: 0, format: "#,##0.##", showSpinButtons: true }, validationRules: [{ type: "range", min: 0, message: "کمښت خبرتیا باید منفي نه وي." }] },
+                            { dataField: "MinimumQuantity", label: { text: "د کمښت خبرتیا" }, editorType: "dxNumberBox", editorOptions: { min: 0, showSpinButtons: true }, validationRules: [{ type: "range", min: 0, message: "کمښت خبرتیا باید منفي نه وي." }] },
                             { dataField: "CategoryId", label: { text: "کټیګوري" }, editorType: "dxSelectBox", editorOptions: { dataSource: categoriesStore, displayExpr: "Name", valueExpr: "ID", searchEnabled: true, placeholder: "کټیګوري وټاکئ..." }, validationRules: [{ type: "required", message: "کټیګوري وټاکئ." }] },
                             { dataField: "UnitId", label: { text: "عمومي واحد" }, editorType: "dxSelectBox", editorOptions: { dataSource: unitsStore, displayExpr: "Name", valueExpr: "ID", searchEnabled: true, placeholder: "واحد وټاکئ..." }, validationRules: [{ type: "required", message: "واحد وټاکئ." }] }
                         ]
@@ -440,8 +439,8 @@ items.Add().Location(ToolbarItemLocation.Before)
                             editing: { mode: "cell", allowAdding: false, allowDeleting: false, allowUpdating: true },
                             columns: [
                                 { dataField: "UnitName", caption: "واحد نوم", allowEditing: false },
-                                { dataField: "MainAmount", caption: "عمومي واحد", dataType: "number", format: "#,##0.##", validationRules: [{ type: "custom", message: "که فرعي واحد ډک وي، عمومي واحد هم ډک کړئ.", validationCallback: function (e) { var v = e.value, o = e.data ? e.data.SubAmount : null; var ve = v === null || typeof v === "undefined" || v === ""; var oe = o === null || typeof o === "undefined" || o === ""; if (ve && oe) return true; if (ve && !oe) return false; return Number(v) > 0; } }] },
-                                { dataField: "SubAmount", caption: "فرعي واحد", dataType: "number", format: "#,##0.##", validationRules: [{ type: "custom", message: "که عمومي واحد ډک وي، فرعي واحد هم ډک کړئ.", validationCallback: function (e) { var v = e.value, o = e.data ? e.data.MainAmount : null; var ve = v === null || typeof v === "undefined" || v === ""; var oe = o === null || typeof o === "undefined" || o === ""; if (ve && oe) return true; if (ve && !oe) return false; return Number(v) > 0; } }] },
+                                { dataField: "MainAmount", caption: "عمومي واحد", dataType: "number", validationRules: [{ type: "custom", message: "که فرعي واحد ډک وي، عمومي واحد هم ډک کړئ.", validationCallback: function (e) { var v = e.value, o = e.data ? e.data.SubAmount : null; var ve = v === null || typeof v === "undefined" || v === ""; var oe = o === null || typeof o === "undefined" || o === ""; if (ve && oe) return true; if (ve && !oe) return false; return Number(v) > 0; } }] },
+                                { dataField: "SubAmount", caption: "فرعي واحد", dataType: "number", validationRules: [{ type: "custom", message: "که عمومي واحد ډک وي، فرعي واحد هم ډک کړئ.", validationCallback: function (e) { var v = e.value, o = e.data ? e.data.MainAmount : null; var ve = v === null || typeof v === "undefined" || v === ""; var oe = o === null || typeof o === "undefined" || o === ""; if (ve && oe) return true; if (ve && !oe) return false; return Number(v) > 0; } }] },
                                 { dataField: "Remarks", caption: "ملاحظات" }
                             ]
                         });
@@ -577,8 +576,8 @@ items.Add().Location(ToolbarItemLocation.Before)
                 editing: { mode: "cell", allowAdding: false, allowDeleting: false, allowUpdating: true },
                 columns: [
                     { dataField: "UnitName", caption: "واحد نوم", allowEditing: false },
-                    { dataField: "MainAmount", caption: "عمومي واحد", dataType: "number", format: "#,##0.##", validationRules: [{ type: "custom", message: "که فرعي واحد ډک وي، عمومي واحد هم ډک کړئ.", validationCallback: function (e) { var v = e.value, o = e.data ? e.data.SubAmount : null; var ve = v === null || typeof v === "undefined" || v === ""; var oe = o === null || typeof o === "undefined" || o === ""; if (ve && oe) return true; if (ve && !oe) return false; return Number(v) > 0; } }] },
-                    { dataField: "SubAmount", caption: "فرعي واحد", dataType: "number", format: "#,##0.##", validationRules: [{ type: "custom", message: "که عمومي واحد ډک وي، فرعي واحد هم ډک کړئ.", validationCallback: function (e) { var v = e.value, o = e.data ? e.data.MainAmount : null; var ve = v === null || typeof v === "undefined" || v === ""; var oe = o === null || typeof o === "undefined" || o === ""; if (ve && oe) return true; if (ve && !oe) return false; return Number(v) > 0; } }] },
+                    { dataField: "MainAmount", caption: "عمومي واحد", dataType: "number", validationRules: [{ type: "custom", message: "که فرعي واحد ډک وي، عمومي واحد هم ډک کړئ.", validationCallback: function (e) { var v = e.value, o = e.data ? e.data.SubAmount : null; var ve = v === null || typeof v === "undefined" || v === ""; var oe = o === null || typeof o === "undefined" || o === ""; if (ve && oe) return true; if (ve && !oe) return false; return Number(v) > 0; } }] },
+                    { dataField: "SubAmount", caption: "فرعي واحد", dataType: "number", validationRules: [{ type: "custom", message: "که عمومي واحد ډک وي، فرعي واحد هم ډک کړئ.", validationCallback: function (e) { var v = e.value, o = e.data ? e.data.MainAmount : null; var ve = v === null || typeof v === "undefined" || v === ""; var oe = o === null || typeof o === "undefined" || o === ""; if (ve && oe) return true; if (ve && !oe) return false; return Number(v) > 0; } }] },
                     { dataField: "Remarks", caption: "ملاحظات" }
                 ]
             }).dxDataGrid("instance");
@@ -673,7 +672,7 @@ items.Add().Location(ToolbarItemLocation.Before)
                                 editing: { mode: "row", allowAdding: true, allowDeleting: true, allowUpdating: true, newRowPosition: "last" },
                                 columns: [
                                     { dataField: "WarehouseID", caption: "ګدام", lookup: { dataSource: warehousesStore, displayExpr: "Name", valueExpr: "ID" }, validationRules: [{ type: "required", message: "ګدام ضروری دی." }] },
-                                    { dataField: "Quantity", caption: "تعداد", dataType: "number", format: "#,##0.##", validationRules: [{ type: "required", message: "تعداد ضروری دی." }] },
+                                    { dataField: "Quantity", caption: "تعداد", dataType: "number", validationRules: [{ type: "required", message: "تعداد ضروری دی." }] },
                                     { dataField: "UnitConversionID", caption: "واحد", lookup: { dataSource: unitOptions, displayExpr: "UnitName", valueExpr: "UnitConversionID" }, validationRules: [{ type: "required", message: "واحد ضروری دی." }] },
                                     { dataField: "BatchNo", caption: "بچ نمبر" },
                                     { dataField: "Remarks", caption: "ملاحظات" }

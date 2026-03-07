@@ -20,7 +20,7 @@
     }
 }(0, (function (localization) {
     localization.loadMessages({
-        fa: {
+        "ps-af": {
             Yes: "هو",
             No: "نه",
             Cancel: "لغوه",

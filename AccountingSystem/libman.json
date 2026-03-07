@@ -36,12 +36,6 @@
       "destination": "wwwroot/css/devextreme/icons"
     },
     {
-      "library": "node_modules/devextreme-dist/js/localization/",
-      "provider": "filesystem",
-      "destination": "wwwroot/js/devextreme/localization",
-      "files": [ "dx.messages.fa.js" ]
-    },
-    {
       "library": "node_modules/@fortawesome/fontawesome-free/css/",
       "destination": "wwwroot/css/css/",
       "files": [ "all.min.css" ]

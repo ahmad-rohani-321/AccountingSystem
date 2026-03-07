@@ -29,7 +29,7 @@
                 .Option("editing.newRowPosition", "last")
                 .Columns(columns =>
                 {
-                    columns.Add().DataField(value: "ID").Caption("شمېره").AllowEditing(value: false).Width(70).Format("#");
+                    columns.Add().DataField(value: "ID").Caption("شمېره").AllowEditing(value: false).Width(70);
 
                     columns.Add().DataField(value: "Name").Caption("نوم").ValidationRules(r => r.AddRequired());
 
@@ -74,7 +74,7 @@
                 .Option("editing.newRowPosition", "last")
                 .Columns(columns =>
                 {
-                    columns.Add().DataField("ID").Caption("شمېره").AllowEditing(false).Width(70).Format("#");
+                    columns.Add().DataField("ID").Caption("شمېره").AllowEditing(false).Width(70);
 
                     columns.Add().DataField("Name").Caption("نوم").ValidationRules(r => r.AddRequired());
 
@@ -119,7 +119,7 @@
                 .Option("editing.newRowPosition", "last")
                 .Columns(columns =>
                 {
-                    columns.Add().DataField("ID").Caption("شمېره").AllowEditing(false).Width(70).Format("#");
+                    columns.Add().DataField("ID").Caption("شمېره").AllowEditing(false).Width(70);
 
                     columns.Add().DataField("Name").Caption("نوم").ValidationRules(r => r.AddRequired());
 

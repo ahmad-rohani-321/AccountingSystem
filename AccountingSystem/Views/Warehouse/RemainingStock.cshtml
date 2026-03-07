@@ -40,14 +40,14 @@ items.Add().Location(ToolbarItemLocation.Before)
         }))
         .Columns(columns =>
         {
-            columns.Add().DataField("ID").Caption("شمېره").AllowEditing(false).Width(70).Format("#");
+            columns.Add().DataField("ID").Caption("شمېره").AllowEditing(false).Width(70);
             columns.Add().DataField("Item.NativeName").Caption("جنس").AllowEditing(false);
             columns.Add().DataField("Item.Unit.Name").Caption("عمومي واحد").AllowEditing(false);
             columns.Add().DataField("Warehouse.Name").Caption("ګدام").AllowEditing(false);
             columns.Add().DataField("BatchNo").Caption("بچ نمبر").AllowEditing(false);
             columns.Add().DataField("Quantity").Caption("تعداد").AllowEditing(false)
                 .DataType(GridColumnDataType.Number)
-                .Format("#,##0.##");
+                ;
 
             columns.Add()
                 .Caption("عملیات")
@@ -332,8 +332,6 @@ items.Add().Location(ToolbarItemLocation.Before)
                 height: "auto",
                 maxHeight: "92vh",
                 showTitle: true,
-                maxHeight: "90vh",
-                showTitle: true,
                 showCloseButton: true,
                 dragEnabled: false,
                 hideOnOutsideClick: false,
@@ -360,8 +358,8 @@ items.Add().Location(ToolbarItemLocation.Before)
                     }
                 ],
                 toolbarItems: [
-                    { widget: "dxButton", location: "after", toolbar: "bottom", options: { elementAttr: { id: "rs-trx9-btn-submit" }, text: "Ø«Ø¨Øª", type: "success", stylingMode: "contained", onClick: save } },
-                    { widget: "dxButton", location: "after", toolbar: "bottom", options: { text: "Ø¨Ù†Ø¯ÙˆÙ„", type: "normal", stylingMode: "text", onClick: function () { popover.hide(); } } }
+                    { widget: "dxButton", location: "after", toolbar: "bottom", options: { elementAttr: { id: "rs-trx9-btn-submit" }, text: "ثبت", type: "success", stylingMode: "contained", onClick: save } },
+                    { widget: "dxButton", location: "after", toolbar: "bottom", options: { text: "بندول", type: "normal", stylingMode: "text", onClick: function () { popover.hide(); } } }
                 ],
                 contentTemplate: function (contentElement) {
                     var $wrap = $("<div class='p-2'></div>");
@@ -418,7 +416,7 @@ items.Add().Location(ToolbarItemLocation.Before)
                                 dataField: "Quantity",
                                 label: { text: "تعداد" },
                                 editorType: "dxNumberBox",
-                                editorOptions: { min: 0, showSpinButtons: true, format: "#,##0.##" },
+                                editorOptions: { min: 0, showSpinButtons: true },
                                 validationRules: [{ type: "required", message: "تعداد ضروری دی." }]
                             },
                             {
@@ -645,7 +643,7 @@ items.Add().Location(ToolbarItemLocation.Before)
                                 dataField: "Quantity",
                                 label: { text: "تعداد" },
                                 editorType: "dxNumberBox",
-                                editorOptions: { min: 0, showSpinButtons: true, format: "#,##0.##" },
+                                editorOptions: { min: 0, showSpinButtons: true },
                                 validationRules: [{ type: "required", message: "تعداد ضروری دی." }]
                             },
                             {
@@ -929,7 +927,7 @@ items.Add().Location(ToolbarItemLocation.Before)
                                 dataField: "Quantity",
                                 label: { text: "تعداد" },
                                 editorType: "dxNumberBox",
-                                editorOptions: { min: 0, showSpinButtons: true, format: "#,##0.##" },
+                                editorOptions: { min: 0, showSpinButtons: true },
                                 validationRules: [{ type: "required", message: "تعداد ضروري دی." }]
                             },
                             {

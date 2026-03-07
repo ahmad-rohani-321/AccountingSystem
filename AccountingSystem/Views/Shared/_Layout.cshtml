@@ -255,10 +255,7 @@
             this.removeEventListener("DOMContentLoaded", documentReady);
             DevExtremeAspNetCoreAppMatMvcViews.init();
         });
-        DevExpress.localization.locale("fa-IR-u-ca-gregory");
-        //DevExpress.localization.locale("fa");
-
-        DevExpress.config({ rtlEnabled: true });
+        // Locale + messages are configured after dx.messages.ps-af.js loads.
 </script>
 	<script>
 	    document.addEventListener("DOMContentLoaded", function documentReady() {
@@ -282,7 +279,11 @@
         });
     }
 </script>
-<script src="~/js/devextreme/localization/dx.messages.fa.js"></script>
+<script src="~/js/devextreme/localization/dx.messages.ps-af.js"></script>
+<script>
+    DevExpress.localization.locale("ps-AF");
+    DevExpress.config({ rtlEnabled: true });
+</script>
 </body>
 
 </html>
