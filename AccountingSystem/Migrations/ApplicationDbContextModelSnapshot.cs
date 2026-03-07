@@ -102,7 +102,7 @@ namespace AccountingSystem.Migrations
                             LockoutEnabled = false,
                             NormalizedEmail = "ADMIN",
                             NormalizedUserName = "ADMIN",
-                            PasswordHash = "AQAAAAIAAYagAAAAECc3WPBV1KuvL7MlEByAkt1W1DXSnITNFMxhDMUBRK2HggjnOGGgo69JhBQQEvukcw==",
+                            PasswordHash = "AQAAAAIAAYagAAAAEM3H7UK4F7dJQkybnrP1/uCr9R0f5qEHGfu6MUUa0GnCdVD+rlr88DC9t+nqhM459Q==",
                             PhoneNumberConfirmed = false,
                             ProfilePhoto = "",
                             SecurityStamp = "2c9a4d9b-4f5a-4b8b-9a7c-2b1c3d4e5f61",
@@ -124,9 +124,6 @@ namespace AccountingSystem.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Description")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("EnglishName")
                         .HasColumnType("TEXT");
 
                     b.Property<bool>("IsActive")
@@ -436,7 +433,7 @@ namespace AccountingSystem.Migrations
                         {
                             ID = 1,
                             CreatedByUserId = "f5b9b7e7-2d3a-4b4d-a1b5-1b3f2a7a9e01",
-                            CreationDate = new DateTime(2026, 3, 7, 11, 47, 21, 939, DateTimeKind.Local).AddTicks(4140),
+                            CreationDate = new DateTime(2026, 3, 7, 11, 56, 24, 133, DateTimeKind.Local).AddTicks(9294),
                             Description = "اصلي ګدام د ټولو موادو لپاره دی.",
                             IsActive = true,
                             Name = "عمومي ګدام"

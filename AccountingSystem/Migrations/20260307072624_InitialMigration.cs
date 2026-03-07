@@ -420,12 +420,12 @@ namespace AccountingSystem.Migrations
             migrationBuilder.InsertData(
                 table: "User",
                 columns: new[] { "Id", "AccessFailedCount", "ConcurrencyStamp", "Email", "EmailConfirmed", "FirstName", "LastName", "LockoutEnabled", "LockoutEnd", "NormalizedEmail", "NormalizedUserName", "PasswordHash", "PhoneNumber", "PhoneNumberConfirmed", "ProfilePhoto", "SecurityStamp", "TwoFactorEnabled", "UserName" },
-                values: new object[] { "f5b9b7e7-2d3a-4b4d-a1b5-1b3f2a7a9e01", 0, "7a3c2e1d-9b8a-4f6e-8c2b-5d4f3a2b1c9e", "admin", true, "admin", "admin", false, null, "ADMIN", "ADMIN", "AQAAAAIAAYagAAAAELOGuYc9glXeeQnOZDJjZpPL1Xn/oLT2JQtc9nPEhjQqZDbwq12QHtS3k3i8TJxung==", null, false, "", "2c9a4d9b-4f5a-4b8b-9a7c-2b1c3d4e5f61", false, "admin" });
+                values: new object[] { "f5b9b7e7-2d3a-4b4d-a1b5-1b3f2a7a9e01", 0, "7a3c2e1d-9b8a-4f6e-8c2b-5d4f3a2b1c9e", "admin", true, "admin", "admin", false, null, "ADMIN", "ADMIN", "AQAAAAIAAYagAAAAEM3H7UK4F7dJQkybnrP1/uCr9R0f5qEHGfu6MUUa0GnCdVD+rlr88DC9t+nqhM459Q==", null, false, "", "2c9a4d9b-4f5a-4b8b-9a7c-2b1c3d4e5f61", false, "admin" });
 
             migrationBuilder.InsertData(
                 table: "WareHouses",
                 columns: new[] { "ID", "CreatedByUserId", "CreationDate", "Description", "IsActive", "Name" },
-                values: new object[] { 1, "f5b9b7e7-2d3a-4b4d-a1b5-1b3f2a7a9e01", new DateTime(2026, 3, 7, 11, 22, 58, 765, DateTimeKind.Local).AddTicks(8782), "اصلي ګدام د ټولو موادو لپاره دی.", true, "عمومي ګدام" });
+                values: new object[] { 1, "f5b9b7e7-2d3a-4b4d-a1b5-1b3f2a7a9e01", new DateTime(2026, 3, 7, 11, 56, 24, 133, DateTimeKind.Local).AddTicks(9294), "اصلي ګدام د ټولو موادو لپاره دی.", true, "عمومي ګدام" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_Categories_CreatedByUserId",

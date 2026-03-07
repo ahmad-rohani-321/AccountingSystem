@@ -260,17 +260,19 @@
 
         DevExpress.config({ rtlEnabled: true });
 </script>
-<script>
-    document.addEventListener("DOMContentLoaded", function documentReady() {
-            this.removeEventListener("DOMContentLoaded", documentReady);
-            const app = window.uitgAppContext;
-            app.LayoutController.init();
-            app.ThemeController.init();
-            app.SPARouter.init();
-    });
+	<script>
+	    document.addEventListener("DOMContentLoaded", function documentReady() {
+	            this.removeEventListener("DOMContentLoaded", documentReady);
+	            const app = window.uitgAppContext;
+	            if (app && app.LayoutController && app.ThemeController && app.SPARouter) {
+	                app.LayoutController.init();
+	                app.ThemeController.init();
+	                app.SPARouter.init();
+	            }
+	    });
 
-    function showYesNoMessageBox() {
-        DevExpress.ui.dialog.confirm(
+	    function showYesNoMessageBox() {
+	        DevExpress.ui.dialog.confirm(
             "غواړئ له سیسټم څخه ووځئ؟",
             "وتل"
         ).done(function (result) {

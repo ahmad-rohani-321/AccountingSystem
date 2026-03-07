@@ -338,39 +338,38 @@ namespace AccountingSystem.Controllers.APIs
             return Ok(entity);
         }
 
-        [HttpPost("CreateWithConversions")]
-        public async Task<IActionResult> CreateWithConversions([FromBody] CreateItemRequest request)
-        {
+	        [HttpPost("CreateWithConversions")]
+	        public async Task<IActionResult> CreateWithConversions([FromBody] CreateItemRequest request)
+	        {
             var userId = GetUserId();
             if (string.IsNullOrWhiteSpace(userId))
                 return Unauthorized();
 
-            var item = new Item
-            {
-                NativeName = request.NativeName?.Trim() ?? string.Empty,
-                AliasName = request.AliasName?.Trim() ?? string.Empty,
-                SKU = request.SKU?.Trim() ?? string.Empty,
-                SerialNumber = request.SerialNumber?.Trim() ?? string.Empty,
-                Description = request.Description?.Trim() ?? string.Empty,
-                MinimumQuantity = request.MinimumQuantity,
-                CategoryId = request.CategoryId,
-                UnitId = request.UnitId,
-                IsActive = true,
-                CreationDate = DateTime.UtcNow,
-                CreatedByUserId = userId
-            };
+	            var item = new Item
+	            {
+	                NativeName = request.NativeName?.Trim() ?? string.Empty,
+	                AliasName = request.AliasName?.Trim() ?? string.Empty,
+	                SKU = request.SKU?.Trim() ?? string.Empty,
+	                SerialNumber = request.SerialNumber?.Trim() ?? string.Empty,
+	                Description = request.Description?.Trim() ?? string.Empty,
+	                MinimumQuantity = request.MinimumQuantity,
+	                CategoryId = request.CategoryId,
+	                UnitId = request.UnitId,
+	                IsActive = true,
+	                CreationDate = DateTime.UtcNow,
+	                CreatedByUserId = userId
+	            };
 
-            if (string.IsNullOrWhiteSpace(item.NativeName))
-                ModelState.AddModelError(nameof(Item.NativeName), "NativeName is required.");
-            if (string.IsNullOrWhiteSpace(item.AliasName))
-                ModelState.AddModelError(nameof(Item.AliasName), "AliasName is required.");
-            if (string.IsNullOrWhiteSpace(item.SKU))
-                ModelState.AddModelError(nameof(Item.SKU), "SKU is required.");
-            if (item.MinimumQuantity < 0)
-                ModelState.AddModelError(nameof(Item.MinimumQuantity), "MinimumQuantity cannot be less than zero.");
-            if (item.CategoryId <= 0)
-                ModelState.AddModelError(nameof(Item.CategoryId), "CategoryId is required.");
-            if (item.UnitId <= 0)
+	            if (string.IsNullOrWhiteSpace(item.NativeName))
+	                ModelState.AddModelError(nameof(Item.NativeName), "NativeName is required.");
+	            // AliasName is optional.
+	            if (string.IsNullOrWhiteSpace(item.SKU))
+	                item.SKU = await GenerateNextSkuAsync();
+	            if (item.MinimumQuantity < 0)
+	                ModelState.AddModelError(nameof(Item.MinimumQuantity), "MinimumQuantity cannot be less than zero.");
+	            if (item.CategoryId <= 0)
+	                ModelState.AddModelError(nameof(Item.CategoryId), "CategoryId is required.");
+	            if (item.UnitId <= 0)
                 ModelState.AddModelError(nameof(Item.UnitId), "UnitId is required.");
 
             var uniqueErrors = await GetUniqueErrorsAsync(item.NativeName, item.SKU, item.SerialNumber, null);
@@ -380,10 +379,10 @@ namespace AccountingSystem.Controllers.APIs
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            var conversions = new List<UnitConversion>();
-            if (request.UnitConversions is { Count: > 0 })
-            {
-                foreach (var row in request.UnitConversions)
+	            var conversions = new List<UnitConversion>();
+	            if (request.UnitConversions is { Count: > 0 })
+	            {
+	                foreach (var row in request.UnitConversions)
                 {
                     var hasMain = row.MainAmount.HasValue;
                     var hasSub = row.SubAmount.HasValue;
@@ -402,39 +401,104 @@ namespace AccountingSystem.Controllers.APIs
                         return BadRequest(ModelState);
                     }
 
-                    conversions.Add(new UnitConversion
-                    {
-                        MainUnitId = item.UnitId,
-                        SubUnitID = row.SubUnitID,
-                        MainAmount = row.MainAmount.Value,
-                        SubAmount = row.SubAmount.Value,
-                        ExchangedAmount = row.SubAmount.Value / row.MainAmount.Value,
-                        Remarks = row.Remarks?.Trim() ?? string.Empty,
-                        CreationDate = DateTime.UtcNow,
-                        CreatedByUserId = userId
-                    });
-                }
-            }
+	                    conversions.Add(new UnitConversion
+	                    {
+	                        MainUnitId = item.UnitId,
+	                        SubUnitID = row.SubUnitID,
+	                        MainAmount = row.MainAmount.Value,
+	                        SubAmount = row.SubAmount.Value,
+	                        ExchangedAmount = row.SubAmount.Value / row.MainAmount.Value,
+	                        Remarks = row.Remarks?.Trim() ?? string.Empty,
+	                        CreationDate = DateTime.UtcNow,
+	                        CreatedByUserId = userId
+	                    });
+	                }
+	            }
 
-            await _items.AddItemAsync(item, conversions);
-            return Ok(item);
-        }
+	            // Ensure at least one unit conversion row exists for the main unit.
+	            if (conversions.Count == 0)
+	            {
+	                conversions.Add(new UnitConversion
+	                {
+	                    MainUnitId = item.UnitId,
+	                    SubUnitID = item.UnitId,
+	                    MainAmount = 1,
+	                    SubAmount = 1,
+	                    ExchangedAmount = 1,
+	                    Remarks = string.Empty,
+	                    CreationDate = DateTime.UtcNow,
+	                    CreatedByUserId = userId
+	                });
+	            }
 
-        [HttpGet("Unique")]
-        public async Task<IActionResult> Unique(
-            [FromQuery] string nativeName,
-            [FromQuery] string sku,
-            [FromQuery] string serialNumber,
-            [FromQuery] int? itemId)
-        {
-            var errors = await GetUniqueErrorsAsync(nativeName, sku, serialNumber, itemId);
-            return Ok(new
+	            await _items.AddItemAsync(item, conversions);
+	            return Ok(item);
+	        }
+
+	        private async Task<string> GenerateNextSkuAsync()
+	        {
+	            const string prefix = "ITM";
+	            const int pad = 3;
+
+	            var existing = await _db.Items
+	                .AsNoTracking()
+	                .Where(i => i.SKU != null && i.SKU.StartsWith(prefix))
+	                .Select(i => i.SKU)
+	                .ToListAsync();
+
+	            var max = 0;
+	            foreach (var sku in existing)
+	            {
+	                if (string.IsNullOrWhiteSpace(sku))
+	                    continue;
+
+	                var trimmed = sku.Trim();
+	                if (!trimmed.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+	                    continue;
+
+	                var numberPart = trimmed[prefix.Length..];
+	                if (numberPart.Length == 0)
+	                    continue;
+
+	                if (int.TryParse(numberPart, out var n) && n > max)
+	                    max = n;
+	            }
+
+	            // Find the first unused candidate to be safe under concurrent inserts.
+	            for (var n = max + 1; n < max + 10000; n++)
+	            {
+	                var candidate = prefix + n.ToString().PadLeft(pad, '0');
+	                var exists = await _db.Items.AsNoTracking().AnyAsync(i => i.SKU.ToLower() == candidate.ToLower());
+	                if (!exists)
+	                    return candidate;
+	            }
+
+	            // Fallback (should be unreachable).
+	            return prefix + (max + 1).ToString().PadLeft(pad, '0');
+	        }
+
+	        [HttpGet("Unique")]
+	        public async Task<IActionResult> Unique(
+	            [FromQuery] string nativeName,
+	            [FromQuery] string sku,
+	            [FromQuery] string serialNumber,
+	            [FromQuery] int? itemId)
+	        {
+	            var errors = await GetUniqueErrorsAsync(nativeName, sku, serialNumber, itemId);
+	            return Ok(new
             {
                 NativeNameUnique = errors.All(e => e.Field != nameof(Item.NativeName)),
                 SKUUnique = errors.All(e => e.Field != nameof(Item.SKU)),
                 SerialNumberUnique = errors.All(e => e.Field != nameof(Item.SerialNumber))
-            });
-        }
+	            });
+	        }
+
+	        [HttpGet("NextSku")]
+	        public async Task<IActionResult> NextSku()
+	        {
+	            var sku = await GenerateNextSkuAsync();
+	            return Ok(new { SKU = sku });
+	        }
 
         private string GetUserId()
         {
