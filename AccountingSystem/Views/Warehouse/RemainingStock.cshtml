@@ -11,6 +11,7 @@
             .LoadAction("Get")
         )
         .RemoteOperations(false)
+        .FilterValue(new object[] { "Quantity", ">", 0 })
         .ShowBorders(true)
         .RowAlternationEnabled(true)
         .ColumnAutoWidth(true)
@@ -89,7 +90,7 @@ items.Add().Location(ToolbarItemLocation.Before)
         }
 
         function loadWarehouses() {
-            return $.getJSON("/api/Warehouses", { take: 100000, skip: 0, requireTotalCount: false })
+            return $.getJSON("/api/Warehouses/Active", { take: 100000, skip: 0, requireTotalCount: false })
                 .then(function (r) {
                     warehouses = (r && r.data) ? r.data : (Array.isArray(r) ? r : []);
                     return warehouses;
@@ -155,7 +156,7 @@ items.Add().Location(ToolbarItemLocation.Before)
 
         var unitOptionsCache = {}; // itemId -> options[]
         var itemsAll = [];
-        var warehousesStore = DevExpress.data.AspNet.createStore({ key: "ID", loadUrl: "/api/Warehouses" });
+        var warehousesStore = DevExpress.data.AspNet.createStore({ key: "ID", loadUrl: "/api/Warehouses/Active" });
 
         function todayLocal() {
             var d = new Date();
@@ -956,7 +957,7 @@ items.Add().Location(ToolbarItemLocation.Before)
                     }
 
                     // Warehouses (exclude the source warehouse)
-                    $.getJSON("/api/Warehouses", { take: 100000, skip: 0, requireTotalCount: false }).done(function (r) {
+                    $.getJSON("/api/Warehouses/Active", { take: 100000, skip: 0, requireTotalCount: false }).done(function (r) {
                         if (!form) return;
                         var warehouses = (r && r.data) ? r.data : (Array.isArray(r) ? r : []);
                         var sourceId = currentRow ? (currentRow.WarehouseID || (currentRow.Warehouse ? currentRow.Warehouse.ID : null)) : null;

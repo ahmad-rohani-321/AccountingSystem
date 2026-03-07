@@ -37,7 +37,9 @@ public class StockOperationsController(ApplicationDbContext db) : ControllerBase
     {
         var rows = await _db.Items
             .AsNoTracking()
+            .Where(i => i.IsActive && i.Unit.IsActive && i.Category.IsActive)
             .Include(i => i.Unit)
+            .Include(i => i.Category)
             .OrderBy(i => i.NativeName)
             .Select(i => new
             {
@@ -60,7 +62,7 @@ public class StockOperationsController(ApplicationDbContext db) : ControllerBase
             .Include(sb => sb.Item)
             .ThenInclude(i => i.Unit)
             .Include(sb => sb.Warehouse)
-            .Where(sb => sb.Quantity > 0)
+            .Where(sb => sb.Quantity > 0 && sb.Item != null && sb.Item.IsActive && sb.Item.Unit.IsActive && sb.Warehouse != null && sb.Warehouse.IsActive)
             .OrderByDescending(sb => sb.ID)
             .Select(sb => new
             {
@@ -105,6 +107,44 @@ public class StockOperationsController(ApplicationDbContext db) : ControllerBase
 
             if (request.UnitConversionID is null)
                 return BadRequest(new { errors = new { UnitConversionID = new[] { "واحد ضروري دی." } } });
+
+            if (request.ItemID is > 0)
+            {
+                var itemOk = await _db.Items
+                    .AsNoTracking()
+                    .AnyAsync(i => i.ID == request.ItemID && i.IsActive && i.Unit.IsActive && i.Category.IsActive);
+
+                if (!itemOk)
+                    return BadRequest(new { errors = new { ItemID = new[] { "جنس فعال نه دی." } } });
+            }
+
+            if (request.WarehouseID is > 0)
+            {
+                var whOk = await _db.WareHouses.AsNoTracking().AnyAsync(w => w.ID == request.WarehouseID && w.IsActive);
+                if (!whOk)
+                    return BadRequest(new { errors = new { WarehouseID = new[] { "ګدام فعال نه دی." } } });
+            }
+
+            if (request.StockBalanceID is > 0)
+            {
+                var sbOk = await _db.StockBalances
+                    .AsNoTracking()
+                    .Include(sb => sb.Item)
+                        .ThenInclude(i => i.Unit)
+                    .Include(sb => sb.Item)
+                        .ThenInclude(i => i.Category)
+                    .Include(sb => sb.Warehouse)
+                    .AnyAsync(sb =>
+                        sb.ID == request.StockBalanceID &&
+                        sb.Quantity > 0 &&
+                        sb.Item != null && sb.Item.IsActive &&
+                        sb.Item.Unit != null && sb.Item.Unit.IsActive &&
+                        sb.Item.Category != null && sb.Item.Category.IsActive &&
+                        sb.Warehouse != null && sb.Warehouse.IsActive);
+
+                if (!sbOk)
+                    return BadRequest(new { errors = new { StockBalanceID = new[] { "موجودي فعاله نه ده." } } });
+            }
 
             if (request.TransactionTypeID is 3 or 9)
             {

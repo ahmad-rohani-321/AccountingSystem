@@ -28,6 +28,13 @@ namespace AccountingSystem.Controllers.APIs
             return DataSourceLoader.Load(data, loadOptions);
         }
 
+        [HttpGet("Active")]
+        public async Task<object> GetActive(DataSourceLoadOptions loadOptions)
+        {
+            var data = await _warehouses.GetAllAsync();
+            return DataSourceLoader.Load(data?.FindAll(w => w.IsActive), loadOptions);
+        }
+
         [HttpPost]
         public async Task<IActionResult> Post([FromForm] string values)
         {

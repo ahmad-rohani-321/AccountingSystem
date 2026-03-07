@@ -75,10 +75,17 @@ namespace AccountingSystem.Controllers.APIs
             if (item is null)
                 return NotFound();
 
-            var units = await _db.Units.AsNoTracking().OrderBy(u => u.Name).ToListAsync();
             var existing = await _db.UnitConversion
                 .AsNoTracking()
                 .Where(uc => uc.ItemID == id)
+                .ToListAsync();
+
+            var existingUnitIds = existing.Select(x => x.SubUnitID).Distinct().ToList();
+
+            var units = await _db.Units
+                .AsNoTracking()
+                .Where(u => u.IsActive || u.ID == item.UnitId || existingUnitIds.Contains(u.ID))
+                .OrderBy(u => u.Name)
                 .ToListAsync();
 
             var bySubUnit = existing.ToDictionary(x => x.SubUnitID, x => x);
@@ -275,6 +282,12 @@ namespace AccountingSystem.Controllers.APIs
             var existing = await _db.UnitConversion.Where(uc => uc.ItemID == id).ToListAsync();
             var existingBySub = existing.ToDictionary(x => x.SubUnitID, x => x);
 
+            var activeUnitIds = await _db.Units.AsNoTracking()
+                .Where(u => u.IsActive)
+                .Select(u => u.ID)
+                .ToListAsync();
+            var activeUnitSet = activeUnitIds.ToHashSet();
+
             var rowBySub = rows.ToDictionary(r => r.SubUnitID, r => r);
 
             foreach (var (subUnitId, uc) in existingBySub)
@@ -289,6 +302,11 @@ namespace AccountingSystem.Controllers.APIs
                 var hasSub = row.SubAmount.HasValue;
                 if (!hasMain && !hasSub)
                     continue;
+
+                var isExistingConversion = existingBySub.ContainsKey(row.SubUnitID);
+                var isItemMainUnit = row.SubUnitID == item.UnitId;
+                if (!isExistingConversion && !isItemMainUnit && !activeUnitSet.Contains(row.SubUnitID))
+                    return BadRequest(new { errors = new { UnitConversions = new[] { "Unit is inactive and cannot be newly used." } } });
 
                 if (!existingBySub.TryGetValue(row.SubUnitID, out var uc))
                 {
@@ -331,6 +349,14 @@ namespace AccountingSystem.Controllers.APIs
             foreach (var err in uniqueErrors)
                 ModelState.AddModelError(err.Field, err.Message);
 
+            var categoryActive = await _db.Categories.AsNoTracking().AnyAsync(c => c.ID == entity.CategoryId && c.IsActive);
+            if (!categoryActive)
+                ModelState.AddModelError(nameof(Item.CategoryId), "کټیګوري باید فعاله وي.");
+
+            var unitActive = await _db.Units.AsNoTracking().AnyAsync(u => u.ID == entity.UnitId && u.IsActive);
+            if (!unitActive)
+                ModelState.AddModelError(nameof(Item.UnitId), "واحد باید فعال وي.");
+
             if (!TryValidateModel(entity) || !ModelState.IsValid)
                 return BadRequest(ModelState);
 
@@ -369,8 +395,16 @@ namespace AccountingSystem.Controllers.APIs
 	                ModelState.AddModelError(nameof(Item.MinimumQuantity), "MinimumQuantity cannot be less than zero.");
 	            if (item.CategoryId <= 0)
 	                ModelState.AddModelError(nameof(Item.CategoryId), "CategoryId is required.");
-	            if (item.UnitId <= 0)
+                if (item.UnitId <= 0)
                 ModelState.AddModelError(nameof(Item.UnitId), "UnitId is required.");
+
+                var categoryActive = await _db.Categories.AsNoTracking().AnyAsync(c => c.ID == item.CategoryId && c.IsActive);
+                if (!categoryActive)
+                    ModelState.AddModelError(nameof(Item.CategoryId), "Category must be active.");
+
+                var unitActive = await _db.Units.AsNoTracking().AnyAsync(u => u.ID == item.UnitId && u.IsActive);
+                if (!unitActive)
+                    ModelState.AddModelError(nameof(Item.UnitId), "Unit must be active.");
 
             var uniqueErrors = await GetUniqueErrorsAsync(item.NativeName, item.SKU, item.SerialNumber, null);
             foreach (var err in uniqueErrors)
@@ -574,10 +608,19 @@ namespace AccountingSystem.Controllers.APIs
                     entity.MinimumQuantity = min;
             }
 
+            if (dict.TryGetValue(nameof(Item.IsActive), out var activeEl) && activeEl.ValueKind is JsonValueKind.True or JsonValueKind.False)
+                entity.IsActive = activeEl.GetBoolean();
+
             if (dict.TryGetValue(nameof(Item.CategoryId), out var catEl) && catEl.ValueKind != JsonValueKind.Null)
             {
                 if (catEl.TryGetInt32(out var cat))
                     entity.CategoryId = cat;
+            }
+
+            if (dict.TryGetValue(nameof(Item.UnitId), out var unitEl) && unitEl.ValueKind != JsonValueKind.Null)
+            {
+                if (unitEl.TryGetInt32(out var unit))
+                    entity.UnitId = unit;
             }
         }
     }

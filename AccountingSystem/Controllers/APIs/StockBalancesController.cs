@@ -19,14 +19,15 @@ namespace AccountingSystem.Controllers.APIs
         [HttpGet]
         public async Task<object> Get(DataSourceLoadOptions loadOptions)
         {
-            var data = await _db.StockBalances
+            var query = _db.StockBalances
                 .AsNoTracking()
+                .Where(sb => sb.Quantity > 0 && sb.Item.IsActive && sb.Item.Unit.IsActive && sb.Warehouse.IsActive)
                 .Include(sb => sb.Item)
                     .ThenInclude(i => i.Unit)
                 .Include(sb => sb.Warehouse)
-                .ToListAsync();
+                .AsQueryable();
 
-            return DataSourceLoader.Load(data, loadOptions);
+            return await DataSourceLoader.LoadAsync(query, loadOptions);
         }
     }
 }

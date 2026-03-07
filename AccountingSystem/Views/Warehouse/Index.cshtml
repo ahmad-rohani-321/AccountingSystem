@@ -67,6 +67,10 @@ items.Add().Location(ToolbarItemLocation.Before)
 
             columns.Add().DataField("Description").Caption("تشریح");
 
+            columns.Add().DataField("IsActive").Caption("فعال")
+                .DataType(GridColumnDataType.Boolean)
+                .TrueText("هو").FalseText("نه");
+
             columns.Add().DataField("MinimumQuantity").Caption("د کمښت خبرتیا")
                 .DataType(GridColumnDataType.Number)
                 .ValidationRules(r => { r.AddRange().Min(0).Message("کمښت خبرتیا باید منفي نه وي."); });
@@ -148,15 +152,15 @@ items.Add().Location(ToolbarItemLocation.Before)
 
         var warehousesStore = DevExpress.data.AspNet.createStore({
             key: "ID",
-            loadUrl: "/api/Warehouses"
+            loadUrl: "/api/Warehouses/Active"
         });
         var categoriesStore = DevExpress.data.AspNet.createStore({
             key: "ID",
-            loadUrl: "/api/Categories"
+            loadUrl: "/api/Categories/Active"
         });
         var unitsStore = DevExpress.data.AspNet.createStore({
             key: "ID",
-            loadUrl: "/api/Units"
+            loadUrl: "/api/Units/Active"
         });
 
         var createItemInitialFormData = {
@@ -247,8 +251,8 @@ items.Add().Location(ToolbarItemLocation.Before)
             if (!$("#wi-filter-native").length || !$("#wi-filter-category").length || !$("#wi-filter-unit").length) return;
 
             var itemsRequest = $.getJSON("/api/Items", { take: 100000, skip: 0, requireTotalCount: false });
-            var categoriesRequest = $.getJSON("/api/Categories", { take: 100000, skip: 0, requireTotalCount: false });
-            var unitsRequest = $.getJSON("/api/Units", { take: 100000, skip: 0, requireTotalCount: false });
+            var categoriesRequest = $.getJSON("/api/Categories/Active", { take: 100000, skip: 0, requireTotalCount: false });
+            var unitsRequest = $.getJSON("/api/Units/Active", { take: 100000, skip: 0, requireTotalCount: false });
 
             $.when(itemsRequest, categoriesRequest, unitsRequest).done(function (itemsRes, categoriesRes, unitsRes) {
                 var items = normalizeDxResult(itemsRes && itemsRes[0] ? itemsRes[0] : itemsRes);
@@ -395,8 +399,8 @@ items.Add().Location(ToolbarItemLocation.Before)
 	                            },
                             { dataField: "Description", label: { text: "تشریح" }, editorType: "dxTextArea", editorOptions: { minHeight: 84, autoResizeEnabled: true } },
                             { dataField: "MinimumQuantity", label: { text: "د کمښت خبرتیا" }, editorType: "dxNumberBox", editorOptions: { min: 0, showSpinButtons: true }, validationRules: [{ type: "range", min: 0, message: "کمښت خبرتیا باید منفي نه وي." }] },
-                            { dataField: "CategoryId", label: { text: "کټیګوري" }, editorType: "dxSelectBox", editorOptions: { dataSource: categoriesStore, displayExpr: "Name", valueExpr: "ID", searchEnabled: true, placeholder: "کټیګوري وټاکئ..." }, validationRules: [{ type: "required", message: "کټیګوري وټاکئ." }] },
-                            { dataField: "UnitId", label: { text: "عمومي واحد" }, editorType: "dxSelectBox", editorOptions: { dataSource: unitsStore, displayExpr: "Name", valueExpr: "ID", searchEnabled: true, placeholder: "واحد وټاکئ..." }, validationRules: [{ type: "required", message: "واحد وټاکئ." }] }
+                            { dataField: "CategoryId", label: { text: "کټیګوري" }, editorType: "dxSelectBox", editorOptions: { dataSource: categoriesStore, displayExpr: "Name", valueExpr: "ID", searchEnabled: true, placeholder: "کټیګوري وټاکئ...", validationMessageMode: "always" }, validationRules: [{ type: "required", message: "کټیګوري وټاکئ." }] },
+                            { dataField: "UnitId", label: { text: "عمومي واحد" }, editorType: "dxSelectBox", editorOptions: { dataSource: unitsStore, displayExpr: "Name", valueExpr: "ID", searchEnabled: true, placeholder: "واحد وټاکئ...", validationMessageMode: "always" }, validationRules: [{ type: "required", message: "واحد وټاکئ." }] }
                         ]
                     });
                 },
@@ -505,9 +509,6 @@ items.Add().Location(ToolbarItemLocation.Before)
                         var popup = getCreatePopup();
                         if (popup) popup.hide();
                         getItemsGrid().refresh(true);
-                        if (created && created.ID) {
-                            setTimeout(function () { openInitialStockPopoverById(created.ID, $("#btn-add-item-toolbar").get(0) || $("#items-grid").get(0)); }, 300);
-                        }
                     })
                     .fail(function (xhr) {
                         if (xhr && xhr.responseJSON && xhr.responseJSON.errors) {
