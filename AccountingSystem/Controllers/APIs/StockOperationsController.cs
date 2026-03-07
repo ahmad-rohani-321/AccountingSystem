@@ -106,6 +106,12 @@ public class StockOperationsController(ApplicationDbContext db) : ControllerBase
             if (request.UnitConversionID is null)
                 return BadRequest(new { errors = new { UnitConversionID = new[] { "واحد ضروري دی." } } });
 
+            if (request.TransactionTypeID is 3 or 9)
+            {
+                if (string.IsNullOrWhiteSpace(request.Notes))
+                    return BadRequest(new { errors = new { Notes = new[] { "ملاحظات ضروري دي." } } });
+            }
+
             await using var tx = await _db.Database.BeginTransactionAsync();
 
             if (request.TransactionTypeID == 2)

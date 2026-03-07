@@ -491,24 +491,27 @@
             });
         }
 
-        function resetFormData() {
-            return {
-                OperationDate: todayLocal(),
-                UnitConversionID: null,
-                Quantity: null,
-                Notes: ""
-            };
-        }
+	        function resetFormData() {
+	            return {
+	                TransactionTypeID: 9,
+	                OperationDate: todayLocal(),
+	                UnitConversionID: null,
+	                Quantity: null,
+	                Notes: ""
+	            };
+	        }
 
         function validateFormData(data) {
             var errors = {};
             if (!data.OperationDate) errors.OperationDate = ["نېټه ضروری ده."];
             if (!data.UnitConversionID && data.UnitConversionID !== 0) errors.UnitConversionID = ["واحد ضروری دی."];
             if (!(data.Quantity > 0)) errors.Quantity = ["تعداد ضروری دی."];
-            return errors;
-        }
+	            if (!data.TransactionTypeID) errors.TransactionTypeID = ["د عملیاتو ډول ضروري دی."];
+	            if (!((data.Notes || "").trim().length)) errors.Notes = ["ملاحظات ضروري دي."];
+	            return errors;
+	        }
 
-        function computeMaxQuantity(unitOptions, unitConversionId, rowMainQty) {
+	        function computeMaxQuantity(unitOptions, unitConversionId, rowMainQty) {
             if (!unitOptions || !unitOptions.length) return null;
             var selected = null;
             for (var i = 0; i < unitOptions.length; i++) {
@@ -543,13 +546,13 @@
 
             setSaving(true);
 
-            var payload = {
-                TransactionTypeID: 9,
-                StockBalanceID: currentRow.ID,
-                UnitConversionID: data.UnitConversionID,
-                Quantity: data.Quantity,
-                Notes: data.Notes || ""
-            };
+	            var payload = {
+	                TransactionTypeID: Number(data.TransactionTypeID),
+	                StockBalanceID: currentRow.ID,
+	                UnitConversionID: data.UnitConversionID,
+	                Quantity: data.Quantity,
+	                Notes: data.Notes || ""
+	            };
 
             $.ajax({
                 url: "/api/StockOperations/RemainingStock",
@@ -593,13 +596,20 @@
                 },
                 onShown: function () {
                     var initial = resetFormData();
-                    form = $("#remaining-stock-trx9-form").dxForm({
-                        rtlEnabled: true,
-                        formData: initial,
-                        colCount: 1,
-                        showColonAfterLabel: false,
-                        labelLocation: "top",
-                        items: [
+	                    form = $("#remaining-stock-trx9-form").dxForm({
+	                        rtlEnabled: true,
+	                        formData: initial,
+	                        colCount: 1,
+	                        showColonAfterLabel: false,
+	                        labelLocation: "top",
+	                        items: [
+	                            {
+	                                dataField: "TransactionTypeID",
+	                                label: { text: "د عملیاتو ډول" },
+	                                editorType: "dxSelectBox",
+	                                editorOptions: { dataSource: [], displayExpr: "Name", valueExpr: "ID", placeholder: "انتخاب...", value: initial.TransactionTypeID, showClearButton: false },
+	                                validationRules: [{ type: "required", message: "د عملیاتو ډول ضروري دی." }]
+	                            },
                             {
                                 dataField: "OperationDate",
                                 label: { text: "نېټه" },
@@ -627,17 +637,44 @@
                                 editorType: "dxTextArea",
                                 editorOptions: { height: 80, placeholder: "اختیاري" }
                             }
-                        ]
-                    }).dxForm("instance");
+	                        ]
+	                    }).dxForm("instance");
 
-                    var itemId = currentRow ? (currentRow.ItemID || (currentRow.Item ? currentRow.Item.ID : null)) : null;
-                    if (itemId) {
-                        ensureUnitOptions(itemId).done(function (opts) {
-                            if (!form) return;
-                            var unitEd = form.getEditor("UnitConversionID");
-                            if (unitEd) unitEd.option("dataSource", (opts || []));
-                        });
-                    }
+	                    // Transaction types (only IDs 9 and 3)
+	                    $.getJSON("/api/StockOperations/TransactionTypes").done(function (types) {
+	                        if (!form) return;
+	                        types = (types || []).filter(function (t) { return t && (t.ID === 9 || t.ID === 3); });
+	                        var ttEd = form.getEditor("TransactionTypeID");
+	                        if (ttEd) {
+	                            ttEd.option("dataSource", types);
+	                            var current = Number(ttEd.option("value") || 0);
+	                            if (!(current === 9 || current === 3)) ttEd.option("value", 9);
+	                        }
+	                    });
+
+	                    // Remarks required
+	                    try {
+	                        form.itemOption("Notes", "validationRules", [{ type: "required", message: "ملاحظات ضروري دي." }]);
+	                        var notesEd = form.getEditor("Notes");
+	                        if (notesEd) notesEd.option("placeholder", "ملاحظات ولیکئ...");
+	                    } catch (e) { }
+
+	                    var itemId = currentRow ? (currentRow.ItemID || (currentRow.Item ? currentRow.Item.ID : null)) : null;
+	                    if (itemId) {
+	                        ensureUnitOptions(itemId).done(function (opts) {
+	                            if (!form) return;
+	                            var unitEd = form.getEditor("UnitConversionID");
+	                            if (unitEd) {
+	                                unitEd.option("dataSource", (opts || []));
+	                                var currentVal = unitEd.option("value");
+	                                if (currentVal === null || typeof currentVal === "undefined" || currentVal === "") {
+	                                    // Prefer main unit option if present (usually UnitConversionID = 0).
+	                                    var hasMain = (opts || []).some(function (o) { return o && o.UnitConversionID === 0; });
+	                                    unitEd.option("value", hasMain ? 0 : null);
+	                                }
+	                            }
+	                        });
+	                    }
                 },
                 onHidden: function () {
                     setSaving(false);
