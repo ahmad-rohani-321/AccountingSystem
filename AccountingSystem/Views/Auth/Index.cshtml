@@ -83,6 +83,9 @@
     <script>
         DevExpress.localization.locale("ps-AF");
         DevExpress.config({ rtlEnabled: true });
+        if (DevExpress && DevExpress.ui && DevExpress.ui.dxOverlay && typeof DevExpress.ui.dxOverlay.baseZIndex === "function") {
+            DevExpress.ui.dxOverlay.baseZIndex(30000);
+        }
     </script>
 </body>
 

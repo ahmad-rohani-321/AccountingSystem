@@ -283,6 +283,10 @@
 <script>
     DevExpress.localization.locale("ps-AF");
     DevExpress.config({ rtlEnabled: true });
+    // Ensure popups/overlays appear above the header (header has a high z-index in Site.css).
+    if (DevExpress && DevExpress.ui && DevExpress.ui.dxOverlay && typeof DevExpress.ui.dxOverlay.baseZIndex === "function") {
+        DevExpress.ui.dxOverlay.baseZIndex(30000);
+    }
 </script>
 </body>
 

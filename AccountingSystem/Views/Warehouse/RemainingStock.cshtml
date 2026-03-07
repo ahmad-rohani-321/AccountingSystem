@@ -355,12 +355,14 @@ items.Add().Location(ToolbarItemLocation.Before)
                         toolbar: "bottom",
                         location: "after",
                         widget: "dxButton",
-                        options: { text: "بندول", stylingMode: "text", onClick: function () { popup.hide(); } }
+                        options: {
+                            text: "بندول",
+                            stylingMode: "text",
+                            onClick: function () {
+                                try { $("#remaining-stock-trx2-popup").dxPopup("instance").hide(); } catch (ex) { }
+                            }
+                        }
                     }
-                ],
-                toolbarItems: [
-                    { widget: "dxButton", location: "after", toolbar: "bottom", options: { elementAttr: { id: "rs-trx9-btn-submit" }, text: "ثبت", type: "success", stylingMode: "contained", onClick: save } },
-                    { widget: "dxButton", location: "after", toolbar: "bottom", options: { text: "بندول", type: "normal", stylingMode: "text", onClick: function () { popover.hide(); } } }
                 ],
                 contentTemplate: function (contentElement) {
                     var $wrap = $("<div class='p-2'></div>");
@@ -603,7 +605,19 @@ items.Add().Location(ToolbarItemLocation.Before)
                 title: "د ګدام عملیې",
                 toolbarItems: [
                     { widget: "dxButton", location: "after", toolbar: "bottom", options: { elementAttr: { id: "rs-trx9-btn-submit" }, text: "ثبت", type: "success", stylingMode: "contained", onClick: save } },
-                    { widget: "dxButton", location: "after", toolbar: "bottom", options: { text: "بندول", type: "normal", stylingMode: "text", onClick: function () { popover.hide(); } } }
+                    {
+                        widget: "dxButton",
+                        location: "after",
+                        toolbar: "bottom",
+                        options: {
+                            text: "بندول",
+                            type: "normal",
+                            stylingMode: "text",
+                            onClick: function () {
+                                try { $("#remaining-stock-trx9-popup").dxPopup("instance").hide(); } catch (ex) { }
+                            }
+                        }
+                    }
                 ],
                 contentTemplate: function (contentElement) {
                     var $wrap = $("<div class='p-2'></div>");
@@ -876,7 +890,19 @@ items.Add().Location(ToolbarItemLocation.Before)
                 title: "د ګدامونو ترمنځ انتقال",
                 toolbarItems: [
                     { widget: "dxButton", location: "after", toolbar: "bottom", options: { elementAttr: { id: "rs-trx4-btn-submit" }, text: "ثبت", type: "success", stylingMode: "contained", onClick: save } },
-                    { widget: "dxButton", location: "after", toolbar: "bottom", options: { text: "بندول", type: "normal", stylingMode: "text", onClick: function () { popover.hide(); } } }
+                    {
+                        widget: "dxButton",
+                        location: "after",
+                        toolbar: "bottom",
+                        options: {
+                            text: "بندول",
+                            type: "normal",
+                            stylingMode: "text",
+                            onClick: function () {
+                                try { $("#remaining-stock-trx4-popup").dxPopup("instance").hide(); } catch (ex) { }
+                            }
+                        }
+                    }
                 ],
                 contentTemplate: function (contentElement) {
                     var $wrap = $("<div class='p-2'></div>");
