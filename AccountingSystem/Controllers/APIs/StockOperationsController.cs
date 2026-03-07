@@ -21,7 +21,7 @@ public class StockOperationsController(ApplicationDbContext db) : ControllerBase
     [HttpGet("TransactionTypes")]
     public async Task<IActionResult> GetTransactionTypes()
     {
-        var ids = new[] { 2, 3, 9 };
+        var ids = new[] { 2, 3, 4, 9 };
         var rows = await _db.StockTransactionTypes
             .AsNoTracking()
             .Where(t => ids.Contains(t.ID))
@@ -97,7 +97,7 @@ public class StockOperationsController(ApplicationDbContext db) : ControllerBase
             if (request is null)
                 return BadRequest(new { errors = new { Request = new[] { "غلط درخواست." } } });
 
-            if (request.TransactionTypeID is not (2 or 3 or 9))
+            if (request.TransactionTypeID is not (2 or 3 or 4 or 9))
                 return BadRequest(new { errors = new { TransactionTypeID = new[] { "د عملياتو نوع ناسم دی." } } });
 
             if (request.Quantity <= 0)
@@ -206,6 +206,75 @@ public class StockOperationsController(ApplicationDbContext db) : ControllerBase
 
             if (stockBalance.Quantity - mainQty < 0)
                 return BadRequest(new { errors = new { Quantity = new[] { "په ګدام کې کافي موجودي نشته." } } });
+
+            if (request.TransactionTypeID == 4)
+            {
+                if (request.WarehouseID is null || request.WarehouseID <= 0)
+                    return BadRequest(new { errors = new { WarehouseID = new[] { "ګدام ضروري دی." } } });
+
+                if (request.WarehouseID.Value == stockBalance.WarehouseID)
+                    return BadRequest(new { errors = new { WarehouseID = new[] { "د بل ګدام انتخاب وکړئ." } } });
+
+                var sourceBatch = stockBalance.BatchNo ?? string.Empty;
+                var dest = await _db.StockBalances.FirstOrDefaultAsync(sb =>
+                    sb.ItemID == stockBalance.ItemID &&
+                    sb.WarehouseID == request.WarehouseID.Value &&
+                    (sb.BatchNo ?? string.Empty) == sourceBatch);
+
+                if (dest is null)
+                {
+                    dest = new StockBalance
+                    {
+                        ItemID = stockBalance.ItemID,
+                        WarehouseID = request.WarehouseID.Value,
+                        BatchNo = sourceBatch,
+                        Remarks = string.IsNullOrWhiteSpace(request.Notes) ? string.Empty : request.Notes.Trim(),
+                        Quantity = 0m,
+                        CreationDate = DateTime.UtcNow,
+                        CreatedByUserId = userId
+                    };
+                    _db.StockBalances.Add(dest);
+                    await _db.SaveChangesAsync();
+                }
+
+                stockBalance.Quantity -= mainQty;
+                if (!string.IsNullOrWhiteSpace(request.Notes))
+                    stockBalance.Remarks = request.Notes.Trim();
+                _db.StockBalances.Update(stockBalance);
+
+                dest.Quantity += mainQty;
+                if (!string.IsNullOrWhiteSpace(request.Notes))
+                    dest.Remarks = request.Notes.Trim();
+                _db.StockBalances.Update(dest);
+
+                await _db.SaveChangesAsync();
+
+                _db.StockTransactions.Add(new StockTransactions
+                {
+                    StockBalanceID = stockBalance.ID,
+                    Quantity = request.Quantity,
+                    Remarks = (request.Notes ?? string.Empty).Trim(),
+                    UnitID = outUnitId,
+                    TransactionID = 4,
+                    CreationDate = DateTime.UtcNow,
+                    CreatedByUserId = userId
+                });
+
+                _db.StockTransactions.Add(new StockTransactions
+                {
+                    StockBalanceID = dest.ID,
+                    Quantity = request.Quantity,
+                    Remarks = (request.Notes ?? string.Empty).Trim(),
+                    UnitID = outUnitId,
+                    TransactionID = 4,
+                    CreationDate = DateTime.UtcNow,
+                    CreatedByUserId = userId
+                });
+
+                await _db.SaveChangesAsync();
+                await tx.CommitAsync();
+                return Ok();
+            }
 
             stockBalance.Quantity -= mainQty;
             stockBalance.Remarks = string.IsNullOrWhiteSpace(request.Notes) ? (stockBalance.Remarks ?? string.Empty) : request.Notes.Trim();
