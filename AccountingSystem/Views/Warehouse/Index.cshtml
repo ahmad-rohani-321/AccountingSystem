@@ -261,18 +261,19 @@ items.Add().Location(ToolbarItemLocation.Before)
             return unitsStore.load().done(function (data) { unitsCache = data; });
         }
 
-        function clearCreateForm() {
-            var form = $("#create-item-form").data("dxForm");
-            if (form) {
-                try { DevExpress.validationEngine.resetGroup(createItemValidationGroup); } catch (e) { }
-                form.option("formData", $.extend(true, {}, createItemInitialFormData));
-                form.resetValues();
-                form.repaint();
-                ["NativeName", "AliasName", "SKU", "SerialNumber", "Description", "MinimumQuantity", "CategoryId", "UnitId"].forEach(function (f) {
-                    var editor = form.getEditor(f);
-                    if (editor && editor.reset) editor.reset();
-                });
-            } else {
+	        function clearCreateForm() {
+	            var form = $("#create-item-form").data("dxForm");
+	            if (form) {
+	                try { DevExpress.validationEngine.resetGroup(createItemValidationGroup); } catch (e) { }
+	                form.option("formData", $.extend(true, {}, createItemInitialFormData));
+	                // Some DevExtreme versions don't expose resetValues() on dxForm instances.
+	                if (typeof form.resetValues === "function") form.resetValues();
+	                form.repaint();
+	                ["NativeName", "AliasName", "SKU", "SerialNumber", "Description", "MinimumQuantity", "CategoryId", "UnitId"].forEach(function (f) {
+	                    var editor = form.getEditor(f);
+	                    if (editor && editor.reset) editor.reset();
+	                });
+	            } else {
                 try { DevExpress.validationEngine.resetGroup(createItemValidationGroup); } catch (e) { }
             }
 
