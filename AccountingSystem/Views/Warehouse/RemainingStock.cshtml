@@ -22,21 +22,21 @@
             items.Add().Name("searchPanel").Location(ToolbarItemLocation.Before);
             items.Add().Location(ToolbarItemLocation.Before)
                 .Template(@<text>
-                    <div id="rs-filter-warehouse" style="min-width:220px"></div>
-                </text>);
-            items.Add().Location(ToolbarItemLocation.Before)
-                .Template(@<text>
-                    <div id="rs-filter-item" style="min-width:260px"></div>
-                </text>);
-            items.Add().Location(ToolbarItemLocation.Before)
-                .Widget(w => w.Button()
-                    .ID("btn-remaining-stock-trx2")
-                    .Text("نوی داخلول")
-                    .Type(ButtonType.Default)
-                    .StylingMode(ButtonStylingMode.Contained)
-                    .Icon("fa-solid fa-plus")
-                    .OnClick("remainingStockTrx2.open")
-                );
+<div id="rs-filter-warehouse" style="min-width:220px"></div>
+</text>);
+items.Add().Location(ToolbarItemLocation.Before)
+    .Template(@<text>
+<div id="rs-filter-item" style="min-width:260px"></div>
+</text>);
+items.Add().Location(ToolbarItemLocation.Before)
+    .Widget(w => w.Button()
+        .ID("btn-remaining-stock-trx2")
+        .Text("نوی داخلول")
+        .Type(ButtonType.Default)
+        .StylingMode(ButtonStylingMode.Contained)
+        .Icon("fa-solid fa-plus")
+        .OnClick("remainingStockTrx2.open")
+    );
         }))
         .Columns(columns =>
         {
@@ -52,7 +52,7 @@
             columns.Add()
                 .Caption("عملیات")
                 .Type(GridCommandColumnType.Buttons)
-	                .Width(240)
+                    .Width(240)
                 .Buttons(b =>
                 {
                     b.Add()
@@ -60,10 +60,10 @@
                         .Icon("fa-solid fa-arrow-up-from-bracket")
                         .OnClick("remainingStockTrx9.openFromRow");
 
-	                    b.Add()
-	                        .Text("تبادله (۴)")
-	                        .Icon("fa-solid fa-right-left")
-	                        .OnClick("remainingStockTrx4.openFromRow");
+                    b.Add()
+                        .Text("تبادله (۴)")
+                        .Icon("fa-solid fa-right-left")
+                        .OnClick("remainingStockTrx4.openFromRow");
                 });
         })
 )
@@ -71,11 +71,11 @@
 <div id="remaining-stock-trx2-popup"></div>
 <div id="remaining-stock-trx2-loadpanel"></div>
 
-	<div id="remaining-stock-trx9-popover"></div>
-	<div id="remaining-stock-trx9-loadpanel"></div>
+<div id="remaining-stock-trx9-popup"></div>
+<div id="remaining-stock-trx9-loadpanel"></div>
 
-	<div id="remaining-stock-trx4-popover"></div>
-	<div id="remaining-stock-trx4-loadpanel"></div>
+<div id="remaining-stock-trx4-popup"></div>
+<div id="remaining-stock-trx4-loadpanel"></div>
 
 <script>
     var remainingStockFilters = (function () {
@@ -330,10 +330,12 @@
                 rtlEnabled: true,
                 width: 820,
                 height: "auto",
+                maxHeight: "92vh",
+                showTitle: true,
                 maxHeight: "90vh",
                 showTitle: true,
                 showCloseButton: true,
-                dragEnabled: true,
+                dragEnabled: false,
                 hideOnOutsideClick: false,
                 shading: true,
                 title: "نوی داخلول",
@@ -356,6 +358,10 @@
                         widget: "dxButton",
                         options: { text: "بندول", stylingMode: "text", onClick: function () { popup.hide(); } }
                     }
+                ],
+                toolbarItems: [
+                    { widget: "dxButton", location: "after", toolbar: "bottom", options: { elementAttr: { id: "rs-trx9-btn-submit" }, text: "Ø«Ø¨Øª", type: "success", stylingMode: "contained", onClick: save } },
+                    { widget: "dxButton", location: "after", toolbar: "bottom", options: { text: "Ø¨Ù†Ø¯ÙˆÙ„", type: "normal", stylingMode: "text", onClick: function () { popover.hide(); } } }
                 ],
                 contentTemplate: function (contentElement) {
                     var $wrap = $("<div class='p-2'></div>");
@@ -499,27 +505,27 @@
             });
         }
 
-	        function resetFormData() {
-	            return {
-	                TransactionTypeID: 9,
-	                OperationDate: todayLocal(),
-	                UnitConversionID: null,
-	                Quantity: null,
-	                Notes: ""
-	            };
-	        }
+        function resetFormData() {
+            return {
+                TransactionTypeID: 9,
+                OperationDate: todayLocal(),
+                UnitConversionID: null,
+                Quantity: null,
+                Notes: ""
+            };
+        }
 
         function validateFormData(data) {
             var errors = {};
             if (!data.OperationDate) errors.OperationDate = ["نېټه ضروری ده."];
             if (!data.UnitConversionID && data.UnitConversionID !== 0) errors.UnitConversionID = ["واحد ضروری دی."];
             if (!(data.Quantity > 0)) errors.Quantity = ["تعداد ضروری دی."];
-	            if (!data.TransactionTypeID) errors.TransactionTypeID = ["د عملیاتو ډول ضروري دی."];
-	            if (!((data.Notes || "").trim().length)) errors.Notes = ["ملاحظات ضروري دي."];
-	            return errors;
-	        }
+            if (!data.TransactionTypeID) errors.TransactionTypeID = ["د عملیاتو ډول ضروري دی."];
+            if (!((data.Notes || "").trim().length)) errors.Notes = ["ملاحظات ضروري دي."];
+            return errors;
+        }
 
-	        function computeMaxQuantity(unitOptions, unitConversionId, rowMainQty) {
+        function computeMaxQuantity(unitOptions, unitConversionId, rowMainQty) {
             if (!unitOptions || !unitOptions.length) return null;
             var selected = null;
             for (var i = 0; i < unitOptions.length; i++) {
@@ -554,13 +560,13 @@
 
             setSaving(true);
 
-	            var payload = {
-	                TransactionTypeID: Number(data.TransactionTypeID),
-	                StockBalanceID: currentRow.ID,
-	                UnitConversionID: data.UnitConversionID,
-	                Quantity: data.Quantity,
-	                Notes: data.Notes || ""
-	            };
+            var payload = {
+                TransactionTypeID: Number(data.TransactionTypeID),
+                StockBalanceID: currentRow.ID,
+                UnitConversionID: data.UnitConversionID,
+                Quantity: data.Quantity,
+                Notes: data.Notes || ""
+            };
 
             $.ajax({
                 url: "/api/StockOperations/RemainingStock",
@@ -583,41 +589,44 @@
                 .always(function () { setSaving(false); });
         }
 
-        function ensurePopover() {
+        function ensurePopup() {
             if (popover) return popover;
-            popover = $("#remaining-stock-trx9-popover").dxPopover({
+            popover = $("#remaining-stock-trx9-popup").dxPopup({
                 rtlEnabled: true,
-                width: 520,
+                width: 620,
                 height: "auto",
+                maxHeight: "92vh",
+                showTitle: true,
+                dragEnabled: true,
                 showCloseButton: true,
-                hideOnOutsideClick: true,
-                shading: false,
-                position: { my: "top", at: "bottom", offset: "0 8" },
-                title: "خارجول (۹)",
+                hideOnOutsideClick: false,
+                shading: true,
+                title: "د ګدام عملیې",
+                toolbarItems: [
+                    { widget: "dxButton", location: "after", toolbar: "bottom", options: { elementAttr: { id: "rs-trx9-btn-submit" }, text: "ثبت", type: "success", stylingMode: "contained", onClick: save } },
+                    { widget: "dxButton", location: "after", toolbar: "bottom", options: { text: "بندول", type: "normal", stylingMode: "text", onClick: function () { popover.hide(); } } }
+                ],
                 contentTemplate: function (contentElement) {
                     var $wrap = $("<div class='p-2'></div>");
-                    var $btns = $("<div class='d-flex justify-content-end gap-2 mb-2'></div>").appendTo($wrap);
-                    $("<div>").appendTo($btns).dxButton({ elementAttr: { id: "rs-trx9-btn-submit" }, text: "ثبت", type: "success", stylingMode: "contained", onClick: save });
-                    $("<div>").appendTo($btns).dxButton({ text: "بندول", stylingMode: "text", onClick: function () { popover.hide(); } });
                     $("<div id='remaining-stock-trx9-form'></div>").appendTo($wrap);
                     $(contentElement).append($wrap);
                 },
                 onShown: function () {
                     var initial = resetFormData();
-	                    form = $("#remaining-stock-trx9-form").dxForm({
-	                        rtlEnabled: true,
-	                        formData: initial,
-	                        colCount: 1,
-	                        showColonAfterLabel: false,
-	                        labelLocation: "top",
-	                        items: [
-	                            {
-	                                dataField: "TransactionTypeID",
-	                                label: { text: "د عملیاتو ډول" },
-	                                editorType: "dxSelectBox",
-	                                editorOptions: { dataSource: [], displayExpr: "Name", valueExpr: "ID", placeholder: "انتخاب...", value: initial.TransactionTypeID, showClearButton: false },
-	                                validationRules: [{ type: "required", message: "د عملیاتو ډول ضروري دی." }]
-	                            },
+                    form = $("#remaining-stock-trx9-form").dxForm({
+                        rtlEnabled: true,
+                        formData: initial,
+                        colCount: 1,
+                        showColonAfterLabel: false,
+                        labelLocation: "top",
+                        items: [
+                            {
+                                dataField: "TransactionTypeID",
+                                label: { text: "د عملیاتو ډول" },
+                                editorType: "dxSelectBox",
+                                editorOptions: { dataSource: [], displayExpr: "Name", valueExpr: "ID", placeholder: "انتخاب...", value: initial.TransactionTypeID, showClearButton: false },
+                                validationRules: [{ type: "required", message: "د عملیاتو ډول ضروري دی." }]
+                            },
                             {
                                 dataField: "OperationDate",
                                 label: { text: "نېټه" },
@@ -645,44 +654,44 @@
                                 editorType: "dxTextArea",
                                 editorOptions: { height: 80, placeholder: "اختیاري" }
                             }
-	                        ]
-	                    }).dxForm("instance");
+                        ]
+                    }).dxForm("instance");
 
-	                    // Transaction types (only IDs 9 and 3)
-	                    $.getJSON("/api/StockOperations/TransactionTypes").done(function (types) {
-	                        if (!form) return;
-	                        types = (types || []).filter(function (t) { return t && (t.ID === 9 || t.ID === 3); });
-	                        var ttEd = form.getEditor("TransactionTypeID");
-	                        if (ttEd) {
-	                            ttEd.option("dataSource", types);
-	                            var current = Number(ttEd.option("value") || 0);
-	                            if (!(current === 9 || current === 3)) ttEd.option("value", 9);
-	                        }
-	                    });
+                    // Transaction types (only IDs 9 and 3)
+                    $.getJSON("/api/StockOperations/TransactionTypes").done(function (types) {
+                        if (!form) return;
+                        types = (types || []).filter(function (t) { return t && (t.ID === 9 || t.ID === 3); });
+                        var ttEd = form.getEditor("TransactionTypeID");
+                        if (ttEd) {
+                            ttEd.option("dataSource", types);
+                            var current = Number(ttEd.option("value") || 0);
+                            if (!(current === 9 || current === 3)) ttEd.option("value", 9);
+                        }
+                    });
 
-	                    // Remarks required
-	                    try {
-	                        form.itemOption("Notes", "validationRules", [{ type: "required", message: "ملاحظات ضروري دي." }]);
-	                        var notesEd = form.getEditor("Notes");
-	                        if (notesEd) notesEd.option("placeholder", "ملاحظات ولیکئ...");
-	                    } catch (e) { }
+                    // Remarks required
+                    try {
+                        form.itemOption("Notes", "validationRules", [{ type: "required", message: "ملاحظات ضروري دي." }]);
+                        var notesEd = form.getEditor("Notes");
+                        if (notesEd) notesEd.option("placeholder", "ملاحظات ولیکئ...");
+                    } catch (e) { }
 
-	                    var itemId = currentRow ? (currentRow.ItemID || (currentRow.Item ? currentRow.Item.ID : null)) : null;
-	                    if (itemId) {
-	                        ensureUnitOptions(itemId).done(function (opts) {
-	                            if (!form) return;
-	                            var unitEd = form.getEditor("UnitConversionID");
-	                            if (unitEd) {
-	                                unitEd.option("dataSource", (opts || []));
-	                                var currentVal = unitEd.option("value");
-	                                if (currentVal === null || typeof currentVal === "undefined" || currentVal === "") {
-	                                    // Prefer main unit option if present (usually UnitConversionID = 0).
-	                                    var hasMain = (opts || []).some(function (o) { return o && o.UnitConversionID === 0; });
-	                                    unitEd.option("value", hasMain ? 0 : null);
-	                                }
-	                            }
-	                        });
-	                    }
+                    var itemId = currentRow ? (currentRow.ItemID || (currentRow.Item ? currentRow.Item.ID : null)) : null;
+                    if (itemId) {
+                        ensureUnitOptions(itemId).done(function (opts) {
+                            if (!form) return;
+                            var unitEd = form.getEditor("UnitConversionID");
+                            if (unitEd) {
+                                unitEd.option("dataSource", (opts || []));
+                                var currentVal = unitEd.option("value");
+                                if (currentVal === null || typeof currentVal === "undefined" || currentVal === "") {
+                                    // Prefer main unit option if present (usually UnitConversionID = 0).
+                                    var hasMain = (opts || []).some(function (o) { return o && o.UnitConversionID === 0; });
+                                    unitEd.option("value", hasMain ? 0 : null);
+                                }
+                            }
+                        });
+                    }
                 },
                 onHidden: function () {
                     setSaving(false);
@@ -691,7 +700,7 @@
                     form = null;
                     $("#remaining-stock-trx9-form").empty();
                 }
-            }).dxPopover("instance");
+            }).dxPopup("instance");
             return popover;
         }
 
@@ -701,290 +710,290 @@
                 var targetEl = e && e.event && e.event.currentTarget ? e.event.currentTarget : null;
                 if (!row || !row.ID) return;
                 currentRow = row;
-                var pop = ensurePopover();
-                pop.option("target", targetEl || window);
+                var pop = ensurePopup();
                 pop.show();
             } catch (ex) {
                 DevExpress.ui.notify("خطا رامنځته شوه.", "error", 3000);
             }
         }
 
-	        return { openFromRow: openFromRow };
-	    })();
+        return { openFromRow: openFromRow };
+    })();
 
-	    // StockExchange row-wise popover (TransactionTypeID = 4)
-	    var remainingStockTrx4 = (function () {
-	        var popover = null;
-	        var form = null;
-	        var loadPanel = null;
-	        var currentRow = null; // StockBalance row data
+    // StockExchange row-wise popover (TransactionTypeID = 4)
+    var remainingStockTrx4 = (function () {
+        var popover = null;
+        var form = null;
+        var loadPanel = null;
+        var currentRow = null; // StockBalance row data
 
-	        var unitOptionsCache = {}; // itemId -> options[]
+        var unitOptionsCache = {}; // itemId -> options[]
 
-	        function todayLocal() {
-	            var d = new Date();
-	            return new Date(d.getFullYear(), d.getMonth(), d.getDate());
-	        }
+        function todayLocal() {
+            var d = new Date();
+            return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+        }
 
-	        function showErrors(errors) {
-	            errors = errors || {};
-	            var msg = [];
-	            Object.keys(errors).forEach(function (k) {
-	                var arr = errors[k];
-	                if (Array.isArray(arr) && arr.length) msg.push(arr[0]);
-	            });
-	            if (!msg.length) msg = ["خطا رامنځته شوه."];
-	            DevExpress.ui.notify(msg.join(" "), "error", 4500);
-	        }
+        function showErrors(errors) {
+            errors = errors || {};
+            var msg = [];
+            Object.keys(errors).forEach(function (k) {
+                var arr = errors[k];
+                if (Array.isArray(arr) && arr.length) msg.push(arr[0]);
+            });
+            if (!msg.length) msg = ["خطا رامنځته شوه."];
+            DevExpress.ui.notify(msg.join(" "), "error", 4500);
+        }
 
-	        function ensureLoadPanel() {
-	            if (loadPanel) return loadPanel;
-	            loadPanel = $("#remaining-stock-trx4-loadpanel").dxLoadPanel({
-	                shading: true,
-	                showIndicator: true,
-	                showPane: true,
-	                message: "لطفاً انتظار وباسئ...",
-	                visible: false
-	            }).dxLoadPanel("instance");
-	            return loadPanel;
-	        }
+        function ensureLoadPanel() {
+            if (loadPanel) return loadPanel;
+            loadPanel = $("#remaining-stock-trx4-loadpanel").dxLoadPanel({
+                shading: true,
+                showIndicator: true,
+                showPane: true,
+                message: "لطفاً انتظار وباسئ...",
+                visible: false
+            }).dxLoadPanel("instance");
+            return loadPanel;
+        }
 
-	        function setSaving(isSaving) {
-	            var lp = ensureLoadPanel();
-	            try { lp.option("visible", isSaving === true); } catch (e) { }
-	            try {
-	                var submitBtn = $("#rs-trx4-btn-submit").dxButton("instance");
-	                if (submitBtn) submitBtn.option("disabled", isSaving === true);
-	            } catch (e2) { }
-	        }
+        function setSaving(isSaving) {
+            var lp = ensureLoadPanel();
+            try { lp.option("visible", isSaving === true); } catch (e) { }
+            try {
+                var submitBtn = $("#rs-trx4-btn-submit").dxButton("instance");
+                if (submitBtn) submitBtn.option("disabled", isSaving === true);
+            } catch (e2) { }
+        }
 
-	        function ensureUnitOptions(itemId) {
-	            if (!itemId) return $.Deferred().resolve([]).promise();
-	            if (unitOptionsCache[itemId]) return $.Deferred().resolve(unitOptionsCache[itemId]).promise();
-	            return $.getJSON("/api/Items/" + itemId + "/InitialStock/UnitOptions").then(function (opts) {
-	                unitOptionsCache[itemId] = opts || [];
-	                return unitOptionsCache[itemId];
-	            });
-	        }
+        function ensureUnitOptions(itemId) {
+            if (!itemId) return $.Deferred().resolve([]).promise();
+            if (unitOptionsCache[itemId]) return $.Deferred().resolve(unitOptionsCache[itemId]).promise();
+            return $.getJSON("/api/Items/" + itemId + "/InitialStock/UnitOptions").then(function (opts) {
+                unitOptionsCache[itemId] = opts || [];
+                return unitOptionsCache[itemId];
+            });
+        }
 
-	        function resetFormData() {
-	            return {
-	                OperationDate: todayLocal(),
-	                UnitConversionID: null,
-	                Quantity: null,
-	                Notes: ""
-	            };
-	        }
+        function resetFormData() {
+            return {
+                OperationDate: todayLocal(),
+                UnitConversionID: null,
+                Quantity: null,
+                Notes: ""
+            };
+        }
 
-		        function validateFormData(data) {
-		            var errors = {};
-		            if (!data.OperationDate) errors.OperationDate = ["نېټه ضروري ده."];
-		            if (!data.UnitConversionID && data.UnitConversionID !== 0) errors.UnitConversionID = ["واحد ضروري دی."];
-		            if (!data.WarehouseID) errors.WarehouseID = ["ګدام ضروري دی."];
-		            if (currentRow) {
-		                var sourceId = currentRow.WarehouseID || (currentRow.Warehouse ? currentRow.Warehouse.ID : null);
-		                if (sourceId && Number(data.WarehouseID) === Number(sourceId)) errors.WarehouseID = ["د بل ګدام انتخاب وکړئ."];
-		            }
-		            if (!(data.Quantity > 0)) errors.Quantity = ["تعداد ضروري دی."];
-		            return errors;
-		        }
+        function validateFormData(data) {
+            var errors = {};
+            if (!data.OperationDate) errors.OperationDate = ["نېټه ضروري ده."];
+            if (!data.UnitConversionID && data.UnitConversionID !== 0) errors.UnitConversionID = ["واحد ضروري دی."];
+            if (!data.WarehouseID) errors.WarehouseID = ["ګدام ضروري دی."];
+            if (currentRow) {
+                var sourceId = currentRow.WarehouseID || (currentRow.Warehouse ? currentRow.Warehouse.ID : null);
+                if (sourceId && Number(data.WarehouseID) === Number(sourceId)) errors.WarehouseID = ["د بل ګدام انتخاب وکړئ."];
+            }
+            if (!(data.Quantity > 0)) errors.Quantity = ["تعداد ضروري دی."];
+            return errors;
+        }
 
-	        function computeMaxQuantity(unitOptions, unitConversionId, rowMainQty) {
-	            if (!unitOptions || !unitOptions.length) return null;
-	            var selected = null;
-	            for (var i = 0; i < unitOptions.length; i++) {
-	                if (unitOptions[i] && unitOptions[i].UnitConversionID === unitConversionId) { selected = unitOptions[i]; break; }
-	            }
-	            if (!selected) return null;
-	            var exchanged = (selected.ExchangedAmount || 0);
-	            if (unitConversionId === 0) exchanged = 1;
-	            if (!(exchanged > 0)) return null;
-	            return rowMainQty * exchanged;
-	        }
+        function computeMaxQuantity(unitOptions, unitConversionId, rowMainQty) {
+            if (!unitOptions || !unitOptions.length) return null;
+            var selected = null;
+            for (var i = 0; i < unitOptions.length; i++) {
+                if (unitOptions[i] && unitOptions[i].UnitConversionID === unitConversionId) { selected = unitOptions[i]; break; }
+            }
+            if (!selected) return null;
+            var exchanged = (selected.ExchangedAmount || 0);
+            if (unitConversionId === 0) exchanged = 1;
+            if (!(exchanged > 0)) return null;
+            return rowMainQty * exchanged;
+        }
 
-	        function save() {
-	            if (!form || !currentRow || !currentRow.ID) return;
+        function save() {
+            if (!form || !currentRow || !currentRow.ID) return;
 
-	            var data = $.extend(true, {}, form.option("formData") || {});
-	            var clientErrors = validateFormData(data);
-	            if (Object.keys(clientErrors).length) {
-	                showErrors(clientErrors);
-	                return;
-	            }
+            var data = $.extend(true, {}, form.option("formData") || {});
+            var clientErrors = validateFormData(data);
+            if (Object.keys(clientErrors).length) {
+                showErrors(clientErrors);
+                return;
+            }
 
-	            var rowMainQty = currentRow.Quantity || 0;
-	            var itemId = currentRow.ItemID || (currentRow.Item ? currentRow.Item.ID : null);
-	            var unitOptions = unitOptionsCache[itemId] || [];
-	            var maxQty = computeMaxQuantity(unitOptions, data.UnitConversionID, rowMainQty);
+            var rowMainQty = currentRow.Quantity || 0;
+            var itemId = currentRow.ItemID || (currentRow.Item ? currentRow.Item.ID : null);
+            var unitOptions = unitOptionsCache[itemId] || [];
+            var maxQty = computeMaxQuantity(unitOptions, data.UnitConversionID, rowMainQty);
 
-	            if (maxQty !== null && data.Quantity > maxQty) {
-	                showErrors({ Quantity: ["په ګدام کې کافي موجودي نشته."] });
-	                return;
-	            }
+            if (maxQty !== null && data.Quantity > maxQty) {
+                showErrors({ Quantity: ["په ګدام کې کافي موجودي نشته."] });
+                return;
+            }
 
-	            setSaving(true);
+            setSaving(true);
 
-	            var payload = {
-	                TransactionTypeID: 4,
-	                StockBalanceID: currentRow.ID,
-	                UnitConversionID: data.UnitConversionID,
-	                WarehouseID: data.WarehouseID,
-	                Quantity: data.Quantity,
-	                Notes: data.Notes || ""
-	            };
+            var payload = {
+                TransactionTypeID: 4,
+                StockBalanceID: currentRow.ID,
+                UnitConversionID: data.UnitConversionID,
+                WarehouseID: data.WarehouseID,
+                Quantity: data.Quantity,
+                Notes: data.Notes || ""
+            };
 
-	            $.ajax({
-	                url: "/api/StockOperations/RemainingStock",
-	                method: "POST",
-	                contentType: "application/json",
-	                data: JSON.stringify(payload)
-	            })
-	                .done(function () {
-	                    DevExpress.ui.notify("ثبت شو.", "success", 1800);
-	                    try { $("#remaining-stock-grid").dxDataGrid("instance").refresh(true); } catch (e) { }
-	                    if (popover) popover.hide();
-	                })
-	                .fail(function (xhr) {
-	                    try {
-	                        var r = xhr && xhr.responseJSON ? xhr.responseJSON : null;
-	                        if (r && r.errors) { showErrors(r.errors); return; }
-	                    } catch (e) { }
-	                    DevExpress.ui.notify("ثبت ناکام شو.", "error", 3500);
-	                })
-	                .always(function () { setSaving(false); });
-	        }
+            $.ajax({
+                url: "/api/StockOperations/RemainingStock",
+                method: "POST",
+                contentType: "application/json",
+                data: JSON.stringify(payload)
+            })
+                .done(function () {
+                    DevExpress.ui.notify("ثبت شو.", "success", 1800);
+                    try { $("#remaining-stock-grid").dxDataGrid("instance").refresh(true); } catch (e) { }
+                    if (popover) popover.hide();
+                })
+                .fail(function (xhr) {
+                    try {
+                        var r = xhr && xhr.responseJSON ? xhr.responseJSON : null;
+                        if (r && r.errors) { showErrors(r.errors); return; }
+                    } catch (e) { }
+                    DevExpress.ui.notify("ثبت ناکام شو.", "error", 3500);
+                })
+                .always(function () { setSaving(false); });
+        }
 
-	        function ensurePopover() {
-	            if (popover) return popover;
-	            popover = $("#remaining-stock-trx4-popover").dxPopover({
-	                rtlEnabled: true,
-	                width: 520,
-	                height: "auto",
-	                showCloseButton: true,
-	                hideOnOutsideClick: true,
-	                shading: false,
-	                position: { my: "top", at: "bottom", offset: "0 8" },
-	                title: "تبادله (۴)",
-	                contentTemplate: function (contentElement) {
-	                    var $wrap = $("<div class='p-2'></div>");
-	                    var $btns = $("<div class='d-flex justify-content-end gap-2 mb-2'></div>").appendTo($wrap);
-	                    $("<div>").appendTo($btns).dxButton({ elementAttr: { id: "rs-trx4-btn-submit" }, text: "ثبت", type: "success", stylingMode: "contained", onClick: save });
-	                    $("<div>").appendTo($btns).dxButton({ text: "بندول", stylingMode: "text", onClick: function () { popover.hide(); } });
-	                    $("<div id='remaining-stock-trx4-form'></div>").appendTo($wrap);
-	                    $(contentElement).append($wrap);
-	                },
-	                onShown: function () {
-	                    var initial = resetFormData();
-	                    form = $("#remaining-stock-trx4-form").dxForm({
-	                        rtlEnabled: true,
-	                        formData: initial,
-	                        colCount: 1,
-	                        showColonAfterLabel: false,
-	                        labelLocation: "top",
-	                        items: [
-	                            {
-	                                itemType: "simple",
-	                                label: { text: "جنس / ګدام" },
-	                                template: function () {
-	                                    var itemName = currentRow && currentRow.Item && currentRow.Item.NativeName ? currentRow.Item.NativeName : "";
-	                                    var whName = currentRow && currentRow.Warehouse && currentRow.Warehouse.Name ? currentRow.Warehouse.Name : "";
-	                                    var batch = currentRow && currentRow.BatchNo ? currentRow.BatchNo : "";
-	                                    var qty = currentRow && currentRow.Quantity ? currentRow.Quantity : 0;
-	                                    return $("<div class='small text-muted'></div>").text(itemName + " - " + whName + " - " + batch + " - " + qty);
-	                                }
-	                            },
-	                            {
-	                                dataField: "OperationDate",
-	                                label: { text: "نېټه" },
-	                                editorType: "dxDateBox",
-	                                editorOptions: { type: "date", value: initial.OperationDate, readOnly: true, displayFormat: "yyyy-MM-dd" },
-	                                validationRules: [{ type: "required", message: "نېټه ضروري ده." }]
-	                            },
-	                            {
-	                                dataField: "UnitConversionID",
-	                                label: { text: "واحد" },
-	                                editorType: "dxSelectBox",
-	                                editorOptions: { dataSource: [], displayExpr: "UnitName", valueExpr: "UnitConversionID", placeholder: "انتخاب..." },
-	                                validationRules: [{ type: "required", message: "واحد ضروري دی." }]
-	                            },
-	                            {
-	                                dataField: "WarehouseID",
-	                                label: { text: "ګدام" },
-	                                editorType: "dxSelectBox",
-	                                editorOptions: { dataSource: [], displayExpr: "Name", valueExpr: "ID", placeholder: "انتخاب..." },
-	                                validationRules: [{ type: "required", message: "ګدام ضروري دی." }]
-	                            },
-	                            {
-	                                dataField: "Quantity",
-	                                label: { text: "تعداد" },
-	                                editorType: "dxNumberBox",
-	                                editorOptions: { min: 0, showSpinButtons: true, format: "#,##0.##" },
-	                                validationRules: [{ type: "required", message: "تعداد ضروري دی." }]
-	                            },
-	                            {
-	                                dataField: "Notes",
-	                                label: { text: "ملاحظات" },
-	                                editorType: "dxTextArea",
-	                                editorOptions: { height: 80, placeholder: "ملاحظات ولیکئ..." }
-	                            }
-	                        ]
-	                    }).dxForm("instance");
+        function ensurePopup() {
+            if (popover) return popover;
+            popover = $("#remaining-stock-trx4-popup").dxPopup({
+                rtlEnabled: true,
+                width: 620,
+                height: "auto",
+                maxHeight: "92vh",
+                showTitle: true,
+                dragEnabled: true,
+                showCloseButton: true,
+                hideOnOutsideClick: false,
+                shading: true,
+                title: "د ګدامونو ترمنځ انتقال",
+                toolbarItems: [
+                    { widget: "dxButton", location: "after", toolbar: "bottom", options: { elementAttr: { id: "rs-trx4-btn-submit" }, text: "ثبت", type: "success", stylingMode: "contained", onClick: save } },
+                    { widget: "dxButton", location: "after", toolbar: "bottom", options: { text: "بندول", type: "normal", stylingMode: "text", onClick: function () { popover.hide(); } } }
+                ],
+                contentTemplate: function (contentElement) {
+                    var $wrap = $("<div class='p-2'></div>");
+                    $("<div id='remaining-stock-trx4-form'></div>").appendTo($wrap);
+                    $(contentElement).append($wrap);
+                },
+                onShown: function () {
+                    var initial = resetFormData();
+                    form = $("#remaining-stock-trx4-form").dxForm({
+                        rtlEnabled: true,
+                        formData: initial,
+                        colCount: 1,
+                        showColonAfterLabel: false,
+                        labelLocation: "top",
+                        items: [
+                            {
+                                itemType: "simple",
+                                label: { text: "جنس / ګدام" },
+                                template: function () {
+                                    var itemName = currentRow && currentRow.Item && currentRow.Item.NativeName ? currentRow.Item.NativeName : "";
+                                    var whName = currentRow && currentRow.Warehouse && currentRow.Warehouse.Name ? currentRow.Warehouse.Name : "";
+                                    var batch = currentRow && currentRow.BatchNo ? currentRow.BatchNo : "";
+                                    var qty = currentRow && currentRow.Quantity ? currentRow.Quantity : 0;
+                                    return $("<div class='small text-muted'></div>").text(itemName + " - " + whName + " - " + batch + " - " + qty);
+                                }
+                            },
+                            {
+                                dataField: "OperationDate",
+                                label: { text: "نېټه" },
+                                editorType: "dxDateBox",
+                                editorOptions: { type: "date", value: initial.OperationDate, readOnly: true, displayFormat: "yyyy-MM-dd" },
+                                validationRules: [{ type: "required", message: "نېټه ضروري ده." }]
+                            },
+                            {
+                                dataField: "UnitConversionID",
+                                label: { text: "واحد" },
+                                editorType: "dxSelectBox",
+                                editorOptions: { dataSource: [], displayExpr: "UnitName", valueExpr: "UnitConversionID", placeholder: "انتخاب..." },
+                                validationRules: [{ type: "required", message: "واحد ضروري دی." }]
+                            },
+                            {
+                                dataField: "WarehouseID",
+                                label: { text: "ګدام" },
+                                editorType: "dxSelectBox",
+                                editorOptions: { dataSource: [], displayExpr: "Name", valueExpr: "ID", placeholder: "انتخاب..." },
+                                validationRules: [{ type: "required", message: "ګدام ضروري دی." }]
+                            },
+                            {
+                                dataField: "Quantity",
+                                label: { text: "تعداد" },
+                                editorType: "dxNumberBox",
+                                editorOptions: { min: 0, showSpinButtons: true, format: "#,##0.##" },
+                                validationRules: [{ type: "required", message: "تعداد ضروري دی." }]
+                            },
+                            {
+                                dataField: "Notes",
+                                label: { text: "ملاحظات" },
+                                editorType: "dxTextArea",
+                                editorOptions: { height: 80, placeholder: "ملاحظات ولیکئ..." }
+                            }
+                        ]
+                    }).dxForm("instance");
 
-	                    var itemId = currentRow ? (currentRow.ItemID || (currentRow.Item ? currentRow.Item.ID : null)) : null;
-	                    if (itemId) {
-	                        ensureUnitOptions(itemId).done(function (opts) {
-	                            if (!form) return;
-	                            var unitEd = form.getEditor("UnitConversionID");
-	                            if (unitEd) {
-	                                unitEd.option("dataSource", (opts || []));
-	                                var currentVal = unitEd.option("value");
-	                                if (currentVal === null || typeof currentVal === "undefined" || currentVal === "") {
-	                                    var hasMain = (opts || []).some(function (o) { return o && o.UnitConversionID === 0; });
-	                                    unitEd.option("value", hasMain ? 0 : null);
-	                                }
-	                            }
-	                        });
-	                    }
+                    var itemId = currentRow ? (currentRow.ItemID || (currentRow.Item ? currentRow.Item.ID : null)) : null;
+                    if (itemId) {
+                        ensureUnitOptions(itemId).done(function (opts) {
+                            if (!form) return;
+                            var unitEd = form.getEditor("UnitConversionID");
+                            if (unitEd) {
+                                unitEd.option("dataSource", (opts || []));
+                                var currentVal = unitEd.option("value");
+                                if (currentVal === null || typeof currentVal === "undefined" || currentVal === "") {
+                                    var hasMain = (opts || []).some(function (o) { return o && o.UnitConversionID === 0; });
+                                    unitEd.option("value", hasMain ? 0 : null);
+                                }
+                            }
+                        });
+                    }
 
-	                    // Warehouses (exclude the source warehouse)
-	                    $.getJSON("/api/Warehouses", { take: 100000, skip: 0, requireTotalCount: false }).done(function (r) {
-	                        if (!form) return;
-	                        var warehouses = (r && r.data) ? r.data : (Array.isArray(r) ? r : []);
-	                        var sourceId = currentRow ? (currentRow.WarehouseID || (currentRow.Warehouse ? currentRow.Warehouse.ID : null)) : null;
-	                        if (sourceId) warehouses = (warehouses || []).filter(function (w) { return w && w.ID !== sourceId; });
-	                        var whEd = form.getEditor("WarehouseID");
-	                        if (whEd) {
-	                            whEd.option("dataSource", warehouses || []);
-	                            var cur = whEd.option("value");
-	                            if (!cur && warehouses && warehouses.length === 1) whEd.option("value", warehouses[0].ID);
-	                        }
-	                    });
-	                },
-	                onHidden: function () {
-	                    setSaving(false);
-	                    currentRow = null;
-	                    if (form) { try { form.dispose(); } catch (e) { } }
-	                    form = null;
-	                    $("#remaining-stock-trx4-form").empty();
-	                }
-	            }).dxPopover("instance");
-	            return popover;
-	        }
+                    // Warehouses (exclude the source warehouse)
+                    $.getJSON("/api/Warehouses", { take: 100000, skip: 0, requireTotalCount: false }).done(function (r) {
+                        if (!form) return;
+                        var warehouses = (r && r.data) ? r.data : (Array.isArray(r) ? r : []);
+                        var sourceId = currentRow ? (currentRow.WarehouseID || (currentRow.Warehouse ? currentRow.Warehouse.ID : null)) : null;
+                        if (sourceId) warehouses = (warehouses || []).filter(function (w) { return w && w.ID !== sourceId; });
+                        var whEd = form.getEditor("WarehouseID");
+                        if (whEd) {
+                            whEd.option("dataSource", warehouses || []);
+                            var cur = whEd.option("value");
+                            if (!cur && warehouses && warehouses.length === 1) whEd.option("value", warehouses[0].ID);
+                        }
+                    });
+                },
+                onHidden: function () {
+                    setSaving(false);
+                    currentRow = null;
+                    if (form) { try { form.dispose(); } catch (e) { } }
+                    form = null;
+                    $("#remaining-stock-trx4-form").empty();
+                }
+            }).dxPopup("instance");
+            return popover;
+        }
 
-	        function openFromRow(e) {
-	            try {
-	                var row = e && e.row && e.row.data ? e.row.data : null;
-	                var targetEl = e && e.event && e.event.currentTarget ? e.event.currentTarget : null;
-	                if (!row || !row.ID) return;
-	                currentRow = row;
-	                var pop = ensurePopover();
-	                pop.option("target", targetEl || window);
-	                pop.show();
-	            } catch (ex) {
-	                DevExpress.ui.notify("خطا رامنځته شوه.", "error", 3000);
-	            }
-	        }
+        function openFromRow(e) {
+            try {
+                var row = e && e.row && e.row.data ? e.row.data : null;
+                if (!row || !row.ID) return;
+                currentRow = row;
+                var pop = ensurePopup();
+                pop.show();
+            } catch (ex) {
+                DevExpress.ui.notify("خطا رامنځته شوه.", "error", 3000);
+            }
+        }
 
-	        return { openFromRow: openFromRow };
-	    })();
-	</script>
+        return { openFromRow: openFromRow };
+    })();
+</script>

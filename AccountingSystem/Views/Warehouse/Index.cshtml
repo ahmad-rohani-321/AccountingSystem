@@ -112,8 +112,18 @@ items.Add().Location(ToolbarItemLocation.Before)
 )
 
 <div id="create-item-popup"></div>
-<div id="unit-conversions-popover"></div>
-<div id="initial-stock-popover"></div>
+<div id="unit-conversions-popup"></div>
+<div id="initial-stock-popup"></div>
+<div id="wi-add-item-tooltip"></div>
+
+<style>
+    .wi-popover-wrap { padding: 14px 14px 10px; }
+    .wi-popover-header { border-bottom: 1px solid rgba(0,0,0,.08); padding-bottom: 10px; margin-bottom: 10px; }
+    .wi-popover-title { font-weight: 700; }
+    .wi-popover-subtitle { color: #6c757d; font-size: 12px; margin-top: 2px; }
+    .wi-popover-hint { background: rgba(13,110,253,.06); border: 1px solid rgba(13,110,253,.16); color: #0d6efd; padding: 8px 10px; border-radius: 8px; font-size: 12px; margin-bottom: 10px; }
+    .wi-popover-actions .dx-button { min-width: 88px; }
+</style>
 
 <script>
     var warehouseItems = (function () {
@@ -125,12 +135,13 @@ items.Add().Location(ToolbarItemLocation.Before)
 
         var clientFiltersInitialized = false;
 
-        var unitConversionsPopover = null;
+        var unitConversionsPopup = null;
         var unitConversionsGrid = null;
         var currentConversionsItemId = null;
+        var currentConversionsItemLabel = null;
         var currentConversionsAnchor = null;
 
-        var initialStockPopover = null;
+        var initialStockPopup = null;
         var initialStockGrid = null;
         var currentInitialStockItemId = null;
         var currentInitialStockItemLabel = null;
@@ -163,6 +174,7 @@ items.Add().Location(ToolbarItemLocation.Before)
 
         function getItemsGrid() { return $("#items-grid").dxDataGrid("instance"); }
         function getCreatePopup() { return $("#create-item-popup").data("dxPopup"); }
+        function getAddItemButtonEl() { return $("#btn-add-item-toolbar").get(0); }
 
         function normalizeDxResult(r) {
             if (!r) return [];
@@ -180,6 +192,37 @@ items.Add().Location(ToolbarItemLocation.Before)
                 set[s] = true;
             });
             return Object.keys(set).sort(function (a, b) { return a.localeCompare(b); });
+        }
+
+        var addItemTooltip = null;
+        function ensureAddItemTooltip() {
+            if (addItemTooltip) return addItemTooltip;
+            addItemTooltip = $("#wi-add-item-tooltip").dxTooltip({
+                rtlEnabled: true,
+                showEvent: "",
+                hideEvent: "",
+                closeOnOutsideClick: true,
+                position: { my: "top", at: "bottom", offset: "0 8" },
+                animation: { show: { type: "fade", duration: 120 }, hide: { type: "fade", duration: 120 } },
+                contentTemplate: function (contentElement) {
+                    $(contentElement).append("<div class='px-2 py-1 rounded small' style='background:#dc3545;color:#fff'>مهرباني وکړئ لومړی کټیګوري او واحدونه ثبت کړئ.</div>");
+                }
+            }).dxTooltip("instance");
+            return addItemTooltip;
+        }
+
+        function showAddItemDangerTooltip(message) {
+            var tip = ensureAddItemTooltip();
+            var target = getAddItemButtonEl() || window;
+
+            tip.option("target", target);
+            tip.option("contentTemplate", function (contentElement) {
+                $(contentElement).append("<div class='px-2 py-1 rounded small' style='background:#dc3545;color:#fff'></div>");
+                $(contentElement).find("div").text(message || "مهرباني وکړئ لومړی کټیګوري او واحدونه ثبت کړئ.");
+            });
+
+            tip.show();
+            setTimeout(function () { try { tip.hide(); } catch (e) { } }, 3500);
         }
 
         function applyGridFilter() {
@@ -408,11 +451,31 @@ items.Add().Location(ToolbarItemLocation.Before)
             }).dxPopup("instance");
         }
 
-        function openCreateItemPopup() {
-            var popup = $("#create-item-popup").data("dxPopup");
-            if (!popup) popup = createCreateItemPopup();
-            popup.show();
-        }
+	        function openCreateItemPopup() {
+	            $.when(categoriesStore.load(), unitsStore.load()).done(function (catsResult, unitsResult) {
+	                var categories = normalizeDxResult(catsResult);
+	                var units = normalizeDxResult(unitsResult);
+	
+	                if (!categories.length && !units.length) {
+	                    showAddItemDangerTooltip("کټیګوري او واحدونه نشته. مهرباني وکړئ لومړی یې ثبت کړئ.");
+	                    return;
+	                }
+	                if (!categories.length) {
+	                    showAddItemDangerTooltip("کټیګوري نشته. مهرباني وکړئ لومړی کټیګوري ثبت کړئ.");
+	                    return;
+	                }
+	                if (!units.length) {
+	                    showAddItemDangerTooltip("واحدونه نشته. مهرباني وکړئ لومړی واحدونه ثبت کړئ.");
+	                    return;
+	                }
+	
+	                var popup = $("#create-item-popup").data("dxPopup");
+	                if (!popup) popup = createCreateItemPopup();
+	                popup.show();
+	            }).fail(function () {
+	                showAddItemDangerTooltip("د کټیګوري/واحد معلومات لوډ نشول. مهرباني وکړئ بیا هڅه وکړئ.");
+	            });
+	        }
 
         function saveCreateForm() {
             var form = $("#create-item-form").dxForm("instance");
@@ -457,37 +520,50 @@ items.Add().Location(ToolbarItemLocation.Before)
         }
 
         function onRowUpdating(e) { if (e.newData && Object.prototype.hasOwnProperty.call(e.newData, "UnitId")) delete e.newData.UnitId; }
-        function ensureUnitConversionsPopover() {
-            if (unitConversionsPopover) return unitConversionsPopover;
-            unitConversionsPopover = $("#unit-conversions-popover").dxPopover({
-                width: 860,
+        function ensureUnitConversionsPopup() {
+            if (unitConversionsPopup) return unitConversionsPopup;
+            unitConversionsPopup = $("#unit-conversions-popup").dxPopup({
+                width: 920,
                 height: "auto",
+                maxHeight: "92vh",
                 rtlEnabled: true,
-                showCloseButton: true,
-                hideOnOutsideClick: true,
-                shading: false,
-                position: { my: "top", at: "bottom", offset: "0 8" },
+                showTitle: true,
                 title: "فرعي واحدونه",
+                dragEnabled: false,
+                hideOnOutsideClick: false,
+                showCloseButton: true,
+                shading: true,
+                toolbarItems: [
+                    { widget: "dxButton", location: "after", toolbar: "bottom", options: { text: "ثبت", type: "success", stylingMode: "contained", onClick: saveUnitConversions } },
+                    { widget: "dxButton", location: "after", toolbar: "bottom", options: { text: "بندول", type: "normal", stylingMode: "text", onClick: function () { unitConversionsPopup.hide(); } } }
+                ],
                 contentTemplate: function (contentElement) {
-                    var $wrap = $("<div class='p-2'></div>");
-                    var $header = $("<div class='d-flex justify-content-between align-items-center mb-2'></div>").appendTo($wrap);
-                    $("<div class='fw-semibold'>فرعي واحدونه</div>").appendTo($header);
-                    var $btns = $("<div class='d-flex gap-2'></div>").appendTo($header);
-                    $("<div>").appendTo($btns).dxButton({ text: "ثبت", type: "success", stylingMode: "contained", onClick: saveUnitConversions });
-                    $("<div>").appendTo($btns).dxButton({ text: "بندول", type: "normal", stylingMode: "text", onClick: function () { unitConversionsPopover.hide(); } });
-                    $("<div class='text-muted mb-2 small'>که له دوو ستنو څخه یوه ډکه کړئ، نو بله هم لازمي ده.</div>").appendTo($wrap);
+                    var $wrap = $("<div class='wi-popover-wrap'></div>");
+                    var $header = $("<div class='wi-popover-header'></div>").appendTo($wrap);
+                    $("<div class='wi-popover-title'>فرعي واحدونه <span id='unit-conv-item-label' class='text-muted fw-normal'></span></div>").appendTo($header);
+                    $("<div class='wi-popover-subtitle'>په دې برخه کې د جنس د فرعي واحدونو بدلونونه تنظیمېږي.</div>").appendTo($header);
+                    $("<div class='wi-popover-hint'>که له دوو ستنو څخه یوه ډکه کړئ، نو بله هم لازمي ده.</div>").appendTo($wrap);
+                    $("<div id='unit-conv-loading' class='text-muted small mb-2' style='display:none'>...لوډ کېږي</div>").appendTo($wrap);
                     $("<div id='edit-unit-conversions-grid'></div>").appendTo($wrap);
                     $(contentElement).append($wrap);
                 },
-                onShown: function () { if (currentConversionsItemId) loadUnitConversions(currentConversionsItemId); },
+                onShown: function () {
+                    try { $("#unit-conv-item-label").text(currentConversionsItemLabel ? ("(" + currentConversionsItemLabel + ")") : ""); } catch (e) { }
+                    if (currentConversionsItemId) {
+                        $("#unit-conv-loading").show();
+                        loadUnitConversions(currentConversionsItemId);
+                    }
+                },
                 onHidden: function () {
                     currentConversionsItemId = null;
+                    currentConversionsItemLabel = null;
                     currentConversionsAnchor = null;
                     if (unitConversionsGrid) { try { unitConversionsGrid.dispose(); } catch (e) { } unitConversionsGrid = null; }
                     $("#edit-unit-conversions-grid").empty();
+                    $("#unit-conv-loading").hide();
                 }
-            }).dxPopover("instance");
-            return unitConversionsPopover;
+            }).dxPopup("instance");
+            return unitConversionsPopup;
         }
 
         function buildUnitConversionsGrid(rows) {
@@ -508,7 +584,12 @@ items.Add().Location(ToolbarItemLocation.Before)
             }).dxDataGrid("instance");
         }
 
-        function loadUnitConversions(itemId) { $.getJSON("/api/Items/" + itemId + "/UnitConversions").done(function (rows) { buildUnitConversionsGrid(rows); }); }
+        function loadUnitConversions(itemId) {
+            $.getJSON("/api/Items/" + itemId + "/UnitConversions")
+                .done(function (rows) { buildUnitConversionsGrid(rows); })
+                .fail(function () { DevExpress.ui.notify("د فرعي واحدونو معلومات لوډ نشول.", "error", 3000); })
+                .always(function () { $("#unit-conv-loading").hide(); });
+        }
 
         function saveUnitConversions() {
             if (!unitConversionsGrid || !currentConversionsItemId) return;
@@ -517,47 +598,52 @@ items.Add().Location(ToolbarItemLocation.Before)
                 var rows = unitConversionsGrid.option("dataSource") || [];
                 var payload = rows.map(function (r) { return { SubUnitID: r.SubUnitID, MainAmount: r.MainAmount, SubAmount: r.SubAmount, Remarks: r.Remarks }; });
                 $.ajax({ url: "/api/Items/" + currentConversionsItemId + "/UnitConversions", method: "PUT", contentType: "application/json", data: JSON.stringify(payload) })
-                    .done(function () { unitConversionsPopover.hide(); });
+                    .done(function () { if (unitConversionsPopup) unitConversionsPopup.hide(); });
             });
         }
 
         function openUnitConversionsPopover(e) {
             currentConversionsItemId = e.row && e.row.data ? e.row.data.ID : null;
+            currentConversionsItemLabel = (e.row && e.row.data) ? ((e.row.data.NativeName || "") + (e.row.data.AliasName ? (" - " + e.row.data.AliasName) : "")) : null;
             currentConversionsAnchor = e.event && e.event.currentTarget ? e.event.currentTarget : null;
             if (!currentConversionsItemId) return;
-            var pop = ensureUnitConversionsPopover();
-            pop.option("target", currentConversionsAnchor || window);
-            pop.show();
+            var popup = ensureUnitConversionsPopup();
+            popup.show();
         }
 
-        function ensureInitialStockPopover() {
-            if (initialStockPopover) return initialStockPopover;
-            initialStockPopover = $("#initial-stock-popover").dxPopover({
-                width: 920,
+        function ensureInitialStockPopup() {
+            if (initialStockPopup) return initialStockPopup;
+            initialStockPopup = $("#initial-stock-popup").dxPopup({
+                width: 980,
                 height: "auto",
+                maxHeight: "92vh",
                 rtlEnabled: true,
-                showCloseButton: true,
-                hideOnOutsideClick: true,
-                shading: false,
-                position: { my: "top", at: "bottom", offset: "0 8" },
+                showTitle: true,
                 title: "ابتدایي موجودي",
+                dragEnabled: false,
+                hideOnOutsideClick: false,
+                showCloseButton: true,
+                shading: true,
+                toolbarItems: [
+                    { widget: "dxButton", location: "after", toolbar: "bottom", options: { text: "ثبت", type: "success", stylingMode: "contained", onClick: saveInitialStock } },
+                    { widget: "dxButton", location: "after", toolbar: "bottom", options: { text: "بندول", type: "normal", stylingMode: "text", onClick: function () { initialStockPopup.hide(); } } }
+                ],
                 contentTemplate: function (contentElement) {
-                    var $wrap = $("<div class='p-2'></div>");
-                    var $header = $("<div class='d-flex justify-content-between align-items-center mb-2'></div>").appendTo($wrap);
-                    $("<div class='fw-semibold'>ابتدایي موجودي <span id='initial-stock-item-label' class='text-muted fw-normal'></span></div>").appendTo($header);
-                    var $btns = $("<div class='d-flex gap-2'></div>").appendTo($header);
-                    $("<div>").appendTo($btns).dxButton({ text: "ثبت", type: "success", stylingMode: "contained", onClick: saveInitialStock });
-                    $("<div>").appendTo($btns).dxButton({ text: "بندول", type: "normal", stylingMode: "text", onClick: function () { initialStockPopover.hide(); } });
-                    $("<div class='text-muted mb-2 small'>دا برخه یوازې د جنس په لومړي ځل لپاره ده (کله چې کوم عملیات نه وي شوي).</div>").appendTo($wrap);
+                    var $wrap = $("<div class='wi-popover-wrap'></div>");
+                    var $header = $("<div class='wi-popover-header'></div>").appendTo($wrap);
+                    $("<div class='wi-popover-title'>ابتدایي موجودي <span id='initial-stock-item-label' class='text-muted fw-normal'></span></div>").appendTo($header);
+                    $("<div class='wi-popover-subtitle'>د جنس لپاره د لومړي ځل موجودي ثبت.</div>").appendTo($header);
+                    $("<div class='wi-popover-hint'>دا برخه یوازې د جنس په لومړي ځل لپاره ده (کله چې کوم عملیات نه وي شوي).</div>").appendTo($wrap);
+                    $("<div id='initial-stock-loading' class='text-muted small mb-2' style='display:none'>...لوډ کېږي</div>").appendTo($wrap);
                     $("<div id='initial-stock-grid'></div>").appendTo($wrap);
                     $(contentElement).append($wrap);
                 },
                 onShown: function () {
-                    try {
-                        $("#initial-stock-item-label").text(currentInitialStockItemLabel ? ("(" + currentInitialStockItemLabel + ")") : "");
-                    } catch (e) { }
-
-                    if (currentInitialStockItemId) loadInitialStockGrid(currentInitialStockItemId);
+                    try { $("#initial-stock-item-label").text(currentInitialStockItemLabel ? ("(" + currentInitialStockItemLabel + ")") : ""); } catch (e) { }
+                    if (currentInitialStockItemId) {
+                        $("#initial-stock-loading").show();
+                        loadInitialStockGrid(currentInitialStockItemId);
+                    }
                 },
                 onHidden: function () {
                     currentInitialStockItemId = null;
@@ -565,33 +651,39 @@ items.Add().Location(ToolbarItemLocation.Before)
                     currentInitialStockItemLabel = null;
                     if (initialStockGrid) { try { initialStockGrid.dispose(); } catch (e) { } initialStockGrid = null; }
                     $("#initial-stock-grid").empty();
+                    $("#initial-stock-loading").hide();
                 }
-            }).dxPopover("instance");
-            return initialStockPopover;
+            }).dxPopup("instance");
+            return initialStockPopup;
         }
 
         function loadInitialStockGrid(itemId) {
-            $.getJSON("/api/Items/" + itemId + "/InitialStock/Allowed").done(function (r) {
-                if (!r || r.Allowed !== true) return;
-                $.getJSON("/api/Items/" + itemId + "/InitialStock/UnitOptions").done(function (unitOptions) {
-                    initialStockGrid = $("#initial-stock-grid").dxDataGrid({
-                        dataSource: [],
-                        rtlEnabled: true,
-                        showBorders: true,
-                        rowAlternationEnabled: true,
-                        columnAutoWidth: true,
-                        paging: { enabled: false },
-                        editing: { mode: "row", allowAdding: true, allowDeleting: true, allowUpdating: true, newRowPosition: "last" },
-                        columns: [
-                            { dataField: "WarehouseID", caption: "ګدام", lookup: { dataSource: warehousesStore, displayExpr: "Name", valueExpr: "ID" }, validationRules: [{ type: "required", message: "ګدام ضروری دی." }] },
-                            { dataField: "Quantity", caption: "تعداد", dataType: "number", format: "#,##0.##", validationRules: [{ type: "required", message: "تعداد ضروری دی." }] },
-                            { dataField: "UnitConversionID", caption: "واحد", lookup: { dataSource: unitOptions, displayExpr: "UnitName", valueExpr: "UnitConversionID" }, validationRules: [{ type: "required", message: "واحد ضروری دی." }] },
-                            { dataField: "BatchNo", caption: "بچ نمبر" },
-                            { dataField: "Remarks", caption: "ملاحظات" }
-                        ]
-                    }).dxDataGrid("instance");
-                });
-            });
+            $.getJSON("/api/Items/" + itemId + "/InitialStock/Allowed")
+                .done(function (r) {
+                    if (!r || r.Allowed !== true) return;
+                    $.getJSON("/api/Items/" + itemId + "/InitialStock/UnitOptions")
+                        .done(function (unitOptions) {
+                            initialStockGrid = $("#initial-stock-grid").dxDataGrid({
+                                dataSource: [],
+                                rtlEnabled: true,
+                                showBorders: true,
+                                rowAlternationEnabled: true,
+                                columnAutoWidth: true,
+                                paging: { enabled: false },
+                                editing: { mode: "row", allowAdding: true, allowDeleting: true, allowUpdating: true, newRowPosition: "last" },
+                                columns: [
+                                    { dataField: "WarehouseID", caption: "ګدام", lookup: { dataSource: warehousesStore, displayExpr: "Name", valueExpr: "ID" }, validationRules: [{ type: "required", message: "ګدام ضروری دی." }] },
+                                    { dataField: "Quantity", caption: "تعداد", dataType: "number", format: "#,##0.##", validationRules: [{ type: "required", message: "تعداد ضروری دی." }] },
+                                    { dataField: "UnitConversionID", caption: "واحد", lookup: { dataSource: unitOptions, displayExpr: "UnitName", valueExpr: "UnitConversionID" }, validationRules: [{ type: "required", message: "واحد ضروری دی." }] },
+                                    { dataField: "BatchNo", caption: "بچ نمبر" },
+                                    { dataField: "Remarks", caption: "ملاحظات" }
+                                ]
+                            }).dxDataGrid("instance");
+                        })
+                        .fail(function () { DevExpress.ui.notify("د واحدونو معلومات لوډ نشول.", "error", 3000); });
+                })
+                .fail(function () { DevExpress.ui.notify("د ابتدایي موجودي اجازه لوډ نشوه.", "error", 3000); })
+                .always(function () { $("#initial-stock-loading").hide(); });
         }
 
         function saveInitialStock() {
@@ -609,7 +701,7 @@ items.Add().Location(ToolbarItemLocation.Before)
 
                     var payload = rows.map(function (r) { return { ItemID: currentInitialStockItemId, WarehouseID: r.WarehouseID, Quantity: r.Quantity, UnitConversionID: r.UnitConversionID, BatchNo: r.BatchNo, Remarks: r.Remarks }; });
                     $.ajax({ url: "/api/Items/" + currentInitialStockItemId + "/InitialStock", method: "PUT", contentType: "application/json", data: JSON.stringify(payload) })
-                        .done(function () { DevExpress.ui.notify("ثبت شو.", "success", 1800); initialStockPopover.hide(); getItemsGrid().refresh(true); })
+                        .done(function () { DevExpress.ui.notify("ثبت شو.", "success", 1800); if (initialStockPopup) initialStockPopup.hide(); getItemsGrid().refresh(true); })
                         .fail(function (xhr) { DevExpress.ui.notify((xhr && xhr.responseText) ? xhr.responseText : "ثبت ناکام شو.", "error", 3500); });
                 })
                 .fail(function () { DevExpress.ui.notify("مهرباني وکړئ فورم سم کړئ.", "error", 3000); });
@@ -630,9 +722,8 @@ items.Add().Location(ToolbarItemLocation.Before)
                     });
                 }
             } catch (e) { }
-            var pop = ensureInitialStockPopover();
-            pop.option("target", currentInitialStockAnchor || window);
-            pop.show();
+            var popup = ensureInitialStockPopup();
+            popup.show();
         }
 
         function openInitialStockPopover(e) {
