@@ -1,0 +1,136 @@
+@{
+    ViewData["title"] = "د ګدام مدیریت";
+    ViewData["Title"] = "د ګدام مدیریت";
+}
+
+<div class="row">
+    <p>کټیګوري</p>
+    <div>
+        @(
+        Html.DevExtreme().DataGrid()
+            .ID("categories-grid")
+            .DataSource(ds => ds.WebApi()
+            .Controller("Categories")
+            .Key("ID")
+            .LoadAction("Get")
+            .InsertAction("Post")
+            .UpdateAction("Put")
+                ).SearchPanel(sp => sp.Visible(true).Placeholder("لټون..."))
+                .RemoteOperations(true)
+                .ShowBorders(true)
+                .RowAlternationEnabled(true)
+                .ColumnAutoWidth(true)
+                .Editing(e => e
+                .Mode(GridEditMode.Row)
+                .AllowAdding(true)
+                .AllowUpdating(true)
+                .AllowDeleting(false)
+                )
+                .Option("editing.newRowPosition", "last")
+                .Columns(columns =>
+                {
+                    columns.Add().DataField(value: "ID").Caption("شمېره").AllowEditing(value: false).Width(70).Format("#");
+
+                    columns.Add().DataField(value: "Name").Caption("نوم").ValidationRules(r => r.AddRequired());
+
+                    columns.Add().DataField(value: "Description").Caption("تشریح");
+
+                    columns.Add().DataField(value: "IsActive").Caption("فعال").TrueText("هو").FalseText("نه");
+
+                    columns.Add().DataField(value:
+        "CreationDate").Caption("نېټه").DataType(GridColumnDataType.DateTime).AllowEditing(false);
+
+                    columns.Add().DataField(value: "CreatedByUser.FirstName").Caption("یوزر").AllowEditing(false);
+                })
+                )
+    </div>
+</div>
+
+
+<div class="row my-4">
+    <p>واحدونه</p>
+    <div>
+        @(
+                Html.DevExtreme().DataGrid()
+                .ID("units-grid")
+                .DataSource(ds => ds.WebApi()
+                    .Controller("Units")
+                    .Key("ID")
+                    .LoadAction("Get")
+                    .InsertAction("Post")
+                    .UpdateAction("Put")
+                )
+                .SearchPanel(sp => sp.Visible(true).Placeholder("لټون..."))
+                .RemoteOperations(true)
+                .ShowBorders(true)
+                .RowAlternationEnabled(true)
+                .ColumnAutoWidth(true)
+                .Editing(e => e
+                .Mode(GridEditMode.Row)
+                .AllowAdding(true)
+                .AllowUpdating(true)
+                .AllowDeleting(false)
+                )
+                .Option("editing.newRowPosition", "last")
+                .Columns(columns =>
+                {
+                    columns.Add().DataField("ID").Caption("شمېره").AllowEditing(false).Width(70).Format("#");
+
+                    columns.Add().DataField("Name").Caption("نوم").ValidationRules(r => r.AddRequired());
+
+                    columns.Add().DataField("Description").Caption("تشریح");
+
+                    columns.Add().DataField("IsActive").Caption("فعال").DataType(GridColumnDataType.Boolean).TrueText("هو").FalseText("نه");
+
+                    columns.Add().DataField("CreationDate").Caption("نېټه").DataType(GridColumnDataType.DateTime).AllowEditing(false);
+
+                    columns.Add().DataField("CreatedByUser.FirstName").Caption("یوزر").AllowEditing(false);
+                })
+                )
+    </div>
+</div>
+
+
+
+<div class="row my-4">
+    <p>ګدامونه</p>
+    <div>
+        @(
+                Html.DevExtreme().DataGrid()
+                .ID("warehouses-grid")
+                .DataSource(ds => ds.WebApi()
+                .Controller("Warehouses")
+                .Key("ID")
+                .LoadAction("Get")
+                .InsertAction("Post")
+                .UpdateAction("Put")
+                )
+                .SearchPanel(sp => sp.Visible(true).Placeholder("لټون..."))
+                .RemoteOperations(true)
+                .ShowBorders(true)
+                .RowAlternationEnabled(true)
+                .ColumnAutoWidth(true)
+                .Editing(e => e
+                .Mode(GridEditMode.Row)
+                .AllowAdding(true)
+                .AllowUpdating(true)
+                .AllowDeleting(false)
+                )
+                .Option("editing.newRowPosition", "last")
+                .Columns(columns =>
+                {
+                    columns.Add().DataField("ID").Caption("شمېره").AllowEditing(false).Width(70).Format("#");
+
+                    columns.Add().DataField("Name").Caption("نوم").ValidationRules(r => r.AddRequired());
+
+                    columns.Add().DataField("Description").Caption("تشریح");
+
+                    columns.Add().DataField("IsActive").Caption("فعال").DataType(GridColumnDataType.Boolean).TrueText("هو").FalseText("نه");
+
+                    columns.Add().DataField("CreationDate").Caption("نېټه").DataType(GridColumnDataType.DateTime).AllowEditing(false);
+
+                    columns.Add().DataField("CreatedByUser.FirstName").Caption("یوزر").AllowEditing(false);
+                })
+                )
+    </div>
+</div>
