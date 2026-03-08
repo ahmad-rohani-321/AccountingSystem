@@ -64,8 +64,6 @@ namespace AccountingSystem.Controllers.APIs
 
             // Quantity in StockBalance is already stored in the main unit.
             // Group by item + warehouse to combine batches of the same item in the same warehouse.
-            const decimal equalityTolerance = 0.000001m;
-
             var query = baseQuery
                 .GroupBy(sb => new
                 {
@@ -94,7 +92,7 @@ namespace AccountingSystem.Controllers.APIs
                     g.Key.WarehouseName,
                     Quantity = g.Sum(x => x.Quantity)
                 })
-                .Where(x => x.Quantity <= x.MinimumQuantity + equalityTolerance)
+                .Where(x => x.Quantity <= x.MinimumQuantity)
                 .OrderBy(x => x.NativeName)
                 .ThenBy(x => x.WarehouseName);
 
