@@ -120,10 +120,15 @@
                     .Option("path", GetUrl("Index", mainControllerName))
                     .Selected(IsCurrentUrl("Index", mainControllerName));
 
-                    sec.Add()
+                        sec.Add()
                     .Text("د ګدام موجودي")
                     .Option("path", GetUrl("RemainingStock", mainControllerName))
                     .Selected(IsCurrentUrl("RemainingStock", mainControllerName));
+
+                        sec.Add()
+                    .Text("د کمښت لیست")
+                    .Option("path", GetUrl("LeastItems", mainControllerName))
+                    .Selected(IsCurrentUrl("LeastItems", mainControllerName));
 
                     sec.Add()
                     .Text("د ګدام مدیریت")

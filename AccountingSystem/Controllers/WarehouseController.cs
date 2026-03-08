@@ -16,7 +16,12 @@ namespace AccountingSystem.Controllers
 
         public IActionResult Settings()
         {
-            return View(); 
+            return View();
+        }
+
+        public IActionResult LeastItems()
+        {
+            return View();
         }
     }
 }
