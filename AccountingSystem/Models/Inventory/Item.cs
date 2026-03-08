@@ -8,6 +8,7 @@ namespace AccountingSystem.Models.Inventory
         public string AliasName { get; set; } = string.Empty;
         public string SKU { get; set; } = default!; // SKU Stock Keeping Unit, Unique code for item
         public string SerialNumber { get; set; } = default!;
+        public string ImageName { get; set; } = string.Empty; // Image file name (GUID.jpg). Store only name, not full path.
         public string Description { get; set; } = default!;
         public bool IsActive { get; set; } = true;
         public decimal MinimumQuantity { get; set; }
