@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Security.Claims;
 using System.Text.Json;
@@ -13,7 +12,6 @@ using DevExtreme.AspNet.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 
 namespace AccountingSystem.Controllers.APIs
@@ -24,13 +22,11 @@ namespace AccountingSystem.Controllers.APIs
     public class ItemsController(
         IHttpContextAccessor accessor,
         ApplicationDbContext db,
-        IItemsRepository itemsRepository,
-        IWebHostEnvironment env) : ControllerBase
+        IItemsRepository itemsRepository) : ControllerBase
     {
         private readonly IHttpContextAccessor _accessor = accessor;
         private readonly ApplicationDbContext _db = db;
         private readonly IItemsRepository _items = itemsRepository;
-        private readonly IWebHostEnvironment _env = env;
 
         [HttpGet]
         public async Task<object> Get(DataSourceLoadOptions loadOptions)
@@ -57,7 +53,6 @@ namespace AccountingSystem.Controllers.APIs
                 i.AliasName,
                 i.SKU,
                 i.SerialNumber,
-                i.ImageName,
                 i.Description,
                 i.IsActive,
                 i.MinimumQuantity,
@@ -71,63 +66,6 @@ namespace AccountingSystem.Controllers.APIs
             });
 
             return DataSourceLoader.Load(shaped, loadOptions);
-        }
-
-        [HttpPost("UploadImage")]
-        [RequestSizeLimit(10 * 1024 * 1024)]
-        public async Task<IActionResult> UploadImage([FromForm] IFormFile file)
-        {
-            if (file is null || file.Length <= 0)
-                return BadRequest("File is required.");
-
-            var ext = (Path.GetExtension(file.FileName) ?? string.Empty).ToLowerInvariant();
-            if (ext is not ".jpg" and not ".jpeg")
-                return BadRequest("Only .jpg images are allowed.");
-
-            if (!string.Equals(file.ContentType, "image/jpeg", StringComparison.OrdinalIgnoreCase))
-                return BadRequest("Only JPEG images are allowed.");
-
-            var webRoot = _env.WebRootPath;
-            if (string.IsNullOrWhiteSpace(webRoot))
-                return StatusCode(StatusCodes.Status500InternalServerError, "WebRootPath is not configured.");
-
-            var dir = Path.Combine(webRoot, "itemimages");
-            Directory.CreateDirectory(dir);
-
-            var imageName = $"{Guid.NewGuid():N}.jpg";
-            var destPath = Path.Combine(dir, imageName);
-
-            await using (var fs = System.IO.File.Create(destPath))
-            {
-                await file.CopyToAsync(fs);
-            }
-
-            return Ok(new { imageName });
-        }
-
-        [HttpPut("{id:int}/ImageName")]
-        public async Task<IActionResult> UpdateImageName(int id, [FromBody] UpdateItemImageRequest request)
-        {
-            var entity = await _db.Items.FirstOrDefaultAsync(i => i.ID == id);
-            if (entity is null)
-                return NotFound();
-
-            var imageName = request.ImageName?.Trim();
-            if (string.IsNullOrWhiteSpace(imageName))
-            {
-                entity.ImageName = string.Empty;
-            }
-            else
-            {
-                // Only allow GUID.jpg format stored in DB.
-                if (!imageName.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase))
-                    return BadRequest("ImageName must end with .jpg");
-
-                entity.ImageName = imageName;
-            }
-
-            await _items.UpdateItemAsync(entity);
-            return Ok(new { entity.ID, entity.ImageName });
         }
 
         [HttpGet("{id:int}/UnitConversions")]
@@ -404,12 +342,6 @@ namespace AccountingSystem.Controllers.APIs
 
             ApplyValues(entity, values);
 
-            if (!string.IsNullOrWhiteSpace(entity.ImageName) &&
-                !entity.ImageName.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase))
-            {
-                ModelState.AddModelError(nameof(Item.ImageName), "ImageName must be a .jpg file name.");
-            }
-
             if (entity.MinimumQuantity < 0)
                 ModelState.AddModelError(nameof(Item.MinimumQuantity), "د کمښت خبرتیا باید د صفر څخه کمه نه وي.");
 
@@ -442,14 +374,13 @@ namespace AccountingSystem.Controllers.APIs
 	            var item = new Item
 	            {
 	                NativeName = request.NativeName?.Trim() ?? string.Empty,
-                    AliasName = request.AliasName?.Trim() ?? string.Empty,
-                    SKU = request.SKU?.Trim() ?? string.Empty,
-                    SerialNumber = request.SerialNumber?.Trim() ?? string.Empty,
-                    ImageName = string.IsNullOrWhiteSpace(request.ImageName) ? string.Empty : request.ImageName.Trim(),
-                    Description = request.Description?.Trim() ?? string.Empty,
-                    MinimumQuantity = request.MinimumQuantity,
-                    CategoryId = request.CategoryId,
-                    UnitId = request.UnitId,
+	                AliasName = request.AliasName?.Trim() ?? string.Empty,
+	                SKU = request.SKU?.Trim() ?? string.Empty,
+	                SerialNumber = request.SerialNumber?.Trim() ?? string.Empty,
+	                Description = request.Description?.Trim() ?? string.Empty,
+	                MinimumQuantity = request.MinimumQuantity,
+	                CategoryId = request.CategoryId,
+	                UnitId = request.UnitId,
                     IsActive = true,
 	                CreationDate = DateTime.UtcNow,
 	                CreatedByUserId = userId
@@ -457,11 +388,6 @@ namespace AccountingSystem.Controllers.APIs
 
 	            if (string.IsNullOrWhiteSpace(item.NativeName))
 	                ModelState.AddModelError(nameof(Item.NativeName), "NativeName is required.");
-                if (!string.IsNullOrWhiteSpace(item.ImageName) &&
-                    !item.ImageName.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase))
-                {
-                    ModelState.AddModelError(nameof(Item.ImageName), "ImageName must be a .jpg file name.");
-                }
 	            // AliasName is optional.
 	            if (string.IsNullOrWhiteSpace(item.SKU))
 	                item.SKU = await GenerateNextSkuAsync();
@@ -673,19 +599,6 @@ namespace AccountingSystem.Controllers.APIs
             if (dict.TryGetValue(nameof(Item.SerialNumber), out var serialEl) && serialEl.ValueKind != JsonValueKind.Null)
                 entity.SerialNumber = serialEl.GetString() ?? string.Empty;
 
-            if (dict.TryGetValue(nameof(Item.ImageName), out var imageEl))
-            {
-                if (imageEl.ValueKind == JsonValueKind.Null)
-                {
-                    entity.ImageName = null;
-                }
-            else if (imageEl.ValueKind == JsonValueKind.String)
-            {
-                var imageName = (imageEl.GetString() ?? string.Empty).Trim();
-                entity.ImageName = string.IsNullOrWhiteSpace(imageName) ? string.Empty : imageName;
-            }
-        }
-
             if (dict.TryGetValue(nameof(Item.Description), out var descEl) && descEl.ValueKind != JsonValueKind.Null)
                 entity.Description = descEl.GetString() ?? string.Empty;
 
@@ -718,17 +631,11 @@ namespace AccountingSystem.Controllers.APIs
         public string AliasName { get; set; } = string.Empty;
         public string SKU { get; set; } = string.Empty;
         public string SerialNumber { get; set; } = string.Empty;
-        public string ImageName { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
         public decimal MinimumQuantity { get; set; }
         public int CategoryId { get; set; }
         public int UnitId { get; set; }
         public List<UnitConversionRow> UnitConversions { get; set; } = [];
-    }
-
-    public class UpdateItemImageRequest
-    {
-        public string ImageName { get; set; } = string.Empty;
     }
 
     public class UnitConversionRow

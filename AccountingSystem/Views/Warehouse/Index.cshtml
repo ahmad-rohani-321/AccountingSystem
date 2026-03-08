@@ -43,7 +43,6 @@ items.Add().Location(ToolbarItemLocation.Before)
         .RowAlternationEnabled(true)
         .ColumnAutoWidth(true)
         .OnContentReady("warehouseItems.onGridContentReady")
-        .OnCellPrepared("warehouseItems.onCellPrepared")
         .Editing(e => e
             .Mode(GridEditMode.Row)
             .AllowAdding(false)
@@ -63,8 +62,6 @@ items.Add().Location(ToolbarItemLocation.Before)
 
             columns.Add().DataField("SKU").Caption("جنس کوډ")
                 .ValidationRules(r => r.AddRequired());
-
-            columns.Add().DataField("ImageName").Visible(false);
 
             columns.Add().DataField("SerialNumber").Caption("سیریل نمبر");
 
@@ -102,10 +99,6 @@ items.Add().Location(ToolbarItemLocation.Before)
                 .Buttons(b =>
                 {
                     b.Add()
-                        .Text("عکس")
-                        .Icon("image")
-                        .OnClick("warehouseItems.openImagePopup");
-                    b.Add()
                         .Text("فرعي واحدونه")
                         .Icon("repeat")
                         .OnClick("warehouseItems.openUnitConversionsPopover");
@@ -124,7 +117,6 @@ items.Add().Location(ToolbarItemLocation.Before)
 <div id="create-item-popup"></div>
 <div id="unit-conversions-popup"></div>
 <div id="initial-stock-popup"></div>
-<div id="item-image-popup"></div>
 <div id="wi-add-item-tooltip"></div>
 
 <style>
@@ -158,11 +150,6 @@ items.Add().Location(ToolbarItemLocation.Before)
         var currentInitialStockItemLabel = null;
         var currentInitialStockAnchor = null;
 
-        var itemImagePopup = null;
-        var currentImageItemId = null;
-        var currentImageItemLabel = null;
-        var itemImagePopover = null;
-
         var warehousesStore = DevExpress.data.AspNet.createStore({
             key: "ID",
             loadUrl: "/api/Warehouses/Active"
@@ -181,7 +168,6 @@ items.Add().Location(ToolbarItemLocation.Before)
             AliasName: "",
             SKU: "",
             SerialNumber: "",
-            ImageName: "",
             Description: "",
             MinimumQuantity: 0,
             CategoryId: null,
@@ -192,242 +178,6 @@ items.Add().Location(ToolbarItemLocation.Before)
         function getItemsGrid() { return $("#items-grid").dxDataGrid("instance"); }
         function getCreatePopup() { return $("#create-item-popup").data("dxPopup"); }
         function getAddItemButtonEl() { return $("#btn-add-item-toolbar").get(0); }
-
-        function itemImageUrl(imageName) {
-            if (!imageName) return null;
-            return "/itemimages/" + encodeURIComponent(imageName);
-        }
-
-        function compressJpeg(file, opts) {
-            opts = opts || {};
-            var maxW = opts.maxWidth || 1024;
-            var maxH = opts.maxHeight || 1024;
-            var quality = (typeof opts.quality === "number") ? opts.quality : 0.75;
-
-            return $.Deferred(function (d) {
-                try {
-                    if (!file) return d.reject("No file");
-                    var ext = ((file.name || "").split(".").pop() || "").toLowerCase();
-                    if (ext !== "jpg" && ext !== "jpeg") return d.reject("Only .jpg is allowed");
-                    if ((file.type || "").toLowerCase() !== "image/jpeg") return d.reject("Only JPEG is allowed");
-
-                    var img = new Image();
-                    img.onload = function () {
-                        try {
-                            var w = img.naturalWidth || img.width;
-                            var h = img.naturalHeight || img.height;
-                            if (!w || !h) return d.reject("Invalid image");
-
-                            var ratio = Math.min(maxW / w, maxH / h, 1);
-                            var tw = Math.max(1, Math.round(w * ratio));
-                            var th = Math.max(1, Math.round(h * ratio));
-
-                            var canvas = document.createElement("canvas");
-                            canvas.width = tw;
-                            canvas.height = th;
-                            var ctx = canvas.getContext("2d");
-                            ctx.drawImage(img, 0, 0, tw, th);
-
-                            canvas.toBlob(function (blob) {
-                                if (!blob) return d.reject("Compression failed");
-                                d.resolve(blob);
-                            }, "image/jpeg", quality);
-                        } catch (e) {
-                            d.reject(e);
-                        }
-                    };
-                    img.onerror = function () { d.reject("Invalid image"); };
-                    img.src = URL.createObjectURL(file);
-                } catch (e) {
-                    d.reject(e);
-                }
-            }).promise();
-        }
-
-        function uploadItemImageJpeg(file) {
-            return $.Deferred(function (d) {
-                compressJpeg(file, { maxWidth: 1024, maxHeight: 1024, quality: 0.75 })
-                    .done(function (jpegBlob) {
-                        var fd = new FormData();
-                        fd.append("file", jpegBlob, "upload.jpg");
-                        $.ajax({
-                            url: "/api/Items/UploadImage",
-                            method: "POST",
-                            data: fd,
-                            processData: false,
-                            contentType: false
-                        }).done(function (r) {
-                            var name = r && (r.imageName || r.ImageName);
-                            if (!name) return d.reject("Upload failed");
-                            d.resolve(name);
-                        }).fail(function (xhr) {
-                            d.reject((xhr && xhr.responseText) ? xhr.responseText : "Upload failed");
-                        });
-                    })
-                    .fail(function (err) { d.reject(err); });
-            }).promise();
-        }
-
-        function buildItemImageUploader($host, opts) {
-            opts = opts || {};
-            var getImageName = opts.getImageName || function () { return ""; };
-            var setImageName = opts.setImageName || function () { };
-            var saveImageName = opts.saveImageName || null; // optional: function(imageName){ return $.ajax(...) }
-            var title = opts.title || "عکس (.jpg)";
-            var hint = opts.hint || "یوازې .jpg. عکس په کلاینت کې Compress کېږي او په سرور کې د GUID په نوم ثبتېږي.";
-            var previewWidth = opts.previewWidth || 96;
-            var previewHeight = opts.previewHeight || 72;
-
-            $host.empty();
-
-            var $wrap = $("<div class='d-flex flex-column gap-2'></div>").appendTo($host);
-            var $header = $("<div class='fw-semibold'></div>").text(title).appendTo($wrap);
-            $("<div class='text-muted small'></div>").text(hint).appendTo($wrap);
-
-            var $row = $("<div class='d-flex align-items-center gap-2 flex-wrap'></div>").appendTo($wrap);
-            var $uploader = $("<div></div>").appendTo($row);
-            var $btnUpload = $("<div></div>").appendTo($row);
-            var $btnClear = $("<div></div>").appendTo($row);
-            var $status = $("<div class='text-muted small'></div>").appendTo($wrap);
-
-            var $previewRow = $("<div class='d-flex align-items-center gap-2 flex-wrap'></div>").appendTo($wrap);
-            var $preview = $("<img alt='' style='display:none;border:1px solid #ddd;border-radius:8px;object-fit:cover' />")
-                .css({ width: previewWidth + "px", height: previewHeight + "px" })
-                .appendTo($previewRow);
-            var $empty = $("<div class='text-muted small'></div>").text("عکس نشته.").appendTo($previewRow);
-
-            function setPreview(imageName) {
-                var url = itemImageUrl(imageName);
-                if (!url) {
-                    $preview.hide().attr("src", "");
-                    $empty.show();
-                    return;
-                }
-                $empty.hide();
-                $preview.attr("src", url).show();
-            }
-
-            function setBusy(isBusy, message) {
-                if (isBusy) {
-                    $status.text(message || "...").removeClass("text-danger").addClass("text-muted");
-                } else {
-                    $status.text(message || "");
-                }
-                try { if (btnUpload) btnUpload.option("disabled", !!isBusy); } catch (e) { }
-                try { if (btnClear) btnClear.option("disabled", !!isBusy); } catch (e) { }
-                try { if (uploader) uploader.option("disabled", !!isBusy); } catch (e) { }
-            }
-
-            var uploader = $uploader.dxFileUploader({
-                accept: ".jpg,.jpeg,image/jpeg",
-                multiple: false,
-                uploadMode: "useButtons",
-                selectButtonText: "انتخاب",
-                labelText: "",
-                readyToUploadMessage: "",
-                uploadButtonText: "اپلوډ",
-                onUploadClick: function (e) { e.cancel = true; },
-                onValueChanged: function () {
-                    try {
-                        var files = uploader.option("value") || [];
-                        btnUpload.option("disabled", !(files && files.length));
-                    } catch (e) { }
-                }
-            }).dxFileUploader("instance");
-
-            var btnUpload = $btnUpload.dxButton({
-                text: "اپلوډ",
-                type: "default",
-                stylingMode: "contained",
-                icon: "upload",
-                disabled: true,
-                onClick: function () {
-                    var files = uploader ? (uploader.option("value") || []) : [];
-                    var f = files && files.length ? files[0] : null;
-                    if (!f) return;
-
-                    setBusy(true, "...اپلوډ کېږي");
-                    uploadItemImageJpeg(f)
-                        .done(function (imageName) {
-                            var done = function () {
-                                setImageName(imageName || "");
-                                setPreview(imageName);
-                                DevExpress.ui.notify("عکس ثبت شو.", "success", 1500);
-                            };
-
-                            if (typeof saveImageName === "function") {
-                                saveImageName(imageName || "")
-                                    .done(function () { done(); try { if (opts.onSaved) opts.onSaved(imageName || ""); } catch (e) { } })
-                                    .fail(function (xhr) {
-                                        var msg = (xhr && xhr.responseText) ? xhr.responseText : "ثبت ناکام شو.";
-                                        $status.text(msg).removeClass("text-muted").addClass("text-danger");
-                                    })
-                                    .always(function () {
-                                        setBusy(false, "");
-                                        try { if (uploader) uploader.reset(); } catch (e) { }
-                                        try { btnUpload.option("disabled", true); } catch (e) { }
-                                    });
-                            } else {
-                                done();
-                                setBusy(false, "");
-                                try { if (uploader) uploader.reset(); } catch (e) { }
-                                try { btnUpload.option("disabled", true); } catch (e) { }
-                            }
-                        })
-                        .fail(function (err) {
-                            var msg2 = (err || "") + "";
-                            $status.text(msg2 || "Upload failed").removeClass("text-muted").addClass("text-danger");
-                            setBusy(false, "");
-                            try { if (uploader) uploader.reset(); } catch (e) { }
-                            try { btnUpload.option("disabled", true); } catch (e) { }
-                        });
-                }
-            }).dxButton("instance");
-
-            var btnClear = $btnClear.dxButton({
-                text: "پاکول",
-                type: "normal",
-                stylingMode: "outlined",
-                icon: "trash",
-                onClick: function () {
-                    var clearLocal = function () {
-                        setImageName("");
-                        setPreview("");
-                        DevExpress.ui.notify("پاک شو.", "success", 1200);
-                    };
-
-                    if (typeof saveImageName === "function") {
-                        setBusy(true, "...");
-                        saveImageName("")
-                            .done(function () { clearLocal(); try { if (opts.onSaved) opts.onSaved(""); } catch (e) { } })
-                            .fail(function (xhr) {
-                                var msg = (xhr && xhr.responseText) ? xhr.responseText : "پاکول ناکام شو.";
-                                $status.text(msg).removeClass("text-muted").addClass("text-danger");
-                            })
-                            .always(function () {
-                                setBusy(false, "");
-                                try { if (uploader) uploader.reset(); } catch (e) { }
-                                try { btnUpload.option("disabled", true); } catch (e) { }
-                            });
-                    } else {
-                        clearLocal();
-                        try { if (uploader) uploader.reset(); } catch (e) { }
-                        try { btnUpload.option("disabled", true); } catch (e) { }
-                    }
-                }
-            }).dxButton("instance");
-
-            setPreview(getImageName());
-
-            return {
-                reset: function () {
-                    try { if (uploader) uploader.reset(); } catch (e) { }
-                    try { btnUpload.option("disabled", true); } catch (e) { }
-                    setPreview(getImageName());
-                    $status.text("").removeClass("text-danger").addClass("text-muted");
-                }
-            };
-        }
 
         function normalizeDxResult(r) {
             if (!r) return [];
@@ -565,7 +315,7 @@ items.Add().Location(ToolbarItemLocation.Before)
 	                // Some DevExtreme versions don't expose resetValues() on dxForm instances.
 	                if (typeof form.resetValues === "function") form.resetValues();
 	                form.repaint();
-	                ["NativeName", "AliasName", "SKU", "SerialNumber", "ImageName", "Description", "MinimumQuantity", "CategoryId", "UnitId"].forEach(function (f) {
+	                ["NativeName", "AliasName", "SKU", "SerialNumber", "Description", "MinimumQuantity", "CategoryId", "UnitId"].forEach(function (f) {
 	                    var editor = form.getEditor(f);
 	                    if (editor && editor.reset) editor.reset();
 	                });
@@ -648,36 +398,6 @@ items.Add().Location(ToolbarItemLocation.Before)
 	                                    }
 	                                ]
 	                            },
-                                {
-                                    dataField: "ImageName",
-                                    label: { text: "عکس (.jpg)" },
-                                    colSpan: 2,
-                                    template: function () {
-                                        var $host = $("<div></div>");
-                                        buildItemImageUploader($host, {
-                                            title: "عکس (.jpg)",
-                                            hint: "یوازې .jpg. لومړی انتخاب، بیا اپلوډ.",
-                                            previewWidth: 96,
-                                            previewHeight: 72,
-                                            getImageName: function () {
-                                                try {
-                                                    var form = $("#create-item-form").dxForm("instance");
-                                                    return (form && form.option("formData")) ? (form.option("formData").ImageName || "") : "";
-                                                } catch (e) { return ""; }
-                                            },
-                                            setImageName: function (imageName) {
-                                                try {
-                                                    var form = $("#create-item-form").dxForm("instance");
-                                                    if (!form) return;
-                                                    var fd = $.extend(true, {}, form.option("formData") || {});
-                                                    fd.ImageName = imageName || "";
-                                                    form.option("formData", fd);
-                                                } catch (e) { }
-                                            }
-                                        });
-                                        return $host;
-                                    }
-                                },
 	                            { dataField: "Description", label: { text: "تشریح" }, editorType: "dxTextArea", editorOptions: { minHeight: 84, autoResizeEnabled: true } },
 	                            { dataField: "MinimumQuantity", label: { text: "د کمښت خبرتیا" }, editorType: "dxNumberBox", editorOptions: { min: 0, showSpinButtons: true }, validationRules: [{ type: "range", min: 0, message: "کمښت خبرتیا باید منفي نه وي." }] },
 	                            { dataField: "CategoryId", label: { text: "کټیګوري" }, editorType: "dxSelectBox", editorOptions: { dataSource: categoriesStore, displayExpr: "Name", valueExpr: "ID", searchEnabled: true, placeholder: "کټیګوري وټاکئ...", validationMessageMode: "always" }, validationRules: [{ type: "required", message: "کټیګوري وټاکئ." }] },
@@ -774,17 +494,16 @@ items.Add().Location(ToolbarItemLocation.Before)
             ucGrid.closeEditCell();
             ucGrid.saveEditData().done(function () {
                 var ucRows = ucGrid.option("dataSource") || [];
-                var payload = {
-                    NativeName: formData.NativeName,
-                    AliasName: formData.AliasName,
-                    SKU: formData.SKU,
-                    SerialNumber: formData.SerialNumber,
-                    ImageName: formData.ImageName,
-                    Description: formData.Description,
-                    MinimumQuantity: Number(formData.MinimumQuantity || 0),
-                    CategoryId: Number(formData.CategoryId || 0),
-                    UnitId: Number(formData.UnitId || 0),
-                    UnitConversions: ucRows.filter(function (r) { return r.MainAmount !== null || r.SubAmount !== null; })
+	                var payload = {
+	                    NativeName: formData.NativeName,
+	                    AliasName: formData.AliasName,
+	                    SKU: formData.SKU,
+	                    SerialNumber: formData.SerialNumber,
+	                    Description: formData.Description,
+	                    MinimumQuantity: Number(formData.MinimumQuantity || 0),
+	                    CategoryId: Number(formData.CategoryId || 0),
+	                    UnitId: Number(formData.UnitId || 0),
+	                    UnitConversions: ucRows.filter(function (r) { return r.MainAmount !== null || r.SubAmount !== null; })
                         .map(function (r) { return { SubUnitID: r.SubUnitID, MainAmount: r.MainAmount, SubAmount: r.SubAmount, Remarks: r.Remarks }; })
                 };
                 $.ajax({ url: "/api/Items/CreateWithConversions", method: "POST", contentType: "application/json", data: JSON.stringify(payload) })
@@ -804,125 +523,6 @@ items.Add().Location(ToolbarItemLocation.Before)
 
         function onRowUpdating(e) { if (e.newData && Object.prototype.hasOwnProperty.call(e.newData, "UnitId")) delete e.newData.UnitId; }
 
-        function ensureItemImagePopup() {
-            if (itemImagePopup) return itemImagePopup;
-            itemImagePopup = $("#item-image-popup").dxPopup({
-                width: 520,
-                height: "auto",
-                maxHeight: "92vh",
-                rtlEnabled: true,
-                showTitle: true,
-                title: "عکس",
-                dragEnabled: false,
-                hideOnOutsideClick: false,
-                showCloseButton: true,
-                shading: true,
-                contentTemplate: function (contentElement) {
-                    var $wrap = $("<div class='p-2'></div>");
-                    $("<div class='mb-2 fw-semibold'>عکس اپلوډ کړئ <span id='item-image-label' class='text-muted fw-normal'></span></div>").appendTo($wrap);
-                    var $uploaderHost = $("<div id='item-image-uploader-host'></div>").appendTo($wrap);
-                    $(contentElement).append($wrap);
-
-                    buildItemImageUploader($uploaderHost, {
-                        title: "عکس (.jpg)",
-                        hint: "یوازې .jpg. لومړی انتخاب، بیا اپلوډ. (Compress په کلاینت کې)",
-                        previewWidth: 120,
-                        previewHeight: 90,
-                        getImageName: function () {
-                            try {
-                                var grid = getItemsGrid();
-                                var ds = grid && grid.getDataSource ? grid.getDataSource() : null;
-                                var items = ds && ds.items ? ds.items() : [];
-                                var row = (items || []).filter(function (x) { return x && x.ID === currentImageItemId; })[0] || null;
-                                return row ? (row.ImageName || "") : "";
-                            } catch (e) { return ""; }
-                        },
-                        setImageName: function () { },
-                        saveImageName: function (imageName) {
-                            return $.ajax({
-                                url: "/api/Items/" + currentImageItemId + "/ImageName",
-                                method: "PUT",
-                                contentType: "application/json",
-                                data: JSON.stringify({ imageName: imageName || "" })
-                            });
-                        },
-                        onSaved: function () {
-                            try { getItemsGrid().refresh(true); } catch (e) { }
-                        }
-                    });
-                },
-                onShown: function () {
-                    try { $("#item-image-label").text(currentImageItemLabel ? ("(" + currentImageItemLabel + ")") : ""); } catch (e) { }
-                    try { $("#item-image-popup").find(".dx-popup-content").get(0).scrollTo({ top: 0, behavior: "smooth" }); } catch (e) { }
-                    try {
-                        var grid = getItemsGrid();
-                        var ds = grid && grid.getDataSource ? grid.getDataSource() : null;
-                        var items = ds && ds.items ? ds.items() : [];
-                        var row = (items || []).filter(function (x) { return x && x.ID === currentImageItemId; })[0] || null;
-                        var imageName = row ? row.ImageName : null;
-                        var url = itemImageUrl(imageName);
-                        if (url) $("#item-image-preview").attr("src", url).show();
-                        else $("#item-image-preview").hide().attr("src", "");
-                        $("#item-image-status").text("");
-                    } catch (e) { }
-                },
-                onHidden: function () {
-                    currentImageItemId = null;
-                    currentImageItemLabel = null;
-                    try { $("#item-image-uploader-host").empty(); } catch (e) { }
-                }
-            }).dxPopup("instance");
-            return itemImagePopup;
-        }
-
-        function openImagePopup(e) {
-            var itemId = e && e.row && e.row.data ? e.row.data.ID : null;
-            if (!itemId) return;
-            currentImageItemId = itemId;
-            currentImageItemLabel = (e.row.data.NativeName || "") + (e.row.data.AliasName ? (" - " + e.row.data.AliasName) : "");
-            ensureItemImagePopup().show();
-        }
-
-        function ensureItemImagePopover() {
-            if (itemImagePopover) return itemImagePopover;
-            itemImagePopover = $("<div id='wi-item-image-popover'></div>").appendTo(document.body).dxPopover({
-                width: 180,
-                height: "auto",
-                rtlEnabled: true,
-                showTitle: false,
-                hideOnOutsideClick: true,
-                position: "top",
-                contentTemplate: function () {
-                    return $("<div class='p-1 text-center'><img id='wi-item-image-popover-img' alt='' style='width:160px;height:120px;object-fit:cover;border-radius:6px;border:1px solid #ddd' /></div>");
-                }
-            }).dxPopover("instance");
-            return itemImagePopover;
-        }
-
-        function onCellPrepared(e) {
-            try {
-                if (!e || e.rowType !== "data") return;
-                if (!e.column || !e.column.dataField) return;
-                if (e.column.dataField !== "NativeName" && e.column.dataField !== "AliasName") return;
-                var imageName = e.data ? e.data.ImageName : null;
-                if (!imageName) return;
-                var url = itemImageUrl(imageName);
-                if (!url) return;
-
-                var $cell = $(e.cellElement);
-                $cell.css("cursor", "pointer");
-                $cell.off(".wiImg");
-                $cell.on("mouseenter.wiImg", function () {
-                    var pop = ensureItemImagePopover();
-                    try { $("#wi-item-image-popover-img").attr("src", url); } catch (x) { }
-                    pop.option("target", $cell);
-                    pop.show();
-                });
-                $cell.on("mouseleave.wiImg", function () {
-                    try { var pop = ensureItemImagePopover(); pop.hide(); } catch (x) { }
-                });
-            } catch (x) { }
-        }
         function ensureUnitConversionsPopup() {
             if (unitConversionsPopup) return unitConversionsPopup;
             unitConversionsPopup = $("#unit-conversions-popup").dxPopup({
@@ -1141,11 +741,9 @@ items.Add().Location(ToolbarItemLocation.Before)
             openCreateItemPopup: openCreateItemPopup,
             saveCreateForm: saveCreateForm,
             onRowUpdating: onRowUpdating,
-            openImagePopup: openImagePopup,
             openUnitConversionsPopover: openUnitConversionsPopover,
             openInitialStockPopover: openInitialStockPopover,
-            onGridContentReady: onGridContentReady,
-            onCellPrepared: onCellPrepared
+            onGridContentReady: onGridContentReady
         };
     })();
 </script>
