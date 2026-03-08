@@ -43,6 +43,7 @@ items.Add().Location(ToolbarItemLocation.Before)
         .RowAlternationEnabled(true)
         .ColumnAutoWidth(true)
         .OnContentReady("warehouseItems.onGridContentReady")
+        .OnCellPrepared("warehouseItems.onGridCellPrepared")
         .Editing(e => e
             .Mode(GridEditMode.Row)
             .AllowAdding(false)
@@ -95,13 +96,17 @@ items.Add().Location(ToolbarItemLocation.Before)
             columns.Add()
                 .Caption("عملیات")
                 .Type(GridCommandColumnType.Buttons)
-                .Width(200)
+                .Width(280)
                 .Buttons(b =>
                 {
                     b.Add()
                         .Text("فرعي واحدونه")
                         .Icon("repeat")
                         .OnClick("warehouseItems.openUnitConversionsPopover");
+                    b.Add()
+                        .Text("انځور")
+                        .Icon("image")
+                        .OnClick("warehouseItems.openUpdateImagePopup");
                     b.Add()
                         .Text("ابتدایي موجودي")
                         .Icon("box")
@@ -117,7 +122,9 @@ items.Add().Location(ToolbarItemLocation.Before)
 <div id="create-item-popup"></div>
 <div id="unit-conversions-popup"></div>
 <div id="initial-stock-popup"></div>
+<div id="update-item-image-popup"></div>
 <div id="wi-add-item-tooltip"></div>
+<div id="wi-native-image-popover"></div>
 
 <style>
     .wi-popover-wrap { padding: 14px 14px 10px; }
@@ -126,6 +133,12 @@ items.Add().Location(ToolbarItemLocation.Before)
     .wi-popover-subtitle { color: #6c757d; font-size: 12px; margin-top: 2px; }
     .wi-popover-hint { background: rgba(13,110,253,.06); border: 1px solid rgba(13,110,253,.16); color: #0d6efd; padding: 8px 10px; border-radius: 8px; font-size: 12px; margin-bottom: 10px; }
     .wi-popover-actions .dx-button { min-width: 88px; }
+    .wi-native-name-hover { cursor: pointer; }
+    .wi-native-image-wrap { width: 140px; height: 140px; margin: 0 auto; border-radius: 8px; border: 1px solid rgba(0,0,0,.08); box-sizing: border-box; display: flex; align-items: center; justify-content: center; background: #f8f9fa; overflow: hidden; }
+    .wi-native-image { width: 100%; height: 100%; object-fit: contain; display: block; }
+    .wi-update-image-wrap { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start; }
+    .wi-update-image-preview-wrap { width: 180px; }
+    .wi-update-image-preview { width: 180px; height: 180px; border-radius: 8px; border: 1px solid rgba(0,0,0,.08); background: #f8f9fa; object-fit: contain; display: block; }
 </style>
 
 <script>
@@ -150,6 +163,12 @@ items.Add().Location(ToolbarItemLocation.Before)
         var currentInitialStockItemLabel = null;
         var currentInitialStockAnchor = null;
 
+        var updateItemImagePopup = null;
+        var currentUpdateImageItemId = null;
+        var currentUpdateImageItemLabel = null;
+        var updateImageSelectedName = "default.png";
+        var updateImageUploading = null;
+
         var warehousesStore = DevExpress.data.AspNet.createStore({
             key: "ID",
             loadUrl: "/api/Warehouses/Active"
@@ -171,13 +190,191 @@ items.Add().Location(ToolbarItemLocation.Before)
             Description: "",
             MinimumQuantity: 0,
             CategoryId: null,
-            UnitId: null
+            UnitId: null,
+            ImageName: "default.png"
         };
         var createItemValidationGroup = "create-item-validation";
+
+        var createItemImageUploading = null;
+        var createItemLastUploadedImageName = "default.png";
+        var createItemDefaultImageUrl = "/images/itemsfolder/default.png";
+        var itemsImageRefreshToken = Date.now();
+
+        function getCreateItemImageUrl(imageName, cacheToken) {
+            var name = (imageName || "").trim();
+            var baseUrl = !name
+                ? createItemDefaultImageUrl
+                : ("/images/itemsfolder/" + encodeURIComponent(name));
+            var token = cacheToken || itemsImageRefreshToken;
+            return baseUrl + (baseUrl.indexOf("?") >= 0 ? "&" : "?") + "v=" + encodeURIComponent(String(token));
+        }
+
+        function setCreateItemPreviewImage(imageName) {
+            var $img = $("#create-item-image-preview");
+            if (!$img.length) return;
+            $img.attr("src", getCreateItemImageUrl(imageName, Date.now()));
+        }
+
+        function ensureCreateItemImageBox(formInstance) {
+            var $uploader = $("#create-item-image-uploader");
+            if (!$uploader.length) return;
+
+            if ($uploader.data("dxFileUploader")) return;
+
+            $uploader.dxFileUploader({
+                rtlEnabled: true,
+                accept: "image/png,image/jpeg",
+                allowedFileExtensions: [".png", ".jpg", ".jpeg"],
+                multiple: false,
+                uploadMode: "useForm",
+                selectButtonText: "انځور انتخاب",
+                labelText: "دلته فایل راکښ کړئ یا انتخاب کړئ",
+                onValueChanged: function (e) {
+                    var file = (e.value && e.value.length) ? e.value[0] : null;
+                    if (!file) {
+                        createItemImageUploading = null;
+                        createItemLastUploadedImageName = "default.png";
+                        if (formInstance) {
+                            var fd = formInstance.option("formData") || {};
+                            fd.ImageName = "default.png";
+                            formInstance.option("formData", fd);
+                        }
+                        setCreateItemPreviewImage("default.png");
+                        return;
+                    }
+
+                    createItemImageUploading = uploadCreateItemImage(file).then(function (fileName) {
+                        createItemLastUploadedImageName = fileName || "default.png";
+                        if (formInstance) {
+                            var fd2 = formInstance.option("formData") || {};
+                            fd2.ImageName = createItemLastUploadedImageName;
+                            formInstance.option("formData", fd2);
+                        }
+                        setCreateItemPreviewImage(createItemLastUploadedImageName);
+                        return createItemLastUploadedImageName;
+                    }).catch(function (err) {
+                        createItemImageUploading = null;
+                        DevExpress.ui.notify((err && err.message) ? err.message : "انځور اپلوډ ناکام شو.", "error", 3500);
+                        // Reset uploader to allow re-selecting same file.
+                        try { $uploader.dxFileUploader("instance").reset(); } catch (ex) { }
+                        if (formInstance) {
+                            var fd3 = formInstance.option("formData") || {};
+                            fd3.ImageName = "default.png";
+                            formInstance.option("formData", fd3);
+                        }
+                        setCreateItemPreviewImage("default.png");
+                    });
+                }
+            });
+        }
+
+        function compressImageFile(file, maxSide, jpegQuality) {
+            maxSide = maxSide || 1200;
+            jpegQuality = (typeof jpegQuality === "number") ? jpegQuality : 0.78;
+
+            return new Promise(function (resolve, reject) {
+                if (!file) return reject(new Error("No file."));
+
+                var name = (file.name || "").toLowerCase();
+                var ext = name.endsWith(".png") ? ".png" : (name.endsWith(".jpg") || name.endsWith(".jpeg")) ? ".jpg" : "";
+                if (!ext) return reject(new Error("یوازې .png یا .jpg اجازه لري."));
+
+                var mime = (ext === ".png") ? "image/png" : "image/jpeg";
+                var url = URL.createObjectURL(file);
+
+                function cleanup() { try { URL.revokeObjectURL(url); } catch (e) { } }
+
+                var img = new Image();
+                img.onload = function () {
+                    try {
+                        var w = img.naturalWidth || img.width;
+                        var h = img.naturalHeight || img.height;
+                        if (!w || !h) { cleanup(); return reject(new Error("انځور لوستل نشول.")); }
+
+                        var scale = Math.min(1, maxSide / Math.max(w, h));
+                        var tw = Math.max(1, Math.round(w * scale));
+                        var th = Math.max(1, Math.round(h * scale));
+
+                        var canvas = document.createElement("canvas");
+                        canvas.width = tw;
+                        canvas.height = th;
+                        var ctx = canvas.getContext("2d");
+                        ctx.imageSmoothingEnabled = true;
+                        ctx.imageSmoothingQuality = "high";
+                        ctx.drawImage(img, 0, 0, tw, th);
+
+                        canvas.toBlob(function (blob) {
+                            cleanup();
+                            if (!blob) return reject(new Error("انځور کمپرس نه شو."));
+                            resolve({ blob: blob, ext: ext, mime: mime });
+                        }, mime, mime === "image/jpeg" ? jpegQuality : undefined);
+                    } catch (e) {
+                        cleanup();
+                        reject(e);
+                    }
+                };
+                img.onerror = function () { cleanup(); reject(new Error("انځور لوستل نشول.")); };
+                img.src = url;
+            });
+        }
+
+        function uploadCreateItemImage(file) {
+            return compressImageFile(file, 1200, 0.78).then(function (res) {
+                var fd = new FormData();
+                // Keep original extension choice, but content is already compressed.
+                var uploadName = "upload" + (res.ext || ".jpg");
+                fd.append("file", new File([res.blob], uploadName, { type: res.mime }));
+
+                return $.ajax({
+                    url: "/api/Items/UploadImage",
+                    method: "POST",
+                    data: fd,
+                    processData: false,
+                    contentType: false
+                }).then(function (r) {
+                    var fileName = r && (r.fileName || r.FileName);
+                    if (!fileName) throw new Error("Server did not return fileName.");
+                    return fileName;
+                });
+            });
+        }
 
         function getItemsGrid() { return $("#items-grid").dxDataGrid("instance"); }
         function getCreatePopup() { return $("#create-item-popup").data("dxPopup"); }
         function getAddItemButtonEl() { return $("#btn-add-item-toolbar").get(0); }
+
+        function refreshItemImageInGrid(itemId, imageName) {
+            itemsImageRefreshToken = Date.now();
+            hideNativeImagePopover();
+
+            var grid = getItemsGrid();
+            if (!grid) return;
+
+            var ds = (grid.getDataSource && grid.getDataSource()) ? grid.getDataSource() : null;
+            var items = (ds && typeof ds.items === "function") ? ds.items() : null;
+            if (Array.isArray(items)) {
+                for (var i = 0; i < items.length; i++) {
+                    var row = items[i];
+                    if (!row) continue;
+                    if (String(row.ID) !== String(itemId)) continue;
+                    row.ImageName = imageName;
+                    break;
+                }
+            }
+
+            var rowIndex = (typeof grid.getRowIndexByKey === "function") ? grid.getRowIndexByKey(itemId) : -1;
+            if (rowIndex >= 0 && typeof grid.repaintRows === "function") {
+                grid.repaintRows([rowIndex]);
+                return;
+            }
+
+            if (typeof grid.repaint === "function") {
+                grid.repaint();
+                return;
+            }
+
+            grid.refresh(true);
+        }
 
         function normalizeDxResult(r) {
             if (!r) return [];
@@ -226,6 +423,182 @@ items.Add().Location(ToolbarItemLocation.Before)
 
             tip.show();
             setTimeout(function () { try { tip.hide(); } catch (e) { } }, 3500);
+        }
+
+        var nativeImagePopover = null;
+        function ensureNativeImagePopover() {
+            if (nativeImagePopover) return nativeImagePopover;
+            nativeImagePopover = $("#wi-native-image-popover").dxPopover({
+                rtlEnabled: true,
+                showEvent: "",
+                hideEvent: "",
+                closeOnOutsideClick: true,
+                shading: false,
+                width: 170,
+                position: { my: "right top", at: "left top", offset: "-8 0" }
+            }).dxPopover("instance");
+            return nativeImagePopover;
+        }
+
+        function showNativeImagePopover(targetEl, imageName) {
+            var popover = ensureNativeImagePopover();
+            var resolvedName = (imageName || "").trim() || "default.png";
+            var imageUrl = getCreateItemImageUrl(resolvedName);
+
+            popover.option("target", targetEl || window);
+            popover.option("contentTemplate", function (contentElement) {
+                var $wrap = $("<div class='wi-native-image-wrap'></div>").appendTo(contentElement);
+                $("<img class='wi-native-image' alt='item image' />")
+                    .attr("src", imageUrl)
+                    .on("error", function () { $(this).attr("src", getCreateItemImageUrl("default.png", Date.now())); })
+                    .appendTo($wrap);
+            });
+            popover.show();
+        }
+
+        function hideNativeImagePopover() {
+            if (!nativeImagePopover) return;
+            try { nativeImagePopover.hide(); } catch (e) { }
+        }
+
+        function onGridCellPrepared(e) {
+            if (!e || e.rowType !== "data" || !e.column || e.column.dataField !== "NativeName") return;
+            if (e.row && e.row.isEditing) return;
+
+            var $cell = $(e.cellElement);
+            $cell.addClass("wi-native-name-hover");
+            $cell.off(".wiNativeImage");
+            $cell.on("mouseenter.wiNativeImage", function () {
+                var row = e.data || {};
+                showNativeImagePopover($cell, row.ImageName);
+            });
+            $cell.on("mouseleave.wiNativeImage", function () {
+                hideNativeImagePopover();
+            });
+        }
+
+        function setUpdateItemPreviewImage(imageName) {
+            var $img = $("#update-item-image-preview");
+            if (!$img.length) return;
+            $img.attr("src", getCreateItemImageUrl(imageName || "default.png", Date.now()));
+        }
+
+        function ensureUpdateImageUploader() {
+            var $uploader = $("#update-item-image-uploader");
+            if (!$uploader.length || $uploader.data("dxFileUploader")) return;
+
+            $uploader.dxFileUploader({
+                rtlEnabled: true,
+                accept: "image/png,image/jpeg",
+                allowedFileExtensions: [".png", ".jpg", ".jpeg"],
+                multiple: false,
+                uploadMode: "useForm",
+                selectButtonText: "انځور انتخاب",
+                labelText: "دلته فایل راکښ کړئ یا انتخاب کړئ",
+                onValueChanged: function (e) {
+                    var file = (e.value && e.value.length) ? e.value[0] : null;
+                    if (!file) return;
+
+                    updateImageUploading = uploadCreateItemImage(file).then(function (fileName) {
+                        updateImageSelectedName = fileName || "default.png";
+                        setUpdateItemPreviewImage(updateImageSelectedName);
+                        return updateImageSelectedName;
+                    }).catch(function (err) {
+                        updateImageUploading = null;
+                        DevExpress.ui.notify((err && err.message) ? err.message : "انځور اپلوډ ناکام شو.", "error", 3500);
+                        try { $uploader.dxFileUploader("instance").reset(); } catch (ex) { }
+                    });
+                }
+            });
+        }
+
+        function ensureUpdateImagePopup() {
+            if (updateItemImagePopup) return updateItemImagePopup;
+
+            updateItemImagePopup = $("#update-item-image-popup").dxPopup({
+                width: 560,
+                height: "auto",
+                maxHeight: "85vh",
+                rtlEnabled: true,
+                showTitle: true,
+                title: "د جنس انځور تازه کول",
+                dragEnabled: false,
+                hideOnOutsideClick: false,
+                showCloseButton: true,
+                shading: true,
+                toolbarItems: [
+                    { widget: "dxButton", location: "after", toolbar: "bottom", options: { text: "ثبت", type: "success", stylingMode: "contained", onClick: saveUpdatedItemImage } },
+                    { widget: "dxButton", location: "after", toolbar: "bottom", options: { text: "بندول", type: "normal", stylingMode: "text", onClick: function () { if (updateItemImagePopup) updateItemImagePopup.hide(); } } }
+                ],
+                contentTemplate: function (contentElement) {
+                    var $wrap = $("<div class='wi-popover-wrap'></div>").appendTo(contentElement);
+                    $("<div class='wi-popover-title mb-2'>انځور: <span id='update-item-image-label' class='text-muted fw-normal'></span></div>").appendTo($wrap);
+                    var $content = $("<div class='wi-update-image-wrap'></div>").appendTo($wrap);
+                    var $previewWrap = $("<div class='wi-update-image-preview-wrap'></div>").appendTo($content);
+                    $("<img id='update-item-image-preview' class='wi-update-image-preview' alt='item image' />")
+                        .on("error", function () { $(this).attr("src", getCreateItemImageUrl("default.png", Date.now())); })
+                        .appendTo($previewWrap);
+                    var $uploadWrap = $("<div style='min-width:280px;flex:1'></div>").appendTo($content);
+                    $("<div id='update-item-image-uploader'></div>").appendTo($uploadWrap);
+                    $("<div class='small text-muted mt-2'>یوازې .png یا .jpg (Drag & Drop یا انتخاب)</div>").appendTo($uploadWrap);
+                },
+                onShown: function () {
+                    $("#update-item-image-label").text(currentUpdateImageItemLabel || "");
+                    setUpdateItemPreviewImage(updateImageSelectedName || "default.png");
+                    ensureUpdateImageUploader();
+                },
+                onHidden: function () {
+                    currentUpdateImageItemId = null;
+                    currentUpdateImageItemLabel = null;
+                    updateImageSelectedName = "default.png";
+                    updateImageUploading = null;
+                    try { $("#update-item-image-uploader").dxFileUploader("instance").reset(); } catch (e) { }
+                }
+            }).dxPopup("instance");
+
+            return updateItemImagePopup;
+        }
+
+        function saveUpdatedItemImage() {
+            if (!currentUpdateImageItemId) return;
+
+            var uploadPromise = updateImageUploading;
+            if (uploadPromise && typeof uploadPromise.then === "function") {
+                uploadPromise.then(function () { saveUpdatedItemImage(); });
+                updateImageUploading = null;
+                return;
+            }
+
+            $.ajax({
+                url: "/api/Items/" + currentUpdateImageItemId + "/Image",
+                method: "PUT",
+                contentType: "application/json",
+                data: JSON.stringify({ ImageName: (updateImageSelectedName || "default.png") })
+            })
+                .done(function (result) {
+                    var updatedImageName = (result && (result.ImageName || result.imageName)) || (updateImageSelectedName || "default.png");
+                    updateImageSelectedName = updatedImageName;
+                    DevExpress.ui.notify("انځور تازه شو.", "success", 1800);
+                    if (updateItemImagePopup) updateItemImagePopup.hide();
+                    refreshItemImageInGrid(currentUpdateImageItemId, updatedImageName);
+                })
+                .fail(function (xhr) {
+                    DevExpress.ui.notify((xhr && xhr.responseText) ? xhr.responseText : "انځور تازه نه شو.", "error", 3500);
+                });
+        }
+
+        function openUpdateImagePopup(e) {
+            var row = (e && e.row && e.row.data) ? e.row.data : null;
+            var itemId = row ? row.ID : null;
+            if (!itemId) return;
+
+            currentUpdateImageItemId = itemId;
+            currentUpdateImageItemLabel = ((row.NativeName || "") + (row.AliasName ? (" - " + row.AliasName) : "")).trim();
+            updateImageSelectedName = (row.ImageName || "default.png");
+            updateImageUploading = null;
+
+            var popup = ensureUpdateImagePopup();
+            popup.show();
         }
 
         function applyGridFilter() {
@@ -323,6 +696,11 @@ items.Add().Location(ToolbarItemLocation.Before)
                 try { DevExpress.validationEngine.resetGroup(createItemValidationGroup); } catch (e) { }
             }
 
+            createItemImageUploading = null;
+            createItemLastUploadedImageName = "default.png";
+            try { $("#create-item-image-uploader").dxFileUploader("instance").reset(); } catch (e) { }
+            setCreateItemPreviewImage("default.png");
+
             var ucGrid = $("#unit-conversions-grid").data("dxDataGrid");
             if (ucGrid) {
                 var ds = ucGrid.option("dataSource") || [];
@@ -360,6 +738,25 @@ items.Add().Location(ToolbarItemLocation.Before)
                         colCount: 2,
                         showColonAfterLabel: false,
                         items: [
+                            {
+                                itemType: "group",
+                                colSpan: 2,
+                                template: function (data, itemElement) {
+                                    var $wrap = $("<div class='d-flex flex-wrap gap-3 align-items-start mb-2'></div>").appendTo(itemElement);
+                                    var $preview = $("<div style='width:140px'></div>").appendTo($wrap);
+                                    $("<div class='small text-muted mb-1'>انځور</div>").appendTo($preview);
+                                    $("<img id='create-item-image-preview' class='border rounded' style='width:140px;height:140px;object-fit:cover;background:#f8f9fa' alt='item' />").appendTo($preview);
+
+                                    var $controls = $("<div style='min-width:320px;flex:1'></div>").appendTo($wrap);
+                                    $("<div id='create-item-image-uploader'></div>").appendTo($controls);
+                                    $("<div class='small text-muted mt-1'>یوازې .png یا .jpg (Drag & Drop یا انتخاب)</div>").appendTo($controls);
+
+                                    var formInstance = $("#create-item-form").dxForm("instance");
+                                    var fd = formInstance ? (formInstance.option("formData") || {}) : {};
+                                    setCreateItemPreviewImage(fd.ImageName || "default.png");
+                                    ensureCreateItemImageBox(formInstance);
+                                }
+                            },
                             {
                                 dataField: "NativeName", label: { text: "نوم" }, editorType: "dxTextBox", validationRules: [
                                     { type: "required", message: "نوم ضروری دی." },
@@ -487,6 +884,13 @@ items.Add().Location(ToolbarItemLocation.Before)
             var formResult = form.validate();
             if (!formResult.isValid) return;
 
+            var uploadPromise = createItemImageUploading;
+            if (uploadPromise && typeof uploadPromise.then === "function") {
+                uploadPromise.then(function () { saveCreateForm(); });
+                createItemImageUploading = null;
+                return;
+            }
+
             var formData = form.option("formData");
             var ucGrid = $("#unit-conversions-grid").dxDataGrid("instance");
             if (!ucGrid) return;
@@ -503,9 +907,10 @@ items.Add().Location(ToolbarItemLocation.Before)
 	                    MinimumQuantity: Number(formData.MinimumQuantity || 0),
 	                    CategoryId: Number(formData.CategoryId || 0),
 	                    UnitId: Number(formData.UnitId || 0),
+                        ImageName: (formData.ImageName || createItemLastUploadedImageName || "default.png"),
 	                    UnitConversions: ucRows.filter(function (r) { return r.MainAmount !== null || r.SubAmount !== null; })
                         .map(function (r) { return { SubUnitID: r.SubUnitID, MainAmount: r.MainAmount, SubAmount: r.SubAmount, Remarks: r.Remarks }; })
-                };
+	                };
                 $.ajax({ url: "/api/Items/CreateWithConversions", method: "POST", contentType: "application/json", data: JSON.stringify(payload) })
                     .done(function (created) {
                         var popup = getCreatePopup();
@@ -742,8 +1147,10 @@ items.Add().Location(ToolbarItemLocation.Before)
             saveCreateForm: saveCreateForm,
             onRowUpdating: onRowUpdating,
             openUnitConversionsPopover: openUnitConversionsPopover,
+            openUpdateImagePopup: openUpdateImagePopup,
             openInitialStockPopover: openInitialStockPopover,
-            onGridContentReady: onGridContentReady
+            onGridContentReady: onGridContentReady,
+            onGridCellPrepared: onGridCellPrepared
         };
     })();
 </script>

@@ -31,4 +31,8 @@
     <PackageReference Include="SQLitePCLRaw.bundle_e_sqlcipher" Version="2.1.11" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="wwwroot\images\itemsfolder\" />
+  </ItemGroup>
+
 </Project>

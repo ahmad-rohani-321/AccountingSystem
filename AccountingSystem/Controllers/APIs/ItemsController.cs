@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Security.Claims;
 using System.Text.Json;
@@ -10,6 +11,7 @@ using AccountingSystem.Repository.Inventory;
 using DevExtreme.AspNet.Data;
 using DevExtreme.AspNet.Mvc;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -22,11 +24,13 @@ namespace AccountingSystem.Controllers.APIs
     public class ItemsController(
         IHttpContextAccessor accessor,
         ApplicationDbContext db,
-        IItemsRepository itemsRepository) : ControllerBase
+        IItemsRepository itemsRepository,
+        IWebHostEnvironment env) : ControllerBase
     {
         private readonly IHttpContextAccessor _accessor = accessor;
         private readonly ApplicationDbContext _db = db;
         private readonly IItemsRepository _items = itemsRepository;
+        private readonly IWebHostEnvironment _env = env;
 
         [HttpGet]
         public async Task<object> Get(DataSourceLoadOptions loadOptions)
@@ -49,6 +53,7 @@ namespace AccountingSystem.Controllers.APIs
             var shaped = data.Select(i => new
             {
                 i.ID,
+                i.ImageName,
                 i.NativeName,
                 i.AliasName,
                 i.SKU,
@@ -378,6 +383,7 @@ namespace AccountingSystem.Controllers.APIs
 	                SKU = request.SKU?.Trim() ?? string.Empty,
 	                SerialNumber = request.SerialNumber?.Trim() ?? string.Empty,
 	                Description = request.Description?.Trim() ?? string.Empty,
+                    ImageName = string.IsNullOrWhiteSpace(request.ImageName) ? "default.png" : request.ImageName.Trim(),
 	                MinimumQuantity = request.MinimumQuantity,
 	                CategoryId = request.CategoryId,
 	                UnitId = request.UnitId,
@@ -468,6 +474,65 @@ namespace AccountingSystem.Controllers.APIs
 	            await _items.AddItemAsync(item, conversions);
 	            return Ok(item);
 	        }
+
+            [HttpPost("UploadImage")]
+            public async Task<IActionResult> UploadImage([FromForm] IFormFile file)
+            {
+                if (file is null || file.Length == 0)
+                    return BadRequest("File is required.");
+
+                var ext = Path.GetExtension(file.FileName)?.ToLowerInvariant() ?? string.Empty;
+                ext = ext == ".jpeg" ? ".jpg" : ext;
+                if (ext is not ".png" and not ".jpg")
+                    return BadRequest("Only .png and .jpg files are allowed.");
+
+                var imagesRoot = Path.Combine(_env.WebRootPath, "images", "itemsfolder");
+                Directory.CreateDirectory(imagesRoot);
+
+                var fileName = $"{Guid.NewGuid():D}{ext}";
+                var fullPath = Path.Combine(imagesRoot, fileName);
+
+                await using (var stream = System.IO.File.Create(fullPath))
+                {
+                    await file.CopyToAsync(stream);
+                }
+
+                return Ok(new { fileName });
+            }
+
+            [HttpPut("{id:int}/Image")]
+            public async Task<IActionResult> UpdateImage(int id, [FromBody] UpdateItemImageRequest request)
+            {
+                var item = await _db.Items.FirstOrDefaultAsync(i => i.ID == id);
+                if (item is null)
+                    return NotFound();
+
+                var rawName = request?.ImageName?.Trim();
+                var imageName = string.IsNullOrWhiteSpace(rawName) ? "default.png" : rawName;
+                var fileNameOnly = Path.GetFileName(imageName);
+                if (!string.Equals(fileNameOnly, imageName, StringComparison.Ordinal))
+                    return BadRequest("Invalid image name.");
+
+                var ext = Path.GetExtension(fileNameOnly).ToLowerInvariant();
+                if (ext is not ".png" and not ".jpg")
+                    return BadRequest("Only .png and .jpg images are allowed.");
+
+                var oldImageName = item.ImageName?.Trim() ?? string.Empty;
+                item.ImageName = fileNameOnly;
+                await _db.SaveChangesAsync();
+
+                var oldFileNameOnly = Path.GetFileName(oldImageName);
+                if (!string.IsNullOrWhiteSpace(oldFileNameOnly) &&
+                    !string.Equals(oldFileNameOnly, "default.png", StringComparison.OrdinalIgnoreCase) &&
+                    !string.Equals(oldFileNameOnly, fileNameOnly, StringComparison.OrdinalIgnoreCase))
+                {
+                    var oldFilePath = Path.Combine(_env.WebRootPath, "images", "itemsfolder", oldFileNameOnly);
+                    if (System.IO.File.Exists(oldFilePath))
+                        System.IO.File.Delete(oldFilePath);
+                }
+
+                return Ok(new { item.ID, item.ImageName });
+            }
 
 	        private async Task<string> GenerateNextSkuAsync()
 	        {
@@ -632,6 +697,7 @@ namespace AccountingSystem.Controllers.APIs
         public string SKU { get; set; } = string.Empty;
         public string SerialNumber { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
+        public string ImageName { get; set; } = "default.png";
         public decimal MinimumQuantity { get; set; }
         public int CategoryId { get; set; }
         public int UnitId { get; set; }
@@ -644,6 +710,11 @@ namespace AccountingSystem.Controllers.APIs
         public decimal? MainAmount { get; set; }
         public decimal? SubAmount { get; set; }
         public string Remarks { get; set; } = string.Empty;
+    }
+
+    public class UpdateItemImageRequest
+    {
+        public string ImageName { get; set; } = "default.png";
     }
 
     public class InitialStockRowVm
