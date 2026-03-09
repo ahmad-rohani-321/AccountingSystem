@@ -3,6 +3,8 @@ using AccountingSystem.Models.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
+using AccountingSystem.Models.Settings;
+using AccountingSystem.Models.Accounts;
 
 namespace AccountingSystem.Data
 {
@@ -15,12 +17,12 @@ namespace AccountingSystem.Data
             // Change AspNet default Identity table names to remove 'AspNet'
             modelBuilder.Entity<User>(entity =>
             {
-                entity.ToTable(name: "User");
+                entity.ToTable("User");
             });
 
             modelBuilder.Entity<IdentityRole>(entity =>
             {
-                entity.ToTable(name: "Role");
+                entity.ToTable("Role");
             });
 
             modelBuilder.Entity<IdentityUserRole<string>>(entity =>
@@ -69,6 +71,7 @@ namespace AccountingSystem.Data
 
             modelBuilder.Entity<User>().HasData(adminUser);
 
+            // seed Stock Transaction Types by default
             modelBuilder.Entity<StockTransactionType>().HasData(
                 new StockTransactionType
                 {
@@ -124,6 +127,7 @@ namespace AccountingSystem.Data
                 }
             );
 
+
             modelBuilder.Entity<WareHouse>().HasData(
                 new WareHouse
                 {
@@ -134,7 +138,74 @@ namespace AccountingSystem.Data
                     CreationDate = DateTime.Now
                 }
             );
+
+            modelBuilder.Entity<AccountType>().HasData(
+                // treasure
+                new AccountType()
+                {
+                    ID = 1,
+                    Name = "تجرۍ"
+                },
+                // bank
+                new AccountType()
+                {
+                    ID = 2,
+                    Name = "بانک"
+                },
+                // customer
+                new AccountType()
+                {
+                    ID = 3,
+                    Name = "پیریدونکی"
+                },
+                // supplier 
+                new AccountType()
+                {
+                    ID = 4,
+                    Name = "عرضه کوونکی"
+                },
+                // trader or both customer and supplier
+                new AccountType()
+                {
+                    ID = 5,
+                    Name = "معامله کوونکی"
+                },
+                // revenue
+                new AccountType()
+                {
+                    ID = 6,
+                    Name = "عواید"
+                },
+                // expense
+                new AccountType()
+                {
+                    ID = 7,
+                    Name = "مصارف"
+                }
+            );
+
+            modelBuilder.Entity<Currency>().HasData(
+                new Currency
+                {
+                    ID = 1,
+                    CurrencyName = "افغانۍ",
+                    CurrencySymbole = "AFN",
+                    IsMainCurrency = true,
+                    IsActive = true
+                },
+                new Currency
+                {
+                    ID = 2,
+                    CurrencyName = "ډالر",
+                    CurrencySymbole = "USD",
+                    IsMainCurrency = false,
+                    IsActive = true
+                }
+            );
         }
+
+        #region Inventory
+
         public DbSet<Category> Categories { get; set; } = default!;
         public DbSet<Unit> Units { get; set; } = default!;
         public DbSet<WareHouse> WareHouses { get; set; } = default!;
@@ -143,5 +214,19 @@ namespace AccountingSystem.Data
         public DbSet<StockBalance> StockBalances { get; set; } = default!;
         public DbSet<StockTransactionType> StockTransactionTypes { get; set; } = default!;
         public DbSet<StockTransactions> StockTransactions { get; set; } = default!;
+        #endregion
+
+        #region Settings
+        public DbSet<Currency> Currencies { get; set; }
+        public DbSet<CurrencyExchange> CurrencyExchanges { get; set; }
+        #endregion
+
+        #region Account
+        public DbSet<AccountType> AccountTypes { get; set; }
+        public DbSet<Account> Accounts { get; set; }
+        public DbSet<AccountContacts> AccountContacts { get; set; }
+        public DbSet<AccountBalance> AccountBalances { get; set; }
+        #endregion
+
     }
 }
