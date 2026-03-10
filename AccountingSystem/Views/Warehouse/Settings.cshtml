@@ -46,6 +46,117 @@
     </div>
 </div>
 
+<div class="row my-4">
+    <div class="col-12 col-xl-6 mb-4 mb-xl-0">
+        <p>اسعار</p>
+        <div>
+            @(
+                Html.DevExtreme().DataGrid()
+                    .ID("currencies-grid")
+                    .DataSource(ds => ds.WebApi()
+                        .Controller("Currencies")
+                        .Key("ID")
+                        .LoadAction("Get")
+                        .InsertAction("Post")
+                        .UpdateAction("Put")
+                    )
+                    .SearchPanel(sp => sp.Visible(true).Placeholder("لټون..."))
+                    .RemoteOperations(true)
+                    .ShowBorders(true)
+                    .RowAlternationEnabled(true)
+                    .ColumnAutoWidth(true)
+                    .Editing(e => e
+                        .Mode(GridEditMode.Row)
+                        .AllowAdding(true)
+                        .AllowUpdating(true)
+                        .AllowDeleting(false)
+                    )
+                    .Option("editing.newRowPosition", "last")
+                    .Columns(columns =>
+                    {
+                        columns.Add().DataField("ID").Caption("شمېره").AllowEditing(false).Width(70);
+
+                        columns.Add().DataField("CurrencyName").Caption("نوم").ValidationRules(r => r.AddRequired());
+
+                        columns.Add().DataField("CurrencySymbole").Caption("نښه").ValidationRules(r => r.AddRequired());
+
+                        columns.Add().DataField("IsMainCurrency").Caption("اصلي")
+                            .DataType(GridColumnDataType.Boolean)
+                            .TrueText("هو").FalseText("نه");
+
+                        columns.Add().DataField("IsActive").Caption("فعال")
+                            .DataType(GridColumnDataType.Boolean)
+                            .TrueText("هو").FalseText("نه");
+
+                        columns.Add().DataField("CreationDate").Caption("نېټه")
+                            .DataType(GridColumnDataType.DateTime)
+                            .AllowEditing(false);
+                    })
+            )
+        </div>
+    </div>
+
+    <div class="col-12 col-xl-6">
+        <p>د تبادلې نرخونه</p>
+        <div>
+            @(
+                Html.DevExtreme().DataGrid()
+                    .ID("currency-exchanges-grid")
+                    .DataSource(ds => ds.WebApi()
+                        .Controller("CurrencyExchanges")
+                        .Key("ID")
+                        .LoadAction("Get")
+                        .InsertAction("Post")
+                    )
+                    .SearchPanel(sp => sp.Visible(true).Placeholder("لټون..."))
+                    .RemoteOperations(true)
+                    .ShowBorders(true)
+                    .RowAlternationEnabled(true)
+                    .ColumnAutoWidth(true)
+                    .Editing(e => e
+                        .Mode(GridEditMode.Row)
+                        .AllowAdding(true)
+                        .AllowUpdating(false)
+                        .AllowDeleting(false)
+                    )
+                    .Option("editing.newRowPosition", "last")
+                    .Columns(columns =>
+                    {
+                        columns.Add().DataField("ID").Caption("شمېره").AllowEditing(false).Width(70);
+
+                        columns.Add().DataField("MainCurrencyID").Caption("اصلي اسعار")
+                            .Lookup(lookup => lookup
+                                .DataSource(ds => ds.WebApi().Controller("Currencies").Key("ID").LoadAction("Get"))
+                                .DisplayExpr("CurrencyName")
+                                .ValueExpr("ID")
+                            )
+                            .ValidationRules(r => r.AddRequired());
+
+                        columns.Add().DataField("SubCurrencyID").Caption("فرعي اسعار")
+                            .Lookup(lookup => lookup
+                                .DataSource(ds => ds.WebApi().Controller("Currencies").Key("ID").LoadAction("Get"))
+                                .DisplayExpr("CurrencyName")
+                                .ValueExpr("ID")
+                            )
+                            .ValidationRules(r => r.AddRequired());
+
+                        columns.Add().DataField("CurrencyExchangeRate").Caption("نرخ")
+                            .DataType(GridColumnDataType.Number)
+                            .ValidationRules(r =>
+                            {
+                                r.AddRequired();
+                                r.AddRange().Min(0).Message("نرخ باید منفي نه وي.");
+                            });
+
+                        columns.Add().DataField("CreationDate").Caption("نېټه")
+                            .DataType(GridColumnDataType.DateTime)
+                            .AllowEditing(false);
+                    })
+            )
+        </div>
+    </div>
+</div>
+
 
 <div class="row my-4">
     <p>واحدونه</p>

@@ -149,6 +149,15 @@
                     .Option("path", GetUrl("Users", "Users"))
                     .Selected(IsCurrentUrl("Users", "Users"));
                 });
+
+                items.Add().Text("تنظیمات").Icon("fa-solid fa-gear").Expanded(GetCurrentUrl().Contains("Settings"))
+                .Items(sec =>
+                {
+                    sec.Add().Text("عمومي تنظیمات")
+                    .Option("path", GetUrl("Index", "Settings"))
+                    .Selected(IsCurrentUrl("Index", "Settings"));
+
+                });
             })
             .ExpandEvent(TreeViewExpandEvent.Click)
             .SelectionMode(NavSelectionMode.Single)
