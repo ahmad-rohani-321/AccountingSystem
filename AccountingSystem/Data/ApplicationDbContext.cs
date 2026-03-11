@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
 using AccountingSystem.Models.Settings;
 using AccountingSystem.Models.Accounts;
+using AccountingSystem.Models.Accounting;
 
 namespace AccountingSystem.Data
 {
@@ -71,7 +72,6 @@ namespace AccountingSystem.Data
 
             modelBuilder.Entity<User>().HasData(adminUser);
 
-            // seed Stock Transaction Types by default
             modelBuilder.Entity<StockTransactionType>().HasData(
                 new StockTransactionType
                 {
@@ -140,47 +140,55 @@ namespace AccountingSystem.Data
             );
 
             modelBuilder.Entity<AccountType>().HasData(
-                // treasure
                 new AccountType()
                 {
                     ID = 1,
                     Name = "تجرۍ"
                 },
-                // bank
                 new AccountType()
                 {
                     ID = 2,
                     Name = "بانک"
                 },
-                // customer
                 new AccountType()
                 {
                     ID = 3,
                     Name = "پیریدونکی"
                 },
-                // supplier 
                 new AccountType()
                 {
                     ID = 4,
                     Name = "عرضه کوونکی"
                 },
-                // trader or both customer and supplier
                 new AccountType()
                 {
                     ID = 5,
                     Name = "معامله کوونکی"
                 },
-                // revenue
                 new AccountType()
                 {
                     ID = 6,
                     Name = "عواید"
                 },
-                // expense
                 new AccountType()
                 {
                     ID = 7,
                     Name = "مصارف"
+                },
+                new AccountType()
+                {
+                    ID = 8,
+                    Name = "پورونه"
+                },
+                new AccountType()
+                {
+                    ID = 9,
+                    Name = "شریک"
+                },
+                new AccountType()
+                {
+                    ID = 10,
+                    Name = "کارمند"
                 }
             );
 
@@ -191,7 +199,9 @@ namespace AccountingSystem.Data
                     CurrencyName = "افغانۍ",
                     CurrencySymbole = "AFN",
                     IsMainCurrency = true,
-                    IsActive = true
+                    IsActive = true,
+                    CreatedByUserId = "f5b9b7e7-2d3a-4b4d-a1b5-1b3f2a7a9e01",
+                    CreationDate = DateTime.Now
                 },
                 new Currency
                 {
@@ -199,13 +209,72 @@ namespace AccountingSystem.Data
                     CurrencyName = "ډالر",
                     CurrencySymbole = "USD",
                     IsMainCurrency = false,
-                    IsActive = true
+                    IsActive = true,
+                    CreatedByUserId = "f5b9b7e7-2d3a-4b4d-a1b5-1b3f2a7a9e01",
+                    CreationDate = DateTime.Now
+                }
+            );
+
+            modelBuilder.Entity<JournalTransactionType>().HasData(
+                new JournalTransactionType() 
+                { 
+                    ID = 1, 
+                    TypeName = "اولنی بلانس"
+                },
+                new JournalTransactionType()
+                {
+                    ID = 2,
+                    TypeName = "د اسعارو تبادله"
+                },
+                new JournalTransactionType()
+                {
+                    ID = 3,
+                    TypeName = "نقد جمع"
+                },
+                new JournalTransactionType()
+                {
+                    ID = 4,
+                    TypeName = "نقد منفي"
+                },
+                new JournalTransactionType()
+                {
+                    ID = 5,
+                    TypeName = "فروش"
+                },
+                new JournalTransactionType()
+                {
+                    ID = 6,
+                    TypeName = "خرید"
+                },
+                new JournalTransactionType()
+                {
+                    ID = 7,
+                    TypeName = "فروش مکمل واپسي"
+                },
+                new JournalTransactionType()
+                {
+                    ID = 8,
+                    TypeName = "خرید مکمل واپسي"
+                },
+                new JournalTransactionType()
+                {
+                    ID = 9,
+                    TypeName = "فروش واپسي"
+                },
+                new JournalTransactionType()
+                {
+                    ID = 10,
+                    TypeName = "خرید واپسي"
+                },
+                new JournalTransactionType()
+                {
+                    ID = 11,
+                    TypeName = "د حسابونو تبادله"
                 }
             );
         }
 
         #region Inventory
-
         public DbSet<Category> Categories { get; set; } = default!;
         public DbSet<Unit> Units { get; set; } = default!;
         public DbSet<WareHouse> WareHouses { get; set; } = default!;
@@ -214,6 +283,11 @@ namespace AccountingSystem.Data
         public DbSet<StockBalance> StockBalances { get; set; } = default!;
         public DbSet<StockTransactionType> StockTransactionTypes { get; set; } = default!;
         public DbSet<StockTransactions> StockTransactions { get; set; } = default!;
+        #endregion
+
+        #region Accounting
+        public DbSet<JournalEntry> JournalEntries { get; set; }
+        public DbSet<JournalTransactionType> JournalEntryTransactionTypes { get; set; }
         #endregion
 
         #region Settings

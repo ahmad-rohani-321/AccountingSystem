@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace AccountingSystem.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260308130625_InitialMigration")]
+    [Migration("20260311085203_InitialMigration")]
     partial class InitialMigration
     {
         /// <inheritdoc />
@@ -19,6 +19,161 @@ namespace AccountingSystem.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.3");
+
+            modelBuilder.Entity("AccountingSystem.Models.Accounts.Account", b =>
+                {
+                    b.Property<int>("ID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("AccountTypeID")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Code")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedByUserId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreationDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Name")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("ID");
+
+                    b.HasIndex("AccountTypeID");
+
+                    b.HasIndex("CreatedByUserId");
+
+                    b.ToTable("Accounts");
+                });
+
+            modelBuilder.Entity("AccountingSystem.Models.Accounts.AccountBalance", b =>
+                {
+                    b.Property<int>("ID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("AccountID")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("Balance")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedByUserId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreationDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("CurrencyID")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("ID");
+
+                    b.HasIndex("AccountID");
+
+                    b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("CurrencyID");
+
+                    b.ToTable("AccountBalances");
+                });
+
+            modelBuilder.Entity("AccountingSystem.Models.Accounts.AccountContacts", b =>
+                {
+                    b.Property<int>("ID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("AccountID")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Address")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedByUserId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreationDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Email")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("FirstPhone")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("NIC")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SecondPhone")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("ID");
+
+                    b.HasIndex("AccountID");
+
+                    b.HasIndex("CreatedByUserId");
+
+                    b.ToTable("AccountContacts");
+                });
+
+            modelBuilder.Entity("AccountingSystem.Models.Accounts.AccountType", b =>
+                {
+                    b.Property<int>("ID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Name")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("ID");
+
+                    b.ToTable("AccountTypes");
+
+                    b.HasData(
+                        new
+                        {
+                            ID = 1,
+                            Name = "تجرۍ"
+                        },
+                        new
+                        {
+                            ID = 2,
+                            Name = "بانک"
+                        },
+                        new
+                        {
+                            ID = 3,
+                            Name = "پیریدونکی"
+                        },
+                        new
+                        {
+                            ID = 4,
+                            Name = "عرضه کوونکی"
+                        },
+                        new
+                        {
+                            ID = 5,
+                            Name = "معامله کوونکی"
+                        },
+                        new
+                        {
+                            ID = 6,
+                            Name = "عواید"
+                        },
+                        new
+                        {
+                            ID = 7,
+                            Name = "مصارف"
+                        });
+                });
 
             modelBuilder.Entity("AccountingSystem.Models.Identity.User", b =>
                 {
@@ -105,7 +260,7 @@ namespace AccountingSystem.Migrations
                             LockoutEnabled = false,
                             NormalizedEmail = "ADMIN",
                             NormalizedUserName = "ADMIN",
-                            PasswordHash = "AQAAAAIAAYagAAAAEB66i52lONXoLQAO3fGOkPlInmqu+trNd+ITDl/uyQKXz0sLrZhbIdeCx4BtLrGB2w==",
+                            PasswordHash = "AQAAAAIAAYagAAAAEO/A5+rarplRSdWcma8qtkIUyaDv9sNGEwKnxZ+fQy3JeX0gSVzkieYdo3aZaosEmA==",
                             PhoneNumberConfirmed = false,
                             ProfilePhoto = "",
                             SecurityStamp = "2c9a4d9b-4f5a-4b8b-9a7c-2b1c3d4e5f61",
@@ -161,6 +316,9 @@ namespace AccountingSystem.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Description")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ImageName")
                         .HasColumnType("TEXT");
 
                     b.Property<bool>("IsActive")
@@ -436,11 +594,102 @@ namespace AccountingSystem.Migrations
                         {
                             ID = 1,
                             CreatedByUserId = "f5b9b7e7-2d3a-4b4d-a1b5-1b3f2a7a9e01",
-                            CreationDate = new DateTime(2026, 3, 8, 17, 36, 21, 90, DateTimeKind.Local).AddTicks(7440),
+                            CreationDate = new DateTime(2026, 3, 11, 13, 22, 2, 575, DateTimeKind.Local).AddTicks(8137),
                             Description = "اصلي ګدام د ټولو موادو لپاره دی.",
                             IsActive = true,
                             Name = "عمومي ګدام"
                         });
+                });
+
+            modelBuilder.Entity("AccountingSystem.Models.Settings.Currency", b =>
+                {
+                    b.Property<int>("ID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("CreatedByUserId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreationDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CurrencyName")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CurrencySymbole")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsMainCurrency")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("ID");
+
+                    b.HasIndex("CreatedByUserId");
+
+                    b.ToTable("Currencies");
+
+                    b.HasData(
+                        new
+                        {
+                            ID = 1,
+                            CreatedByUserId = "f5b9b7e7-2d3a-4b4d-a1b5-1b3f2a7a9e01",
+                            CreationDate = new DateTime(2026, 3, 11, 13, 22, 2, 577, DateTimeKind.Local).AddTicks(4174),
+                            CurrencyName = "افغانۍ",
+                            CurrencySymbole = "AFN",
+                            IsActive = true,
+                            IsMainCurrency = true
+                        },
+                        new
+                        {
+                            ID = 2,
+                            CreatedByUserId = "f5b9b7e7-2d3a-4b4d-a1b5-1b3f2a7a9e01",
+                            CreationDate = new DateTime(2026, 3, 11, 13, 22, 2, 577, DateTimeKind.Local).AddTicks(4198),
+                            CurrencyName = "ډالر",
+                            CurrencySymbole = "USD",
+                            IsActive = true,
+                            IsMainCurrency = false
+                        });
+                });
+
+            modelBuilder.Entity("AccountingSystem.Models.Settings.CurrencyExchange", b =>
+                {
+                    b.Property<int>("ID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("CreatedByUserId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreationDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("CurrencyExchangeRate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("MainCurrencyAmount")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("MainCurrencyID")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("SubCurrencyAmount")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("SubCurrencyID")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("ID");
+
+                    b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("MainCurrencyID");
+
+                    b.HasIndex("SubCurrencyID");
+
+                    b.ToTable("CurrencyExchanges");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
@@ -569,6 +818,65 @@ namespace AccountingSystem.Migrations
                     b.HasKey("UserId", "LoginProvider", "Name");
 
                     b.ToTable("UserToken", (string)null);
+                });
+
+            modelBuilder.Entity("AccountingSystem.Models.Accounts.Account", b =>
+                {
+                    b.HasOne("AccountingSystem.Models.Accounts.AccountType", "AccountType")
+                        .WithMany()
+                        .HasForeignKey("AccountTypeID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("AccountingSystem.Models.Identity.User", "CreatedByUser")
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId");
+
+                    b.Navigation("AccountType");
+
+                    b.Navigation("CreatedByUser");
+                });
+
+            modelBuilder.Entity("AccountingSystem.Models.Accounts.AccountBalance", b =>
+                {
+                    b.HasOne("AccountingSystem.Models.Accounts.Account", "Account")
+                        .WithMany()
+                        .HasForeignKey("AccountID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("AccountingSystem.Models.Identity.User", "CreatedByUser")
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId");
+
+                    b.HasOne("AccountingSystem.Models.Settings.Currency", "Currency")
+                        .WithMany()
+                        .HasForeignKey("CurrencyID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Account");
+
+                    b.Navigation("CreatedByUser");
+
+                    b.Navigation("Currency");
+                });
+
+            modelBuilder.Entity("AccountingSystem.Models.Accounts.AccountContacts", b =>
+                {
+                    b.HasOne("AccountingSystem.Models.Accounts.Account", "Account")
+                        .WithMany()
+                        .HasForeignKey("AccountID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("AccountingSystem.Models.Identity.User", "CreatedByUser")
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId");
+
+                    b.Navigation("Account");
+
+                    b.Navigation("CreatedByUser");
                 });
 
             modelBuilder.Entity("AccountingSystem.Models.Inventory.Category", b =>
@@ -712,6 +1020,40 @@ namespace AccountingSystem.Migrations
                         .HasForeignKey("CreatedByUserId");
 
                     b.Navigation("CreatedByUser");
+                });
+
+            modelBuilder.Entity("AccountingSystem.Models.Settings.Currency", b =>
+                {
+                    b.HasOne("AccountingSystem.Models.Identity.User", "CreatedByUser")
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId");
+
+                    b.Navigation("CreatedByUser");
+                });
+
+            modelBuilder.Entity("AccountingSystem.Models.Settings.CurrencyExchange", b =>
+                {
+                    b.HasOne("AccountingSystem.Models.Identity.User", "CreatedByUser")
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId");
+
+                    b.HasOne("AccountingSystem.Models.Settings.Currency", "MainCurrency")
+                        .WithMany()
+                        .HasForeignKey("MainCurrencyID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("AccountingSystem.Models.Settings.Currency", "SubCurrency")
+                        .WithMany()
+                        .HasForeignKey("SubCurrencyID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("CreatedByUser");
+
+                    b.Navigation("MainCurrency");
+
+                    b.Navigation("SubCurrency");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>

@@ -109,6 +109,18 @@
                     .Icon("fa-solid fa-house")
                     .Option("path", GetUrl("Index", "Home"))
                     .Selected(IsCurrentUrl("Index", "Home"));
+
+                // accounts 
+                items.Add()
+                    .Text("حسابونه")
+                    .Icon("fa-solid fa-person")
+                    .Expanded(GetCurrentUrl().Contains("Account"))
+                    .Items(acc => {
+                        acc.Add()
+                            .Text("د حسابونو لیست")
+                            .Option("path", GetUrl("Index", "Account"))
+                            .Selected(IsCurrentUrl("Index", "Account"));
+                    });
                 // items section
                 items.Add().Text("ګدام داري").Icon("fa-solid fa-warehouse").Expanded(GetCurrentUrl().Contains("Warehouse"))
                 .Items(
@@ -136,19 +148,6 @@
                     .Selected(IsCurrentUrl("Settings", mainControllerName));
                 }
                 );
-
-                // Users section profile and users
-                items.Add().Text("یوزر").Icon("fa-solid fa-user").Expanded(GetCurrentUrl().Contains("Users"))
-                .Items(sec =>
-                {
-                    sec.Add().Text("پروفایل")
-                    .Option("path", GetUrl("Profile", "Users"))
-                    .Selected(IsCurrentUrl("Profile", "Users"));
-
-                    sec.Add().Text("یوزران")
-                    .Option("path", GetUrl("Users", "Users"))
-                    .Selected(IsCurrentUrl("Users", "Users"));
-                });
 
                 items.Add().Text("تنظیمات").Icon("fa-solid fa-gear").Expanded(GetCurrentUrl().Contains("Settings"))
                 .Items(sec =>

@@ -10,10 +10,4 @@ public class CurrencyExchange : BaseEntity
     public decimal MainCurrencyAmount { get; set; }
     public decimal SubCurrencyAmount { get; set; }
     public decimal CurrencyExchangeRate { get; set; }
-
-    [ForeignKey(nameof(MainCurrencyID))]
-    public Currency MainCurrency { get; set; }
-
-    [ForeignKey(nameof(SubCurrencyID))]
-    public Currency SubCurrency { get; set; }
 }

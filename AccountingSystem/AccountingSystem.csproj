@@ -32,7 +32,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="Models\Accounting\" />
+    <Folder Include="Views\Account\" />
     <Folder Include="wwwroot\images\itemsfolder\" />
+    <Folder Include="wwwroot\images\journalentry\" />
   </ItemGroup>
 
 </Project>
