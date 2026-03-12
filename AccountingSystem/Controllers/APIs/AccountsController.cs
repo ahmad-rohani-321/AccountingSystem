@@ -88,7 +88,7 @@ public class AccountsController(IHttpContextAccessor accessor, ApplicationDbCont
             request.Code = await GenerateNextCode();
 
         if (string.IsNullOrWhiteSpace(request.Code))
-            return BadRequest(new { Message = "کوډ نشي جوړیدای." });
+            return BadRequest(new { Message = "کوډ نسي جوړیدای." });
 
         if (string.IsNullOrWhiteSpace(request.FirstPhone))
             return BadRequest(new { Message = "لومړی شمېره اړینه ده." });
@@ -98,17 +98,17 @@ public class AccountsController(IHttpContextAccessor accessor, ApplicationDbCont
 
         var existsName = await _db.Accounts.AnyAsync(a => a.Name == request.Name);
         if (existsName)
-            return BadRequest(new { Message = "دغه نوم مخکې استفاده شوی." });
+            return BadRequest(new { Message = "دغه نوم مخکې استفاده سوی." });
 
         var existsCode = await _db.Accounts.AnyAsync(a => a.Code == request.Code);
         if (existsCode)
-            return BadRequest(new { Message = "دغه کوډ مخکې شته." });
+            return BadRequest(new { Message = "دغه کوډ مخکې سته." });
 
         if (!string.IsNullOrWhiteSpace(request.NIC))
         {
             var existsNic = await _db.AccountContacts.AnyAsync(c => c.NIC == request.NIC);
             if (existsNic)
-                return BadRequest(new { Message = "دغه تذکره کارول شوې." });
+                return BadRequest(new { Message = "دغه تذکره کارول سوې." });
         }
 
         var account = new Account
@@ -157,17 +157,21 @@ public class AccountsController(IHttpContextAccessor accessor, ApplicationDbCont
 
             _db.AccountBalances.Add(accountBalance);
 
-            _db.JournalEntries.Add(new JournalEntry
+            if (balance.Amount != 0 )
             {
-                AccountBalance = accountBalance,
-                Debit = balance.Amount > 0 ? balance.Amount : 0,
-                Credit = balance.Amount < 0 ? balance.Amount : 0,
-                Balance = balance.Amount,
-                ChequePhoto = "default.png",
-                TransactionTypeID = 1,
-                CreatedByUserId = userId,
-                CreationDate = DateTime.UtcNow
-            });
+                _db.JournalEntries.Add(new JournalEntry
+                {
+                    AccountBalance = accountBalance,
+                    Debit = balance.Amount > 0 ? balance.Amount : 0,
+                    Credit = balance.Amount < 0 ? balance.Amount : 0,
+                    Balance = balance.Amount,
+                    ChequePhoto = "default.png",
+                    TransactionTypeID = 1,
+                    CreatedByUserId = userId,
+                    CreationDate = DateTime.UtcNow
+                });
+            }
+
         }
 
         await _db.SaveChangesAsync();

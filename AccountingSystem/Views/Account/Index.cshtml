@@ -27,10 +27,6 @@
     var activeCurrenciesJson = ViewBag.ActiveCurrenciesJson as string ?? "[]";
 }
 
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <h4 class="m-0">@ViewData["Title"]</h4>
-</div>
-
 <div>
     @(
         Html.DevExtreme().DataGrid()
@@ -44,7 +40,7 @@
             .ShowBorders(true)
             .RowAlternationEnabled(true)
             .ColumnAutoWidth(true)
-            .SearchPanel(sp => sp.Visible(true).Placeholder("پلټنه...")).OnToolbarPreparing("function(e){    e.toolbarOptions.items.unshift({ location: 'before', widget: 'dxButton', options: { text: 'نوی حساب', type: 'success', icon: 'fa-solid fa-plus', onClick: function () { openAccountPopup(); } } }); }")
+            .SearchPanel(sp => sp.Visible(true).Placeholder("پلټنه...")).OnToolbarPreparing("function(e){    e.toolbarOptions.items.unshift({ location: 'before', widget: 'dxButton', options: { text: 'نوی حساب', type:    'success', icon: 'fa-solid fa-plus', onClick: function () { openAccountPopup(); } } }); }")
             .Paging(p => p.PageSize(15))
             .Editing(e => e
                 .Mode(GridEditMode.Row)
@@ -135,13 +131,20 @@
             fetchNextCode();
         };
 
-        const saveAccount = () => {
+        const saveAccount = async () => {
             if (!accountFormInstance || !balanceGridInstance)
                 return;
 
             const validationResult = accountFormInstance.validate();
             if (!validationResult.isValid) {
                 DevExpress.ui.notify("مهرباني وکړئ اړین فیلډونه ډک کړئ.", "error", 3200);
+                return;
+            }
+
+            try {
+                await balanceGridInstance.saveEditData();
+            } catch {
+                DevExpress.ui.notify("Please finalize the currency grid entries before saving.", "error", 3200);
                 return;
             }
 

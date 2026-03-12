@@ -195,14 +195,20 @@ namespace AccountingSystem.Controllers.APIs
 
             await using var tx = await _db.Database.BeginTransactionAsync();
 
+            async Task<IActionResult> RollbackResultAsync(IActionResult result)
+            {
+                await tx.RollbackAsync();
+                return result;
+            }
+
             foreach (var row in rows)
             {
                 if (row.WarehouseID <= 0)
-                    return BadRequest(new { errors = new { WarehouseID = new[] { "Warehouse is required." } } });
+                    return await RollbackResultAsync(BadRequest(new { errors = new { WarehouseID = new[] { "Warehouse is required." } } }));
                 if (row.Quantity <= 0)
-                    return BadRequest(new { errors = new { Quantity = new[] { "Quantity is required." } } });
+                    return await RollbackResultAsync(BadRequest(new { errors = new { Quantity = new[] { "Quantity is required." } } }));
                 if (row.UnitConversionID is null)
-                    return BadRequest(new { errors = new { UnitConversionID = new[] { "Unit is required." } } });
+                    return await RollbackResultAsync(BadRequest(new { errors = new { UnitConversionID = new[] { "Unit is required." } } }));
 
                 decimal exchangedAmount;
                 int unitId;
@@ -216,13 +222,13 @@ namespace AccountingSystem.Controllers.APIs
                 {
                     var uc = await _db.UnitConversion.AsNoTracking().FirstOrDefaultAsync(u => u.ID == row.UnitConversionID.Value && u.ItemID == id);
                     if (uc is null)
-                        return BadRequest(new { errors = new { UnitConversionID = new[] { "Invalid unit for this item." } } });
+                        return await RollbackResultAsync(BadRequest(new { errors = new { UnitConversionID = new[] { "Invalid unit for this item." } } }));
                     exchangedAmount = uc.ExchangedAmount;
                     unitId = uc.SubUnitID;
                 }
 
                 if (exchangedAmount <= 0)
-                    return BadRequest(new { errors = new { UnitConversionID = new[] { "Invalid exchanged amount." } } });
+                    return await RollbackResultAsync(BadRequest(new { errors = new { UnitConversionID = new[] { "Invalid exchanged amount." } } }));
 
                 var balance = new StockBalance
                 {

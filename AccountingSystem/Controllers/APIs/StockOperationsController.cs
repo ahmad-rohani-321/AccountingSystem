@@ -8,6 +8,7 @@ using AccountingSystem.Models.Inventory;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 
 namespace AccountingSystem.Controllers.APIs;
 
@@ -90,6 +91,8 @@ public class StockOperationsController(ApplicationDbContext db) : ControllerBase
     [HttpPost("RemainingStock")]
     public async Task<IActionResult> SaveRemainingStock([FromBody] RemainingStockOperationVm request)
     {
+        IDbContextTransaction tx = null;
+
         try
         {
             var userId = GetUserId();
@@ -152,30 +155,38 @@ public class StockOperationsController(ApplicationDbContext db) : ControllerBase
                     return BadRequest(new { errors = new { Notes = new[] { "ملاحظات ضروري دي." } } });
             }
 
-            await using var tx = await _db.Database.BeginTransactionAsync();
+            tx = await _db.Database.BeginTransactionAsync();
+
+            async Task<IActionResult> RollbackResultAsync(IActionResult result)
+            {
+                if (tx is not null)
+                    await tx.RollbackAsync();
+
+                return result;
+            }
 
             if (request.TransactionTypeID == 2)
             {
                 if (request.ItemID is null || request.ItemID <= 0)
-                    return BadRequest(new { errors = new { ItemID = new[] { "جنس ضروري دی." } } });
+                    return await RollbackResultAsync(BadRequest(new { errors = new { ItemID = new[] { "جنس ضروري دی." } } }));
 
                 if (request.WarehouseID is null || request.WarehouseID <= 0)
-                    return BadRequest(new { errors = new { WarehouseID = new[] { "ګدام ضروري دی." } } });
+                    return await RollbackResultAsync(BadRequest(new { errors = new { WarehouseID = new[] { "ګدام ضروري دی." } } }));
 
                 var item = await _db.Items.AsNoTracking().FirstOrDefaultAsync(i => i.ID == request.ItemID.Value);
                 if (item is null)
-                    return NotFound();
+                    return await RollbackResultAsync(NotFound());
 
                 var (exchangedAmount, unitId, err) = await ResolveUnit(request.UnitConversionID.Value, item.ID, item.UnitId);
                 if (!string.IsNullOrWhiteSpace(err))
-                    return BadRequest(new { errors = new { UnitConversionID = new[] { err } } });
+                    return await RollbackResultAsync(BadRequest(new { errors = new { UnitConversionID = new[] { err } } }));
 
                 var batchNo = (request.BatchNo ?? string.Empty).Trim();
                 var notes = (request.Notes ?? string.Empty).Trim();
 
                 var inMainQty = request.Quantity / exchangedAmount;
                 if (inMainQty <= 0)
-                    return BadRequest(new { errors = new { Quantity = new[] { "ØªØ¹Ø¯Ø§Ø¯ Ù†Ø§Ø³Ù… Ø¯ÛŒ." } } });
+                    return await RollbackResultAsync(BadRequest(new { errors = new { Quantity = new[] { "ØªØ¹Ø¯Ø§Ø¯ Ù†Ø§Ø³Ù… Ø¯ÛŒ." } } }));
 
                 // TransactionID=2: add/update by (ItemID, WarehouseID, BatchNo)
                 var balance = await _db.StockBalances.FirstOrDefaultAsync(sb =>
@@ -225,35 +236,35 @@ public class StockOperationsController(ApplicationDbContext db) : ControllerBase
             }
 
             if (request.StockBalanceID is null || request.StockBalanceID <= 0)
-                return BadRequest(new { errors = new { StockBalanceID = new[] { "جنس ضروري دی." } } });
+                return await RollbackResultAsync(BadRequest(new { errors = new { StockBalanceID = new[] { "جنس ضروري دی." } } }));
 
             var stockBalance = await _db.StockBalances
                 .Include(sb => sb.Item)
                 .FirstOrDefaultAsync(sb => sb.ID == request.StockBalanceID.Value);
 
             if (stockBalance is null)
-                return NotFound();
+                return await RollbackResultAsync(NotFound());
             if (stockBalance.Item is null)
-                return BadRequest(new { errors = new { StockBalanceID = new[] { "ناسم انتخاب." } } });
+                return await RollbackResultAsync(BadRequest(new { errors = new { StockBalanceID = new[] { "ناسم انتخاب." } } }));
 
             var (outExchangedAmount, outUnitId, outErr) = await ResolveUnit(request.UnitConversionID.Value, stockBalance.ItemID, stockBalance.Item.UnitId);
             if (!string.IsNullOrWhiteSpace(outErr))
-                return BadRequest(new { errors = new { UnitConversionID = new[] { outErr } } });
+                return await RollbackResultAsync(BadRequest(new { errors = new { UnitConversionID = new[] { outErr } } }));
 
             var mainQty = request.Quantity / outExchangedAmount;
             if (mainQty <= 0)
-                return BadRequest(new { errors = new { Quantity = new[] { "تعداد ناسم دی." } } });
+                return await RollbackResultAsync(BadRequest(new { errors = new { Quantity = new[] { "تعداد ناسم دی." } } }));
 
             if (stockBalance.Quantity - mainQty < 0)
-                return BadRequest(new { errors = new { Quantity = new[] { "په ګدام کې کافي موجودي نشته." } } });
+                return await RollbackResultAsync(BadRequest(new { errors = new { Quantity = new[] { "په ګدام کې کافي موجودي نشته." } } }));
 
             if (request.TransactionTypeID == 4)
             {
                 if (request.WarehouseID is null || request.WarehouseID <= 0)
-                    return BadRequest(new { errors = new { WarehouseID = new[] { "ګدام ضروري دی." } } });
+                    return await RollbackResultAsync(BadRequest(new { errors = new { WarehouseID = new[] { "ګدام ضروري دی." } } }));
 
                 if (request.WarehouseID.Value == stockBalance.WarehouseID)
-                    return BadRequest(new { errors = new { WarehouseID = new[] { "د بل ګدام انتخاب وکړئ." } } });
+                    return await RollbackResultAsync(BadRequest(new { errors = new { WarehouseID = new[] { "د بل ګدام انتخاب وکړئ." } } }));
 
                 var sourceBatch = stockBalance.BatchNo ?? string.Empty;
                 var dest = await _db.StockBalances.FirstOrDefaultAsync(sb =>
@@ -339,7 +350,15 @@ public class StockOperationsController(ApplicationDbContext db) : ControllerBase
         }
         catch
         {
+            if (tx is not null)
+                await tx.RollbackAsync();
+
             return StatusCode(500, new { errors = new { Save = new[] { "د ثبت پر مهال خطا وشوه. بیا هڅه وکړئ." } } });
+        }
+        finally
+        {
+            if (tx is not null)
+                await tx.DisposeAsync();
         }
     }
 
