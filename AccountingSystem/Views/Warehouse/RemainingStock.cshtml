@@ -5,79 +5,80 @@
 <div class="dx-card px-4 py-3">
     @(
     Html.DevExtreme().DataGrid()
-        .ID("remaining-stock-grid")
-        .DataSource(ds => ds.WebApi()
-            .Controller("StockBalances")
-            .Key("ID")
-            .LoadAction("Get")
-        )
-        .RemoteOperations(false)
-        .FilterValue(new object[] { "Quantity", ">", 0 })
-        .ShowBorders(true)
-        .RowAlternationEnabled(true)
-        .ColumnAutoWidth(true)
-        .FilterRow(fr => fr.Visible(true))
-        .HeaderFilter(hf => hf.Visible(true))
-        .SearchPanel(sp => sp.Visible(true).Placeholder("لټون..."))
-        .Toolbar(t => t.Items(items =>
-        {
-            items.Add().Name("searchPanel").Location(ToolbarItemLocation.Before);
-            items.Add().Location(ToolbarItemLocation.Before)
-                .Template(@<text>
+    .ID("remaining-stock-grid")
+    .DataSource(ds => ds.WebApi()
+    .Controller("StockBalances")
+    .Key("ID")
+    .LoadAction("Get")
+    )
+    .FocusedRowEnabled(true)
+    .RemoteOperations(false)
+    .FilterValue(new object[] { "Quantity", ">", 0 })
+    .ShowBorders(true)
+    .RowAlternationEnabled(true)
+    .ColumnAutoWidth(true)
+    .FilterRow(fr => fr.Visible(true))
+    .HeaderFilter(hf => hf.Visible(true))
+    .SearchPanel(sp => sp.Visible(true).Placeholder("لټون..."))
+    .Toolbar(t => t.Items(items =>
+    {
+        items.Add().Name("searchPanel").Location(ToolbarItemLocation.Before);
+        items.Add().Location(ToolbarItemLocation.Before)
+        .Template(@<text>
 <div id="rs-filter-warehouse" style="min-width:220px"></div>
 </text>);
-items.Add().Location(ToolbarItemLocation.Before)
+    items.Add().Location(ToolbarItemLocation.Before)
     .Template(@<text>
 <div id="rs-filter-item" style="min-width:260px"></div>
 </text>);
 items.Add().Location(ToolbarItemLocation.Before)
-    .Widget(w => w.Button()
-        .ID("btn-remaining-stock-trx2")
-        .Text("نوی داخلول")
-        .Type(ButtonType.Default)
-        .StylingMode(ButtonStylingMode.Contained)
-        .Icon("fa-solid fa-plus")
-        .OnClick("remainingStockTrx2.open")
-    );
-        }))
-        .Columns(columns =>
+.Widget(w => w.Button()
+.ID("btn-remaining-stock-trx2")
+.Text("نوی داخلول")
+.Type(ButtonType.Default)
+.StylingMode(ButtonStylingMode.Contained)
+.Icon("fa-solid fa-plus")
+.OnClick("remainingStockTrx2.open")
+);
+    }))
+    .Columns(columns =>
+    {
+        columns.Add().DataField("ID").Caption("شمېره").AllowEditing(false).Width(70);
+        columns.Add().DataField("Item.NativeName").Caption("جنس").AllowEditing(false);
+        columns.Add().DataField("Item.Unit.Name").Caption("عمومي واحد").AllowEditing(false);
+        columns.Add().DataField("Warehouse.Name").Caption("ګدام").AllowEditing(false);
+        columns.Add().DataField("BatchNo").Caption("بچ نمبر").AllowEditing(false);
+        columns.Add().DataField("Quantity").Caption("تعداد").AllowEditing(false)
+        .DataType(GridColumnDataType.Number)
+        ;
+
+        columns.Add()
+        .Caption("عملیات")
+        .Type(GridCommandColumnType.Buttons)
+        .Width(240)
+        .Buttons(b =>
         {
-            columns.Add().DataField("ID").Caption("شمېره").AllowEditing(false).Width(70);
-            columns.Add().DataField("Item.NativeName").Caption("جنس").AllowEditing(false);
-            columns.Add().DataField("Item.Unit.Name").Caption("عمومي واحد").AllowEditing(false);
-            columns.Add().DataField("Warehouse.Name").Caption("ګدام").AllowEditing(false);
-            columns.Add().DataField("BatchNo").Caption("بچ نمبر").AllowEditing(false);
-            columns.Add().DataField("Quantity").Caption("تعداد").AllowEditing(false)
-                .DataType(GridColumnDataType.Number)
-                ;
+            b.Add()
+        .Text("خارجول (۹)")
+        .Icon("fa-solid fa-arrow-up-from-bracket")
+        .OnClick("remainingStockTrx9.openFromRow");
 
-            columns.Add()
-                .Caption("عملیات")
-                .Type(GridCommandColumnType.Buttons)
-                    .Width(240)
-                .Buttons(b =>
-                {
-                    b.Add()
-                        .Text("خارجول (۹)")
-                        .Icon("fa-solid fa-arrow-up-from-bracket")
-                        .OnClick("remainingStockTrx9.openFromRow");
+            b.Add()
+        .Text("تبادله (۴)")
+        .Icon("fa-solid fa-right-left")
+        .OnClick("remainingStockTrx4.openFromRow");
+        });
+    })
+    )
 
-                    b.Add()
-                        .Text("تبادله (۴)")
-                        .Icon("fa-solid fa-right-left")
-                        .OnClick("remainingStockTrx4.openFromRow");
-                });
-        })
-)
+<div id="remaining-stock-trx2-popup"></div>
+<div id="remaining-stock-trx2-loadpanel"></div>
 
-    <div id="remaining-stock-trx2-popup"></div>
-    <div id="remaining-stock-trx2-loadpanel"></div>
+<div id="remaining-stock-trx9-popup"></div>
+<div id="remaining-stock-trx9-loadpanel"></div>
 
-    <div id="remaining-stock-trx9-popup"></div>
-    <div id="remaining-stock-trx9-loadpanel"></div>
-
-    <div id="remaining-stock-trx4-popup"></div>
-    <div id="remaining-stock-trx4-loadpanel"></div>
+<div id="remaining-stock-trx4-popup"></div>
+<div id="remaining-stock-trx4-loadpanel"></div>
 </div>
 
 <script>

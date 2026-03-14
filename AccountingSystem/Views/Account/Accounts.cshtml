@@ -71,6 +71,7 @@
                 .LoadAction("Get")
                 .UpdateAction("Put"))
             .RemoteOperations(true)
+            .FocusedRowEnabled(true)
             .ShowBorders(true)
             .RowAlternationEnabled(true)
             .ColumnAutoWidth(true)
@@ -81,7 +82,7 @@
                 .AllowAdding(false)
                 .AllowDeleting(false))
             .SearchPanel(sp => sp.Visible(true).Placeholder("پلټنه..."))
-            .OnToolbarPreparing("function(e) { e.toolbarOptions.items.unshift({ location: 'before', widget: 'dxButton', options: { text: 'نوی حساب', icon: 'fa-solid fa-plus', type: 'success', onClick: function () { openAccountPopup(); } } }); }")
+            .OnToolbarPreparing("function(e) { e.toolbarOptions.items.unshift({ location: 'before', widget: 'dxButton', options:   { text: 'نوی حساب', icon: 'fa-solid fa-plus', type: 'success', onClick: function () { openAccountPopup(); } } });  }")
             .Columns(columns =>
             {
                 columns.Add().DataField(nameof(AccountListItem.Name)).Caption("نوم").ValidationRules(r => r.AddRequired());

@@ -10,6 +10,7 @@
         .ShowBorders(true)
         .RowAlternationEnabled(true)
         .ColumnAutoWidth(true)
+        .FocusedRowEnabled(true)
         .FilterRow(fr => fr.Visible(true))
         .HeaderFilter(hf => hf.Visible(true))
         .SearchPanel(sp => sp.Visible(true).Placeholder("لټون..."))
@@ -21,8 +22,8 @@
                 .Template(@<text>
 <div id="li-filter-item" style="min-width:220px"></div>
 </text>);
-items.Add().Location(ToolbarItemLocation.Before)
-    .Template(@<text>
+    items.Add().Location(ToolbarItemLocation.Before)
+        .Template(@<text>
 <div id="li-filter-warehouse" style="min-width:220px"></div>
 </text>);
 items.Add().Location(ToolbarItemLocation.Before)
