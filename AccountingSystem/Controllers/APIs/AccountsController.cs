@@ -102,7 +102,7 @@ namespace AccountingSystem.Controllers.APIs;
         if (string.IsNullOrWhiteSpace(request.Code))
             return BadRequest(new { Message = "کوډ نسي جوړیدای." });
 
-        if (!AccountsAllowedTypes.Contains(request.AccountTypeID))
+        if (!AllAllowedTypes.Contains(request.AccountTypeID))
             return BadRequest(new { Message = "نامناسب حساب ډول." });
 
         var existsName = await _db.Accounts.AnyAsync(a => a.Name == request.Name);
@@ -315,3 +315,4 @@ namespace AccountingSystem.Controllers.APIs;
         return principal?.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
     }
 }
+
