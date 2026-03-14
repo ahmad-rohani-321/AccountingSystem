@@ -2,7 +2,8 @@
     ViewData["title"] = "د کم سوي اجناسو لیست";
 }
 
-@(
+<div class="dx-card px-4 py-3">
+    @(
     Html.DevExtreme().DataGrid()
         .ID("least-items-grid")
         .RemoteOperations(true)
@@ -47,7 +48,8 @@ items.Add().Location(ToolbarItemLocation.Before)
                 .DataType(GridColumnDataType.Number)
                 .Format("#,##0.###");
         })
-)
+    )
+</div>
 
 <script>
     var leastItemsPage = (function () {

@@ -27,6 +27,18 @@ namespace AccountingSystem.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "JournalEntryTransactionTypes",
+                columns: table => new
+                {
+                    ID = table.Column<int>(type: "INTEGER", nullable: false),
+                    TypeName = table.Column<string>(type: "TEXT", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_JournalEntryTransactionTypes", x => x.ID);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Role",
                 columns: table => new
                 {
@@ -170,6 +182,30 @@ namespace AccountingSystem.Migrations
                     table.PrimaryKey("PK_Currencies", x => x.ID);
                     table.ForeignKey(
                         name: "FK_Currencies_User_CreatedByUserId",
+                        column: x => x.CreatedByUserId,
+                        principalTable: "User",
+                        principalColumn: "Id");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "CurrencyExchanges",
+                columns: table => new
+                {
+                    ID = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    MainCurrencyID = table.Column<int>(type: "INTEGER", nullable: false),
+                    SubCurrencyID = table.Column<int>(type: "INTEGER", nullable: false),
+                    MainCurrencyAmount = table.Column<decimal>(type: "TEXT", nullable: false),
+                    SubCurrencyAmount = table.Column<decimal>(type: "TEXT", nullable: false),
+                    CurrencyExchangeRate = table.Column<decimal>(type: "TEXT", nullable: false),
+                    CreationDate = table.Column<DateTime>(type: "TEXT", nullable: false),
+                    CreatedByUserId = table.Column<string>(type: "TEXT", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_CurrencyExchanges", x => x.ID);
+                    table.ForeignKey(
+                        name: "FK_CurrencyExchanges_User_CreatedByUserId",
                         column: x => x.CreatedByUserId,
                         principalTable: "User",
                         principalColumn: "Id");
@@ -370,42 +406,6 @@ namespace AccountingSystem.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "CurrencyExchanges",
-                columns: table => new
-                {
-                    ID = table.Column<int>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    MainCurrencyID = table.Column<int>(type: "INTEGER", nullable: false),
-                    SubCurrencyID = table.Column<int>(type: "INTEGER", nullable: false),
-                    MainCurrencyAmount = table.Column<decimal>(type: "TEXT", nullable: false),
-                    SubCurrencyAmount = table.Column<decimal>(type: "TEXT", nullable: false),
-                    CurrencyExchangeRate = table.Column<decimal>(type: "TEXT", nullable: false),
-                    CreationDate = table.Column<DateTime>(type: "TEXT", nullable: false),
-                    CreatedByUserId = table.Column<string>(type: "TEXT", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_CurrencyExchanges", x => x.ID);
-                    table.ForeignKey(
-                        name: "FK_CurrencyExchanges_Currencies_MainCurrencyID",
-                        column: x => x.MainCurrencyID,
-                        principalTable: "Currencies",
-                        principalColumn: "ID",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_CurrencyExchanges_Currencies_SubCurrencyID",
-                        column: x => x.SubCurrencyID,
-                        principalTable: "Currencies",
-                        principalColumn: "ID",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_CurrencyExchanges_User_CreatedByUserId",
-                        column: x => x.CreatedByUserId,
-                        principalTable: "User",
-                        principalColumn: "Id");
-                });
-
-            migrationBuilder.CreateTable(
                 name: "Items",
                 columns: table => new
                 {
@@ -441,6 +441,43 @@ namespace AccountingSystem.Migrations
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "FK_Items_User_CreatedByUserId",
+                        column: x => x.CreatedByUserId,
+                        principalTable: "User",
+                        principalColumn: "Id");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "JournalEntries",
+                columns: table => new
+                {
+                    ID = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    Debit = table.Column<decimal>(type: "TEXT", nullable: false),
+                    Credit = table.Column<decimal>(type: "TEXT", nullable: false),
+                    Balance = table.Column<decimal>(type: "TEXT", nullable: false),
+                    ChequePhoto = table.Column<string>(type: "TEXT", nullable: true),
+                    TransactionTypeID = table.Column<int>(type: "INTEGER", nullable: false),
+                    AccountBalanceID = table.Column<int>(type: "INTEGER", nullable: false),
+                    CreationDate = table.Column<DateTime>(type: "TEXT", nullable: false),
+                    CreatedByUserId = table.Column<string>(type: "TEXT", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_JournalEntries", x => x.ID);
+                    table.ForeignKey(
+                        name: "FK_JournalEntries_AccountBalances_AccountBalanceID",
+                        column: x => x.AccountBalanceID,
+                        principalTable: "AccountBalances",
+                        principalColumn: "ID",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_JournalEntries_JournalEntryTransactionTypes_TransactionTypeID",
+                        column: x => x.TransactionTypeID,
+                        principalTable: "JournalEntryTransactionTypes",
+                        principalColumn: "ID",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_JournalEntries_User_CreatedByUserId",
                         column: x => x.CreatedByUserId,
                         principalTable: "User",
                         principalColumn: "Id");
@@ -579,7 +616,27 @@ namespace AccountingSystem.Migrations
                     { 4, "عرضه کوونکی" },
                     { 5, "معامله کوونکی" },
                     { 6, "عواید" },
-                    { 7, "مصارف" }
+                    { 7, "مصارف" },
+                    { 8, "شریک" },
+                    { 9, "کارمند" }
+                });
+
+            migrationBuilder.InsertData(
+                table: "JournalEntryTransactionTypes",
+                columns: new[] { "ID", "TypeName" },
+                values: new object[,]
+                {
+                    { 1, "اولنی بلانس" },
+                    { 2, "د اسعارو تبادله" },
+                    { 3, "نقد جمع" },
+                    { 4, "نقد منفي" },
+                    { 5, "فروش" },
+                    { 6, "خرید" },
+                    { 7, "فروش مکمل واپسي" },
+                    { 8, "خرید مکمل واپسي" },
+                    { 9, "فروش واپسي" },
+                    { 10, "خرید واپسي" },
+                    { 11, "د حسابونو تبادله" }
                 });
 
             migrationBuilder.InsertData(
@@ -601,21 +658,21 @@ namespace AccountingSystem.Migrations
             migrationBuilder.InsertData(
                 table: "User",
                 columns: new[] { "Id", "AccessFailedCount", "ConcurrencyStamp", "Email", "EmailConfirmed", "FirstName", "LastName", "LockoutEnabled", "LockoutEnd", "NormalizedEmail", "NormalizedUserName", "PasswordHash", "PhoneNumber", "PhoneNumberConfirmed", "ProfilePhoto", "SecurityStamp", "TwoFactorEnabled", "UserName" },
-                values: new object[] { "f5b9b7e7-2d3a-4b4d-a1b5-1b3f2a7a9e01", 0, "7a3c2e1d-9b8a-4f6e-8c2b-5d4f3a2b1c9e", "admin", true, "admin", "admin", false, null, "ADMIN", "ADMIN", "AQAAAAIAAYagAAAAEO/A5+rarplRSdWcma8qtkIUyaDv9sNGEwKnxZ+fQy3JeX0gSVzkieYdo3aZaosEmA==", null, false, "", "2c9a4d9b-4f5a-4b8b-9a7c-2b1c3d4e5f61", false, "admin" });
+                values: new object[] { "f5b9b7e7-2d3a-4b4d-a1b5-1b3f2a7a9e01", 0, "7a3c2e1d-9b8a-4f6e-8c2b-5d4f3a2b1c9e", "admin", true, "admin", "admin", false, null, "ADMIN", "ADMIN", "AQAAAAIAAYagAAAAEG8EvURkGO/aHsdm4Up9C8WLbfX8KnfMRK5gypAqHhfUzQn5RswE+TaBPr82Rat/zQ==", null, false, "", "2c9a4d9b-4f5a-4b8b-9a7c-2b1c3d4e5f61", false, "admin" });
 
             migrationBuilder.InsertData(
                 table: "Currencies",
                 columns: new[] { "ID", "CreatedByUserId", "CreationDate", "CurrencyName", "CurrencySymbole", "IsActive", "IsMainCurrency" },
                 values: new object[,]
                 {
-                    { 1, "f5b9b7e7-2d3a-4b4d-a1b5-1b3f2a7a9e01", new DateTime(2026, 3, 11, 13, 22, 2, 577, DateTimeKind.Local).AddTicks(4174), "افغانۍ", "AFN", true, true },
-                    { 2, "f5b9b7e7-2d3a-4b4d-a1b5-1b3f2a7a9e01", new DateTime(2026, 3, 11, 13, 22, 2, 577, DateTimeKind.Local).AddTicks(4198), "ډالر", "USD", true, false }
+                    { 1, "f5b9b7e7-2d3a-4b4d-a1b5-1b3f2a7a9e01", new DateTime(2026, 3, 14, 14, 3, 4, 556, DateTimeKind.Local).AddTicks(3079), "افغانۍ", "AFN", true, true },
+                    { 2, "f5b9b7e7-2d3a-4b4d-a1b5-1b3f2a7a9e01", new DateTime(2026, 3, 14, 14, 3, 4, 556, DateTimeKind.Local).AddTicks(3097), "ډالر", "USD", true, false }
                 });
 
             migrationBuilder.InsertData(
                 table: "WareHouses",
                 columns: new[] { "ID", "CreatedByUserId", "CreationDate", "Description", "IsActive", "Name" },
-                values: new object[] { 1, "f5b9b7e7-2d3a-4b4d-a1b5-1b3f2a7a9e01", new DateTime(2026, 3, 11, 13, 22, 2, 575, DateTimeKind.Local).AddTicks(8137), "اصلي ګدام د ټولو موادو لپاره دی.", true, "عمومي ګدام" });
+                values: new object[] { 1, "f5b9b7e7-2d3a-4b4d-a1b5-1b3f2a7a9e01", new DateTime(2026, 3, 14, 14, 3, 4, 554, DateTimeKind.Local).AddTicks(7337), "اصلي ګدام د ټولو موادو لپاره دی.", true, "عمومي ګدام" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_AccountBalances_AccountID",
@@ -668,16 +725,6 @@ namespace AccountingSystem.Migrations
                 column: "CreatedByUserId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_CurrencyExchanges_MainCurrencyID",
-                table: "CurrencyExchanges",
-                column: "MainCurrencyID");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_CurrencyExchanges_SubCurrencyID",
-                table: "CurrencyExchanges",
-                column: "SubCurrencyID");
-
-            migrationBuilder.CreateIndex(
                 name: "IX_Items_CategoryId",
                 table: "Items",
                 column: "CategoryId");
@@ -691,6 +738,21 @@ namespace AccountingSystem.Migrations
                 name: "IX_Items_UnitId",
                 table: "Items",
                 column: "UnitId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_JournalEntries_AccountBalanceID",
+                table: "JournalEntries",
+                column: "AccountBalanceID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_JournalEntries_CreatedByUserId",
+                table: "JournalEntries",
+                column: "CreatedByUserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_JournalEntries_TransactionTypeID",
+                table: "JournalEntries",
+                column: "TransactionTypeID");
 
             migrationBuilder.CreateIndex(
                 name: "RoleNameIndex",
@@ -799,13 +861,13 @@ namespace AccountingSystem.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "AccountBalances");
-
-            migrationBuilder.DropTable(
                 name: "AccountContacts");
 
             migrationBuilder.DropTable(
                 name: "CurrencyExchanges");
+
+            migrationBuilder.DropTable(
+                name: "JournalEntries");
 
             migrationBuilder.DropTable(
                 name: "RoleClaim");
@@ -829,10 +891,10 @@ namespace AccountingSystem.Migrations
                 name: "UserToken");
 
             migrationBuilder.DropTable(
-                name: "Accounts");
+                name: "AccountBalances");
 
             migrationBuilder.DropTable(
-                name: "Currencies");
+                name: "JournalEntryTransactionTypes");
 
             migrationBuilder.DropTable(
                 name: "StockBalances");
@@ -844,13 +906,19 @@ namespace AccountingSystem.Migrations
                 name: "Role");
 
             migrationBuilder.DropTable(
-                name: "AccountTypes");
+                name: "Accounts");
+
+            migrationBuilder.DropTable(
+                name: "Currencies");
 
             migrationBuilder.DropTable(
                 name: "Items");
 
             migrationBuilder.DropTable(
                 name: "WareHouses");
+
+            migrationBuilder.DropTable(
+                name: "AccountTypes");
 
             migrationBuilder.DropTable(
                 name: "Categories");

@@ -64,9 +64,7 @@
                         <h4 class="m-0 fw-semibold">@ViewData["Title"]</h4>
                     </div>
                     <div class="my-4"></div>
-                    <div class="dx-card px-4 py-3">
-                        @RenderBody()
-                    </div>
+                    @RenderBody()
 
                 </div>
             </div>
@@ -117,9 +115,14 @@
                     .Expanded(GetCurrentUrl().Contains("Account"))
                     .Items(acc => {
                         acc.Add()
-                            .Text("د حسابونو لیست")
+                            .Text("اشخاص")
                             .Option("path", GetUrl("Index", "Account"))
                             .Selected(IsCurrentUrl("Index", "Account"));
+
+                        acc.Add()
+                            .Text("حسابونه")
+                            .Option("path", GetUrl("Accounts", "Account"))
+                            .Selected(IsCurrentUrl("Accounts", "Account"));
                     });
                 // items section
                 items.Add().Text("ګدام داري").Icon("fa-solid fa-warehouse").Expanded(GetCurrentUrl().Contains("Warehouse"))

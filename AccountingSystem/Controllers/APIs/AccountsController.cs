@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Security.Claims;
 using System.Text.Json;
@@ -18,21 +19,32 @@ namespace AccountingSystem.Controllers.APIs;
 
 [Route("api/[controller]")]
 [ApiController]
-[Authorize]
-public class AccountsController(IHttpContextAccessor accessor, ApplicationDbContext db) : ControllerBase
-{
+    [Authorize]
+    public class AccountsController(IHttpContextAccessor accessor, ApplicationDbContext db) : ControllerBase
+    {
+
     private readonly IHttpContextAccessor _accessor = accessor;
     private readonly ApplicationDbContext _db = db;
 
+    private static readonly int[] AccountsAllowedTypes = { 1, 2, 6, 7 };
+    private static readonly int[] IndexAllowedTypes = { 3, 4, 5, 9 };
+    private static readonly int[] AllAllowedTypes = AccountsAllowedTypes.Concat(IndexAllowedTypes).ToArray();
+
     [HttpGet]
-    public async Task<object> Get(DataSourceLoadOptions loadOptions)
+    public async Task<object> Get(DataSourceLoadOptions loadOptions, string? types = null)
     {
+        var requestedTypes = ParseRequestedTypes(types) ?? AccountsAllowedTypes;
+
         var accounts = await _db.Accounts
             .Include(a => a.AccountType)
+            .Where(a => requestedTypes.Contains(a.AccountTypeID))
+            .OrderByDescending(a => a.CreationDate)
             .AsNoTracking()
             .ToListAsync();
 
+        var accountIds = accounts.Select(a => a.ID).ToList();
         var contacts = await _db.AccountContacts
+            .Where(c => accountIds.Contains(c.AccountID))
             .AsNoTracking()
             .ToListAsync();
 
@@ -67,7 +79,12 @@ public class AccountsController(IHttpContextAccessor accessor, ApplicationDbCont
     }
 
     [HttpPost]
-    public async Task<IActionResult> Post([FromBody] AccountCreateRequest request)
+    public Task<IActionResult> Post([FromBody] AccountCreateRequest request) => SaveAccountAsync(request);
+
+    [HttpPost("create")]
+    public Task<IActionResult> Create([FromBody] AccountCreateRequest request) => SaveAccountAsync(request);
+
+    private async Task<IActionResult> SaveAccountAsync(AccountCreateRequest request)
     {
         var userId = GetUserId();
         if (string.IsNullOrWhiteSpace(userId))
@@ -75,11 +92,6 @@ public class AccountsController(IHttpContextAccessor accessor, ApplicationDbCont
 
         request.Name = request.Name?.Trim() ?? string.Empty;
         request.Code = request.Code?.Trim() ?? string.Empty;
-        request.FirstPhone = request.FirstPhone?.Trim() ?? string.Empty;
-        request.SecondPhone = request.SecondPhone?.Trim() ?? string.Empty;
-        request.Email = request.Email?.Trim() ?? string.Empty;
-        request.Address = request.Address?.Trim() ?? string.Empty;
-        request.NIC = request.NIC?.Trim() ?? string.Empty;
 
         if (string.IsNullOrWhiteSpace(request.Name))
             return BadRequest(new { Message = "نوم اړین دی." });
@@ -90,10 +102,7 @@ public class AccountsController(IHttpContextAccessor accessor, ApplicationDbCont
         if (string.IsNullOrWhiteSpace(request.Code))
             return BadRequest(new { Message = "کوډ نسي جوړیدای." });
 
-        if (string.IsNullOrWhiteSpace(request.FirstPhone))
-            return BadRequest(new { Message = "لومړی شمېره اړینه ده." });
-
-        if (!AccountDefinitions.AllowedAccountTypeIds.Contains(request.AccountTypeID))
+        if (!AccountsAllowedTypes.Contains(request.AccountTypeID))
             return BadRequest(new { Message = "نامناسب حساب ډول." });
 
         var existsName = await _db.Accounts.AnyAsync(a => a.Name == request.Name);
@@ -103,13 +112,6 @@ public class AccountsController(IHttpContextAccessor accessor, ApplicationDbCont
         var existsCode = await _db.Accounts.AnyAsync(a => a.Code == request.Code);
         if (existsCode)
             return BadRequest(new { Message = "دغه کوډ مخکې سته." });
-
-        if (!string.IsNullOrWhiteSpace(request.NIC))
-        {
-            var existsNic = await _db.AccountContacts.AnyAsync(c => c.NIC == request.NIC);
-            if (existsNic)
-                return BadRequest(new { Message = "دغه تذکره کارول سوې." });
-        }
 
         var account = new Account
         {
@@ -121,20 +123,7 @@ public class AccountsController(IHttpContextAccessor accessor, ApplicationDbCont
             CreationDate = DateTime.UtcNow
         };
 
-        var contact = new AccountContacts
-        {
-            Account = account,
-            FirstPhone = request.FirstPhone,
-            SecondPhone = request.SecondPhone,
-            Email = request.Email,
-            Address = request.Address,
-            NIC = request.NIC,
-            CreatedByUserId = userId,
-            CreationDate = DateTime.UtcNow
-        };
-
         _db.Accounts.Add(account);
-        _db.AccountContacts.Add(contact);
 
         var allowedCurrencies = await _db.Currencies
             .Where(c => c.IsActive)
@@ -157,7 +146,7 @@ public class AccountsController(IHttpContextAccessor accessor, ApplicationDbCont
 
             _db.AccountBalances.Add(accountBalance);
 
-            if (balance.Amount != 0 )
+            if (balance.Amount != 0)
             {
                 _db.JournalEntries.Add(new JournalEntry
                 {
@@ -171,7 +160,6 @@ public class AccountsController(IHttpContextAccessor accessor, ApplicationDbCont
                     CreationDate = DateTime.UtcNow
                 });
             }
-
         }
 
         await _db.SaveChangesAsync();
@@ -189,7 +177,6 @@ public class AccountsController(IHttpContextAccessor accessor, ApplicationDbCont
         if (account is null)
             return NotFound();
 
-        var contact = await _db.AccountContacts.FirstOrDefaultAsync(c => c.AccountID == account.ID);
         var dict = Deserialize(values);
         if (dict.Count == 0)
             return BadRequest(new { Message = "بیلابیل معلومات نه شول واخیستل." });
@@ -224,7 +211,7 @@ public class AccountsController(IHttpContextAccessor accessor, ApplicationDbCont
 
         if (TryGetInt(dict, nameof(AccountListItem.AccountTypeID), out var accountTypeId))
         {
-            if (!AccountDefinitions.AllowedAccountTypeIds.Contains(accountTypeId))
+            if (!AllAllowedTypes.Contains(accountTypeId))
                 return BadRequest(new { Message = "نامناسب حساب ډول دی." });
 
             account.AccountTypeID = accountTypeId;
@@ -233,55 +220,6 @@ public class AccountsController(IHttpContextAccessor accessor, ApplicationDbCont
         if (TryGetBool(dict, nameof(AccountListItem.IsActive), out var isActive))
         {
             account.IsActive = isActive;
-        }
-
-        if (TryGetString(dict, nameof(AccountListItem.FirstPhone), out var firstPhone))
-        {
-            if (string.IsNullOrWhiteSpace(firstPhone))
-                return BadRequest(new { Message = "لومړی شمېره اړینه ده." });
-        }
-
-        if (contact is null)
-        {
-            contact = new AccountContacts
-            {
-                Account = account,
-                CreatedByUserId = userId,
-                CreationDate = DateTime.UtcNow
-            };
-            _db.AccountContacts.Add(contact);
-        }
-
-        if (TryGetString(dict, nameof(AccountListItem.FirstPhone), out var firstPhoneValue))
-        {
-            contact.FirstPhone = firstPhoneValue.Trim();
-        }
-
-        if (TryGetString(dict, nameof(AccountListItem.SecondPhone), out var secondPhone))
-        {
-            contact.SecondPhone = secondPhone.Trim();
-        }
-
-        if (TryGetString(dict, nameof(AccountListItem.Email), out var email))
-        {
-            contact.Email = email.Trim();
-        }
-
-        if (TryGetString(dict, nameof(AccountListItem.Address), out var address))
-        {
-            contact.Address = address.Trim();
-        }
-
-        if (TryGetString(dict, nameof(AccountListItem.NIC), out var nic))
-        {
-            if (!string.IsNullOrWhiteSpace(nic) &&
-                !string.Equals(contact.NIC, nic, StringComparison.OrdinalIgnoreCase) &&
-                await _db.AccountContacts.AnyAsync(c => c.ID != contact.ID && c.NIC == nic))
-            {
-                return BadRequest(new { Message = "دغه تذکره مخکې ثبت شوې." });
-            }
-
-            contact.NIC = nic.Trim();
         }
 
         await _db.SaveChangesAsync();
@@ -334,6 +272,24 @@ public class AccountsController(IHttpContextAccessor accessor, ApplicationDbCont
 
         value = default;
         return false;
+    }
+
+    private int[]? ParseRequestedTypes(string? rawTypes)
+    {
+        if (string.IsNullOrWhiteSpace(rawTypes))
+            return null;
+
+        var parsed = rawTypes.Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Select(segment =>
+            {
+                var trimmed = segment.Trim();
+                return int.TryParse(trimmed, NumberStyles.Integer, CultureInfo.InvariantCulture, out var value) ? value : 0;
+            })
+            .Where(value => value > 0 && AllAllowedTypes.Contains(value))
+            .Distinct()
+            .ToArray();
+
+        return parsed.Length == 0 ? null : parsed;
     }
 
     private async Task<string> GenerateNextCode()

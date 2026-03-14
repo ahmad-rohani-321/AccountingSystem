@@ -35,4 +35,26 @@ public class AccountController : Controller
         ViewBag.ActiveCurrenciesJson = JsonSerializer.Serialize(currencies);
         return View();
     }
+
+    public async Task<IActionResult> Accounts()
+    {
+        ViewData["Title"] = "حسابونه";
+
+        var allowedAccountTypeIds = new[] { 1, 2, 6, 7 };
+        var accountTypeOptions = await _db.AccountTypes
+            .Where(a => allowedAccountTypeIds.Contains(a.ID))
+            .Select(a => new AccountTypeOption { ID = a.ID, Name = a.Name })
+            .ToListAsync();
+
+        ViewBag.AccountTypeOptions = accountTypeOptions;
+        ViewBag.AccountTypeOptionsJson = JsonSerializer.Serialize(accountTypeOptions);
+
+        var currencies = await _db.Currencies
+            .Where(c => c.IsActive)
+            .Select(c => new { c.ID, c.CurrencyName })
+            .ToListAsync();
+
+        ViewBag.ActiveCurrenciesJson = JsonSerializer.Serialize(currencies);
+        return View();
+    }
 }

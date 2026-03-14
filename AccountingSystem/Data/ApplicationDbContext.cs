@@ -140,37 +140,37 @@ namespace AccountingSystem.Data
             );
 
             modelBuilder.Entity<AccountType>().HasData(
-                new AccountType()
+                new AccountType() // done
                 {
                     ID = 1,
                     Name = "تجرۍ"
                 },
-                new AccountType()
+                new AccountType() // done
                 {
                     ID = 2,
                     Name = "بانک"
                 },
-                new AccountType()
+                new AccountType() // done
                 {
                     ID = 3,
                     Name = "پیریدونکی"
                 },
-                new AccountType()
+                new AccountType() // done
                 {
                     ID = 4,
                     Name = "عرضه کوونکی"
                 },
-                new AccountType()
+                new AccountType() // done
                 {
                     ID = 5,
                     Name = "معامله کوونکی"
                 },
-                new AccountType()
+                new AccountType() // done
                 {
                     ID = 6,
                     Name = "عواید"
                 },
-                new AccountType()
+                new AccountType() // done
                 {
                     ID = 7,
                     Name = "مصارف"
@@ -178,16 +178,11 @@ namespace AccountingSystem.Data
                 new AccountType()
                 {
                     ID = 8,
-                    Name = "پورونه"
-                },
-                new AccountType()
-                {
-                    ID = 9,
                     Name = "شریک"
                 },
-                new AccountType()
+                new AccountType() // done
                 {
-                    ID = 10,
+                    ID = 9,
                     Name = "کارمند"
                 }
             );
@@ -216,9 +211,9 @@ namespace AccountingSystem.Data
             );
 
             modelBuilder.Entity<JournalTransactionType>().HasData(
-                new JournalTransactionType() 
-                { 
-                    ID = 1, 
+                new JournalTransactionType()
+                {
+                    ID = 1,
                     TypeName = "اولنی بلانس"
                 },
                 new JournalTransactionType()

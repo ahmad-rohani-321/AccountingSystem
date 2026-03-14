@@ -2,18 +2,20 @@
     ViewData["title"] = "د ګدام مدیریت";
 }
 
-<div class="row">
-    <div class="col">
-        <p>کټیګوري</p>
-        @(
-        Html.DevExtreme().DataGrid()
-            .ID("categories-grid")
-            .DataSource(ds => ds.WebApi()
-            .Controller("Categories")
-            .Key("ID")
-            .LoadAction("Get")
-            .InsertAction("Post")
-            .UpdateAction("Put")
+<div class="px-4 py-3">
+    <div class="row">
+        <div class="col-6">
+            <div class="dx-card p-3">
+                <p>کټیګوري</p>
+                @(
+                Html.DevExtreme().DataGrid()
+                .ID("categories-grid")
+                .DataSource(ds => ds.WebApi()
+                .Controller("Categories")
+                .Key("ID")
+                .LoadAction("Get")
+                .InsertAction("Post")
+                .UpdateAction("Put")
                 ).SearchPanel(sp => sp.Visible(true).Placeholder("لټون..."))
                 .RemoteOperations(true)
                 .ShowBorders(true)
@@ -37,24 +39,26 @@
                     columns.Add().DataField(value: "IsActive").Caption("فعال").TrueText("هو").FalseText("نه");
 
                     columns.Add().DataField(value:
-        "CreationDate").Caption("نېټه").DataType(GridColumnDataType.DateTime).AllowEditing(false);
+                    "CreationDate").Caption("نېټه").DataType(GridColumnDataType.DateTime).AllowEditing(false);
 
                     columns.Add().DataField(value: "CreatedByUser.FirstName").Caption("یوزر").AllowEditing(false);
                 })
                 )
-    </div>
+            </div>
+        </div>
 
-    <div class="col">
-        <p>واحدونه</p>
-        @(
+        <div class="col-6">
+            <div class="dx-card p-3">
+                <p>واحدونه</p>
+                @(
                 Html.DevExtreme().DataGrid()
                 .ID("units-grid")
                 .DataSource(ds => ds.WebApi()
-                    .Controller("Units")
-                    .Key("ID")
-                    .LoadAction("Get")
-                    .InsertAction("Post")
-                    .UpdateAction("Put")
+                .Controller("Units")
+                .Key("ID")
+                .LoadAction("Get")
+                .InsertAction("Post")
+                .UpdateAction("Put")
                 )
                 .SearchPanel(sp => sp.Visible(true).Placeholder("لټون..."))
                 .RemoteOperations(true)
@@ -83,15 +87,16 @@
                     columns.Add().DataField("CreatedByUser.FirstName").Caption("یوزر").AllowEditing(false);
                 })
                 )
+            </div>
+        </div>
     </div>
-</div>
 
 
-
-<div class="row my-4">
-    <div class="col">
-        <p>ګدامونه</p>
-        @(
+    <div class="row my-4">
+        <div class="col-6">
+            <div class="dx-card p-3">
+                <p>ګدامونه</p>
+                @(
                 Html.DevExtreme().DataGrid()
                 .ID("warehouses-grid")
                 .DataSource(ds => ds.WebApi()
@@ -128,5 +133,7 @@
                     columns.Add().DataField("CreatedByUser.FirstName").Caption("یوزر").AllowEditing(false);
                 })
                 )
+            </div>
+        </div>
     </div>
 </div>

@@ -4,19 +4,21 @@
 @using AccountingSystem.Models.Settings;
 @using DevExtreme.AspNet.Mvc.Builders;
 
-<div class="row my-4">
-    <div class="col-6">
-        <p>اسعار</p>
-        <div>
-            @(
-                Html.DevExtreme().DataGrid()
+<div class="px-4 py-3">
+    <div class="row my-4">
+        <div class="col-6">
+            <div class="dx-card p-3">
+                <p class="dx-card-header">اسعار</p>
+                <div>
+                    @(
+                    Html.DevExtreme().DataGrid()
                     .ID("currencies-grid")
                     .DataSource(ds => ds.WebApi()
-                        .Controller("Currencies")
-                        .Key("ID")
-                        .LoadAction("Get")
-                        .InsertAction("Post")
-                        .UpdateAction("Put")
+                    .Controller("Currencies")
+                    .Key("ID")
+                    .LoadAction("Get")
+                    .InsertAction("Post")
+                    .UpdateAction("Put")
                     )
                     .SearchPanel(sp => sp.Visible(true).Placeholder("پلټنه..."))
                     .RemoteOperations(true)
@@ -24,10 +26,10 @@
                     .RowAlternationEnabled(true)
                     .ColumnAutoWidth(true)
                     .Editing(e => e
-                        .Mode(GridEditMode.Row)
-                        .AllowAdding(true)
-                        .AllowUpdating(true)
-                        .AllowDeleting(false)
+                    .Mode(GridEditMode.Row)
+                    .AllowAdding(true)
+                    .AllowUpdating(true)
+                    .AllowDeleting(false)
                     )
                     .Option("editing.newRowPosition", "last")
                     .Columns(columns =>
@@ -39,60 +41,64 @@
                         columns.Add().DataField("CurrencySymbole").Caption("سمبول").ValidationRules(r => r.AddRequired());
 
                         columns.Add().DataField("IsMainCurrency").Caption("اصلي")
-                            .DataType(GridColumnDataType.Boolean)
-                            .TrueText("هغه").FalseText("نه");
+                        .DataType(GridColumnDataType.Boolean)
+                        .TrueText("هغه").FalseText("نه");
                         columns.Add().DataField("IsActive").Caption("فعال")
-                            .DataType(GridColumnDataType.Boolean)
-                            .TrueText("هغه").FalseText("نه");
+                        .DataType(GridColumnDataType.Boolean)
+                        .TrueText("هغه").FalseText("نه");
 
                         columns.Add().DataField("CreationDate").Caption("نېټه")
-                            .DataType(GridColumnDataType.DateTime)
-                            .AllowEditing(false);
+                        .DataType(GridColumnDataType.DateTime)
+                        .AllowEditing(false);
                     })
-            )
+                    )
+                </div>
+            </div>
         </div>
-    </div>
 
-    <div class="col-6">
-        <p>د اسعارو تبادله</p>
-        <div>
-            @(
-            Html.DevExtreme().DataGrid()
+        <div class="col-6">
+            <div class="dx-card p-3">
+                <p>د اسعارو تبادله</p>
+                <div>
+                    @(
+                    Html.DevExtreme().DataGrid()
                     .ID("currency-exchange-grid")
                     .DataSource(ds => ds.WebApi()
-                        .Controller("CurrencyExchange")
-                        .Key("SubCurrencyID")
-                        .LoadAction("Get")
+                    .Controller("CurrencyExchange")
+                    .Key("SubCurrencyID")
+                    .LoadAction("Get")
                     )
                     .RemoteOperations(true)
                     .ShowBorders(true)
                     .RowAlternationEnabled(true)
                     .ColumnAutoWidth(true)
                     .Editing(e => e
-                        .Mode(GridEditMode.Batch)
-                        .AllowUpdating(true)
+                    .Mode(GridEditMode.Batch)
+                    .AllowUpdating(true)
                     )
-                    .OnToolbarPreparing("function(e) { e.toolbarOptions.items.unshift({ location: 'before', widget: 'dxButton',            options: { text: 'ثبت', type: 'success', stylingMode: 'contained', onClick: function () {            saveCurrencyExchange(); } } }); }")
+                    .OnToolbarPreparing("function(e) { e.toolbarOptions.items.unshift({ location: 'before', widget: 'dxButton', options: { text: 'ثبت', type: 'success', stylingMode: 'contained', onClick: function () {            saveCurrencyExchange(); } } }); }")
                     .Columns(columns =>
                     {
                         columns.Add().DataField(nameof(CurrencyExchangeVM.SubCurrencyName))
-                            .Caption("فرعي اسعار")
-                            .AllowEditing(false);
+                        .Caption("فرعي اسعار")
+                        .AllowEditing(false);
 
                         columns.Add().DataField(nameof(CurrencyExchangeVM.SubCurrencyAmount))
-                            .Caption("مبلغ")
-                            .DataType(GridColumnDataType.Number)
-                            .EditorOptions(new { showSpinButtons = true })
-                            .ValidationRules(r => r.AddRequired());
+                        .Caption("مبلغ")
+                        .DataType(GridColumnDataType.Number)
+                        .EditorOptions(new { showSpinButtons = true })
+                        .ValidationRules(r => r.AddRequired());
 
                         columns.Add().DataField(nameof(CurrencyExchangeVM.MainCurrencyAmount))
-                            .Caption("متبادل په")
-                            .DataType(GridColumnDataType.Number)
-                            .EditorOptions(new { showSpinButtons = true })
-                            .ValidationRules(r => r.AddRequired());
+                        .Caption("متبادل په")
+                        .DataType(GridColumnDataType.Number)
+                        .EditorOptions(new { showSpinButtons = true })
+                        .ValidationRules(r => r.AddRequired());
 
                     })
-            )
+                    )
+                </div>
+            </div>
         </div>
     </div>
 </div>

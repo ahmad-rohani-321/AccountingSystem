@@ -2,89 +2,108 @@
 @using AccountingSystem.Models.Accounts
 @using DevExtreme.AspNet.Mvc.Builders
 <style>
-    .account-popup-body {
-        padding: 1.25rem;
+    .accounts-popup-scroll {
+        max-height: 85vh;
+        overflow-y: auto;
+        padding-right: 12px;
     }
 
-    .section-title {
-        font-size: 1rem;
-        font-weight: 600;
-        margin-bottom: 0.35rem;
+    .accounts-popup-body {
+        display: flex;
+        flex-direction: column;
+        gap: 1.25rem;
     }
 
-    .account-card-body {
-        padding: 1.25rem !important;
+    .accounts-section {
+        border-radius: 16px;
+        border: 1px solid rgba(15, 23, 42, 0.08);
+        background: #ffffff;
+        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
     }
 
-    #account-balance-grid {
-        width: 100%;
+    .accounts-section-header {
+        padding: 1.25rem 1.5rem 0.75rem;
+        border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+    }
+
+    .accounts-section-title {
+        margin: 0;
+        font-size: 1.15rem;
+        font-weight: 700;
+        color: #0f172a;
+    }
+
+    .accounts-section-divider {
+        height: 2px;
+        width: 52px;
+        margin-top: 0.5rem;
+        border-radius: 999px;
+        background-image: linear-gradient(90deg, #0ea5e9 0%, #6366f1 100%);
+    }
+
+    .accounts-section-body {
+        padding: 1.25rem 1.5rem 1.5rem;
+    }
+
+    .accounts-section--disabled {
+        opacity: 0.65;
+        pointer-events: none;
+    }
+
+    .accounts-grid-container {
+        margin-bottom: 1.25rem;
     }
 </style>
 @{
-    ViewData["Title"] = "حساب";
+    ViewData["Title"] = "حسابونه";
     var accountTypeOptions = ViewBag.AccountTypeOptions as List<AccountTypeOption> ?? new();
     var accountTypeOptionsJson = ViewBag.AccountTypeOptionsJson as string ?? "[]";
     var activeCurrenciesJson = ViewBag.ActiveCurrenciesJson as string ?? "[]";
 }
 
-<div class="dx-card">
-    <div class="p-3">
-        @(
+<div class="dx-card px-4 py-3 accounts-grid-container">
+    @(
         Html.DevExtreme().DataGrid()
-        .ID("accounts-grid")
-        .DataSource(ds => ds.WebApi()
-        .LoadParams(new { types = "3,4,5,9" })
-            .Controller("Accounts")
-            .Key("AccountID")
-            .LoadAction("Get")
-        .UpdateAction("Put"))
-        .RemoteOperations(true)
-        .ShowBorders(true)
-        .RowAlternationEnabled(true)
-        .ColumnAutoWidth(true)
-        .SearchPanel(sp => sp.Visible(true).Placeholder("پلټنه..."))
-        .OnToolbarPreparing("function(e){ e.toolbarOptions.items.unshift({ location: 'before', widget: 'dxButton', options: { text: 'نوی حساب', type: 'success', icon: 'fa-solid fa-plus', onClick: function () {    openAccountPopup(); } } }); }")
-        .Paging(p => p.PageSize(15))
-        .Editing(e => e
-        .Mode(GridEditMode.Row)
-        .AllowUpdating(true)
-        .AllowAdding(false)
-        .AllowDeleting(false))
-        .Columns(columns =>
-        {
-            columns.Add().DataField(nameof(AccountListItem.Name)).Caption("نوم").ValidationRules(r => r.AddRequired());
-            columns.Add().DataField(nameof(AccountListItem.Code)).Caption("کوډ").ValidationRules(r => r.AddRequired());
-            columns.Add().DataField(nameof(AccountListItem.NIC)).Caption("تذکره");
-            columns.Add().DataField(nameof(AccountListItem.FirstPhone)).Caption("لومړی شمېره").ValidationRules(r =>
-            r.AddRequired());
-            columns.Add().DataField(nameof(AccountListItem.SecondPhone)).Caption("دوهمه شمېره");
-            columns.Add().DataField(nameof(AccountListItem.Email)).Caption("ایمیل");
-            columns.Add().DataField(nameof(AccountListItem.Address)).Caption("ادرس");
-            columns.Add()
-            .DataField(nameof(AccountListItem.AccountTypeID))
-            .Caption("حساب ډول")
-            .Lookup(lookup => lookup
-            .DataSource(accountTypeOptions)
-            .ValueExpr(nameof(AccountTypeOption.ID))
-            .DisplayExpr(nameof(AccountTypeOption.Name)))
-            .ValidationRules(r => r.AddRequired());
-            columns.Add()
-            .DataField(nameof(AccountListItem.IsActive))
-            .Caption("فعال")
-            .DataType(GridColumnDataType.Boolean)
-            .TrueText("هغه")
-            .FalseText("نه");
-        })
-        )
-    </div>
+            .ID("accounts-grid")
+            .DataSource(ds => ds.WebApi()
+                .Controller("Accounts")
+                .Key("AccountID")
+                .LoadAction("Get")
+                .UpdateAction("Put"))
+            .RemoteOperations(true)
+            .ShowBorders(true)
+            .RowAlternationEnabled(true)
+            .ColumnAutoWidth(true)
+            .Paging(p => p.PageSize(15))
+            .Editing(e => e
+                .Mode(GridEditMode.Row)
+                .AllowUpdating(true)
+                .AllowAdding(false)
+                .AllowDeleting(false))
+            .SearchPanel(sp => sp.Visible(true).Placeholder("پلټنه..."))
+            .OnToolbarPreparing("function(e) { e.toolbarOptions.items.unshift({ location: 'before', widget: 'dxButton', options: { text: 'نوی حساب', icon: 'fa-solid fa-plus', type: 'success', onClick: function () { openAccountPopup(); } } }); }")
+            .Columns(columns =>
+            {
+                columns.Add().DataField(nameof(AccountListItem.Name)).Caption("نوم").ValidationRules(r => r.AddRequired());
+                columns.Add().DataField(nameof(AccountListItem.Code)).Caption("کوډ").ValidationRules(r => r.AddRequired());
+                columns.Add().DataField(nameof(AccountListItem.AccountTypeName)).Caption("حساب ډول").AllowEditing(false);
+                columns.Add()
+                    .DataField(nameof(AccountListItem.IsActive))
+                    .Caption("فعال")
+                    .DataType(GridColumnDataType.Boolean)
+                    .TrueText("هو")
+                    .FalseText("نه");
+            })
+    )
+    <div id="account-popup"></div>
 </div>
-
-<div id="account-form-popup"></div>
 
 <script>
     (function () {
         const accountTypeOptions = @Html.Raw(accountTypeOptionsJson);
         const activeCurrencies = @Html.Raw(activeCurrenciesJson);
+        const balanceDisabledTypeIds = new Set([6, 7]);
+
         let accountsGridInstance;
         let popupInstance;
         let accountFormInstance;
@@ -93,36 +112,44 @@
         const defaultFormData = () => ({
             Name: "",
             Code: "",
-            NIC: "",
-            FirstPhone: "",
-            SecondPhone: "",
-            Email: "",
-            Address: "",
             AccountTypeID: accountTypeOptions.length ? accountTypeOptions[0].ID : null
         });
 
-        const balanceRows = () => activeCurrencies.map(currency => ({
+        const balanceRows = () => (activeCurrencies || []).map(currency => ({
             CurrencyID: currency.ID,
             CurrencyName: currency.CurrencyName,
             Amount: 0
         }));
 
+        const shouldDisableBalanceSection = typeId => balanceDisabledTypeIds.has(Number(typeId));
+
+        const syncBalanceSection = typeId => {
+            if (!balanceGridInstance)
+                return;
+
+            const disabled = shouldDisableBalanceSection(typeId);
+            balanceGridInstance.option("disabled", disabled);
+            balanceGridInstance.option("editing.allowUpdating", !disabled);
+            balanceGridInstance.columnOption("Amount", "allowEditing", !disabled);
+            $("#initial-balance-section").toggleClass("accounts-section--disabled", disabled);
+        };
+
         const fetchNextCode = () => {
             fetch("/api/Accounts/next-code", { credentials: "same-origin" })
                 .then(response => {
                     if (!response.ok)
-                        return response.json().then(error => Promise.reject(error));
+                        return response.json().then(err => Promise.reject(err));
                     return response.json();
                 })
                 .then(data => {
                     if (!accountFormInstance)
                         return;
-                    const currentData = { ...accountFormInstance.option("formData") };
-                    currentData.Code = data?.Code ?? currentData.Code;
-                    accountFormInstance.option("formData", currentData);
+                    const formData = { ...accountFormInstance.option("formData") };
+                    formData.Code = data?.Code ?? formData.Code;
+                    accountFormInstance.option("formData", formData);
                 })
                 .catch(() => {
-                    DevExpress.ui.notify("کوډ نسو ترلاسه کولی.", "warning", 2600);
+                    DevExpress.ui.notify("کوډ ترلاسه نشو.", "warning", 2600);
                 });
         };
 
@@ -130,8 +157,10 @@
             if (!accountFormInstance || !balanceGridInstance)
                 return;
 
-            accountFormInstance.option("formData", defaultFormData());
+            const formData = defaultFormData();
+            accountFormInstance.option("formData", formData);
             balanceGridInstance.option("dataSource", balanceRows());
+            syncBalanceSection(formData.AccountTypeID);
             fetchNextCode();
         };
 
@@ -148,7 +177,7 @@
             try {
                 await balanceGridInstance.saveEditData();
             } catch {
-                DevExpress.ui.notify("Please finalize the currency grid entries before saving.", "error", 3200);
+                DevExpress.ui.notify("مهرباني وکړئ جدول په بشپړ ډول ثبت کړئ.", "error", 3200);
                 return;
             }
 
@@ -160,7 +189,7 @@
 
             const payload = { ...formPayload, Balances: balances };
 
-            fetch("/api/Accounts", {
+            fetch("/api/Accounts/create", {
                 method: "POST",
                 credentials: "same-origin",
                 headers: { "Content-Type": "application/json" },
@@ -169,20 +198,20 @@
                 .then(async response => {
                     const result = await response.json().catch(() => null);
                     if (!response.ok) {
-                        const message = result?.Message ?? result?.message ?? "تېروتنه وسوه.";
+                        const message = result?.Message ?? result?.message ?? "تېروتنه وشوه.";
                         return Promise.reject(message);
                     }
                     return result;
                 })
                 .then(() => {
-                    DevExpress.ui.notify("حساب په بریالیتوب ثبت سو.", "success", 2500);
+                    DevExpress.ui.notify("حساب ثبت شو.", "success", 2500);
                     popupInstance?.hide();
                     try {
                         accountsGridInstance?.getDataSource()?.reload();
                     } catch { }
                 })
                 .catch(message => {
-                    const text = typeof message === "string" ? message : "تېروتنه وسوه.";
+                    const text = typeof message === "string" ? message : "تېروتنه وشوه.";
                     DevExpress.ui.notify(text, "error", 3200);
                 });
         };
@@ -192,13 +221,13 @@
         };
 
         const initPopup = () => {
-            popupInstance = $("#account-form-popup").dxPopup({
+            popupInstance = $("#account-popup").dxPopup({
                 title: "نوی حساب",
                 visible: false,
                 showTitle: true,
                 dragEnabled: true,
-                width: 780,
-                maxHeight: "80vh",
+                width: 840,
+                maxHeight: "85vh",
                 toolbarItems: [
                     {
                         widget: "dxButton",
@@ -222,29 +251,31 @@
                 ],
                 onShown: resetForm,
                 contentTemplate: contentElement => {
-                    const container = $("<div class='account-popup-body'></div>");
-                    const layout = $("<div class='d-flex flex-column gap-3'></div>");
-                    const contactCard = $("<div class='card shadow-sm border-0'></div>");
-                    const balanceCard = $("<div class='card shadow-sm border-0'></div>");
-                    const contactBody = $("<div class='card-body account-card-body'></div>");
-                    const balanceBody = $("<div class='card-body account-card-body'></div>");
+                    const scrollable = $("<div class='accounts-popup-scroll'></div>");
+                    const body = $("<div class='accounts-popup-body'></div>");
 
-                    contactBody.append("<h5 class='section-title'>شخص معلومات</h5>");
-                    contactBody.append("<div id='account-form'></div>");
-                    balanceBody.append("<h5 class='section-title'>اوسنی بلانس</h5>");
-                    balanceBody.append("<div id='account-balance-grid'></div>");
+                    const contactSection = $("<div class='accounts-section'></div>");
+                    const balanceSection = $("<div id='initial-balance-section' class='accounts-section'></div>");
 
-                    contactCard.append(contactBody);
-                    balanceCard.append(balanceBody);
-                    layout.append(contactCard).append(balanceCard);
-                    container.append(layout);
-                    contentElement.append(container);
+                    const contactHeader = $("<div class='accounts-section-header'><h5 class='accounts-section-title'>معلومات حساب</h5><div class='accounts-section-divider'></div></div>");
+                    const contactBody = $("<div class='accounts-section-body'><div id='account-form'></div></div>");
+                    contactSection.append(contactHeader).append(contactBody);
 
-                    accountFormInstance = contactBody.find("#account-form").dxForm({
+                    const balanceHeader = $("<div class='accounts-section-header'><h5 class='accounts-section-title'>اولنی بلانس</h5><div class='accounts-section-divider'></div></div>");
+                    const balanceBody = $("<div class='accounts-section-body'><div id='initial-balance-grid'></div></div>");
+                    balanceSection.append(balanceHeader).append(balanceBody);
+
+                    body.append(contactSection).append(balanceSection);
+                    scrollable.append(body);
+                    contentElement.append(scrollable);
+
+                    accountFormInstance = contactSection.find("#account-form").dxForm({
                         formData: defaultFormData(),
                         labelLocation: "top",
                         colCount: 2,
-                        minColWidth: 240,
+                        minColWidth: 260,
+                        layout: "horizontal",
+                        stylingMode: "outlined",
                         items: [
                             {
                                 dataField: "Name",
@@ -259,32 +290,6 @@
                                 validationRules: [{ type: "required" }]
                             },
                             {
-                                dataField: "NIC",
-                                label: { text: "تذکره" },
-                                editorOptions: { placeholder: "تذکره (اختیاري)" }
-                            },
-                            {
-                                dataField: "FirstPhone",
-                                label: { text: "لومړی شمېره" },
-                                editorOptions: { placeholder: "لومړی شمېره" },
-                                validationRules: [{ type: "required" }]
-                            },
-                            {
-                                dataField: "SecondPhone",
-                                label: { text: "دوهمه شمېره" },
-                                editorOptions: { placeholder: "دوهمه شمېره (اختیاري)" }
-                            },
-                            {
-                                dataField: "Email",
-                                label: { text: "ایمیل" },
-                                editorOptions: { placeholder: "ایمیل (اختیاري)" }
-                            },
-                            {
-                                dataField: "Address",
-                                label: { text: "ادرس" },
-                                editorOptions: { placeholder: "ادرس (اختیاري)" }
-                            },
-                            {
                                 dataField: "AccountTypeID",
                                 label: { text: "حساب ډول" },
                                 editorType: "dxSelectBox",
@@ -292,14 +297,16 @@
                                     dataSource: accountTypeOptions || [],
                                     valueExpr: "ID",
                                     displayExpr: "Name",
-                                    placeholder: "حساب ډول انتخاب کړئ"
+                                    placeholder: "حساب ډول انتخاب کړئ",
+                                    searchEnabled: true,
+                                    onValueChanged: e => syncBalanceSection(e?.value)
                                 },
                                 validationRules: [{ type: "required" }]
-                            },
+                            }
                         ]
                     }).dxForm("instance");
 
-                    balanceGridInstance = balanceBody.find("#account-balance-grid").dxDataGrid({
+                    balanceGridInstance = balanceSection.find("#initial-balance-grid").dxDataGrid({
                         dataSource: balanceRows(),
                         showBorders: true,
                         columnAutoWidth: true,
@@ -325,7 +332,7 @@
                                 validationRules: [{ type: "required" }]
                             }
                         ],
-                        height: 280
+                        height: 300
                     }).dxDataGrid("instance");
 
                     resetForm();

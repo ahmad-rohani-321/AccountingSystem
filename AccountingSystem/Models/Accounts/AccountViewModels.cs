@@ -4,7 +4,7 @@ namespace AccountingSystem.Models.Accounts;
 
 public static class AccountDefinitions
 {
-    public static readonly int[] AllowedAccountTypeIds = { 3, 4, 5, 10 };
+public static readonly int[] AllowedAccountTypeIds = { 3, 4, 5, 9 };
     public const string DefaultCodePrefix = "ACC";
 }
 

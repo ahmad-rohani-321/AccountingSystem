@@ -2,7 +2,8 @@
     ViewData["title"] = "اجناس";
 }
 
-@(
+<div class="dx-card px-4 py-3">
+    @(
     Html.DevExtreme().DataGrid()
         .ID("items-grid")
         .DataSource(ds => ds.WebApi()
@@ -117,14 +118,15 @@ items.Add().Location(ToolbarItemLocation.Before)
                 });
         })
         .OnRowUpdating("warehouseItems.onRowUpdating")
-)
+    )
 
-<div id="create-item-popup"></div>
-<div id="unit-conversions-popup"></div>
-<div id="initial-stock-popup"></div>
-<div id="update-item-image-popup"></div>
-<div id="wi-add-item-tooltip"></div>
-<div id="wi-native-image-popover"></div>
+    <div id="create-item-popup"></div>
+    <div id="unit-conversions-popup"></div>
+    <div id="initial-stock-popup"></div>
+    <div id="update-item-image-popup"></div>
+    <div id="wi-add-item-tooltip"></div>
+    <div id="wi-native-image-popover"></div>
+</div>
 
 <style>
     .wi-popover-wrap { padding: 14px 14px 10px; }

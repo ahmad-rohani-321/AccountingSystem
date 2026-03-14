@@ -2,7 +2,8 @@
     ViewData["title"] = "د ګدام موجودي";
 }
 
-@(
+<div class="dx-card px-4 py-3">
+    @(
     Html.DevExtreme().DataGrid()
         .ID("remaining-stock-grid")
         .DataSource(ds => ds.WebApi()
@@ -69,14 +70,15 @@ items.Add().Location(ToolbarItemLocation.Before)
         })
 )
 
-<div id="remaining-stock-trx2-popup"></div>
-<div id="remaining-stock-trx2-loadpanel"></div>
+    <div id="remaining-stock-trx2-popup"></div>
+    <div id="remaining-stock-trx2-loadpanel"></div>
 
-<div id="remaining-stock-trx9-popup"></div>
-<div id="remaining-stock-trx9-loadpanel"></div>
+    <div id="remaining-stock-trx9-popup"></div>
+    <div id="remaining-stock-trx9-loadpanel"></div>
 
-<div id="remaining-stock-trx4-popup"></div>
-<div id="remaining-stock-trx4-loadpanel"></div>
+    <div id="remaining-stock-trx4-popup"></div>
+    <div id="remaining-stock-trx4-loadpanel"></div>
+</div>
 
 <script>
     var remainingStockFilters = (function () {
