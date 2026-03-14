@@ -40,7 +40,8 @@
             .ShowBorders(true)
             .RowAlternationEnabled(true)
             .ColumnAutoWidth(true)
-            .SearchPanel(sp => sp.Visible(true).Placeholder("پلټنه...")).OnToolbarPreparing("function(e){    e.toolbarOptions.items.unshift({ location: 'before', widget: 'dxButton', options: { text: 'نوی حساب', type:    'success', icon: 'fa-solid fa-plus', onClick: function () { openAccountPopup(); } } }); }")
+            .SearchPanel(sp => sp.Visible(true).Placeholder("پلټنه..."))
+            .OnToolbarPreparing("function(e){    e.toolbarOptions.items.unshift({ location: 'before', widget: 'dxButton', options:    { text: 'نوی حساب', type:    'success', icon: 'fa-solid fa-plus', onClick: function () { openAccountPopup(); } } });   }")
             .Paging(p => p.PageSize(15))
             .Editing(e => e
                 .Mode(GridEditMode.Row)
