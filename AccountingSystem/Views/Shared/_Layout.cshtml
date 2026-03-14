@@ -123,6 +123,12 @@
                             .Text("حسابونه")
                             .Option("path", GetUrl("Accounts", "Account"))
                             .Selected(IsCurrentUrl("Accounts", "Account"));
+
+
+                        acc.Add()
+                            .Text("شریکان")
+                            .Option("path", GetUrl("Contributors", "Account"))
+                            .Selected(IsCurrentUrl("Contributors", "Account"));
                     });
                 // items section
                 items.Add().Text("ګدام داري").Icon("fa-solid fa-warehouse").Expanded(GetCurrentUrl().Contains("Warehouse"))

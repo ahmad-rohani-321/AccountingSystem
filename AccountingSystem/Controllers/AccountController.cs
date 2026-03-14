@@ -57,4 +57,9 @@ public class AccountController : Controller
         ViewBag.ActiveCurrenciesJson = JsonSerializer.Serialize(currencies);
         return View();
     }
+
+    public async Task<IActionResult> Contributors()
+    {
+        return View();
+    }
 }

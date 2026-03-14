@@ -12,7 +12,6 @@
             .LoadAction("Get")
             .UpdateAction("Put")
         )
-        .FocusedRowEnabled(true)
         .SearchPanel(sp => sp.Visible(true).Placeholder("لټون..."))
         .Toolbar(t => t.Items(items =>
         {
@@ -128,6 +127,56 @@ items.Add().Location(ToolbarItemLocation.Before)
 <div id="wi-add-item-tooltip"></div>
 <div id="wi-native-image-popover"></div>
 </div>
+
+<style>
+    .accounts-popup-scroll {
+        max-height: 85vh;
+        overflow-y: auto;
+        padding-right: 12px;
+    }
+
+    .accounts-popup-body {
+        display: flex;
+        flex-direction: column;
+        gap: 1.25rem;
+    }
+
+    .accounts-section {
+        border-radius: 16px;
+        border: 1px solid rgba(15, 23, 42, 0.08);
+        background: #ffffff;
+        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+    }
+
+    .accounts-section-header {
+        padding: 1.25rem 1.5rem 0.75rem;
+        border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+    }
+
+    .accounts-section-title {
+        margin: 0;
+        font-size: 1.15rem;
+        font-weight: 700;
+        color: #0f172a;
+    }
+
+    .accounts-section-divider {
+        height: 2px;
+        width: 52px;
+        margin-top: 0.5rem;
+        border-radius: 999px;
+        background-image: linear-gradient(90deg, #0ea5e9 0%, #6366f1 100%);
+    }
+
+    .accounts-section-body {
+        padding: 1.25rem 1.5rem 1.5rem;
+    }
+
+    .accounts-section--disabled {
+        opacity: 0.65;
+        pointer-events: none;
+    }
+</style>
 
 <style>
     .wi-popover-wrap {
@@ -794,11 +843,23 @@ items.Add().Location(ToolbarItemLocation.Before)
                 hideOnOutsideClick: false,
                 showCloseButton: true,
                 contentTemplate: function (contentElement) {
-                    var $content = $("<div class='p-2 wi-scroll' style='max-height:72vh; overflow:auto;'></div>");
-                    var $formContainer = $("<div id='create-item-form'></div>").appendTo($content);
-                    $("<div class='my-3 fw-semibold'>فرعي واحدونه</div>").appendTo($content);
-                    $("<div id='unit-conversions-grid'></div>").appendTo($content);
-                    $(contentElement).append($content);
+                    var $body = $("<div class='accounts-popup-body'></div>");
+
+                    var $generalSection = $("<div class='accounts-section'></div>");
+                    var $conversionsSection = $("<div class='accounts-section'></div>");
+
+                    var $generalHeader = $("<div class='accounts-section-header'><h5 class='accounts-section-title'>جزییات جنس</h5><div class='accounts-section-divider'></div></div>");
+                    var $generalBody = $("<div class='accounts-section-body'></div>");
+                    var $formContainer = $("<div id='create-item-form'></div>").appendTo($generalBody);
+                    $generalSection.append($generalHeader).append($generalBody);
+
+                    var $conversionsHeader = $("<div class='accounts-section-header'><h5 class='accounts-section-title'>فرعي واحدونه</h5><div class='accounts-section-divider'></div></div>");
+                    var $conversionsBody = $("<div class='accounts-section-body'></div>");
+                    $("<div id='unit-conversions-grid'></div>").appendTo($conversionsBody);
+                    $conversionsSection.append($conversionsHeader).append($conversionsBody);
+
+                    $body.append($generalSection).append($conversionsSection);
+                    $(contentElement).append($body);
 
                     $formContainer.dxForm({
                         formData: $.extend(true, {}, createItemInitialFormData),
@@ -877,7 +938,7 @@ items.Add().Location(ToolbarItemLocation.Before)
                     { widget: "dxButton", location: "after", toolbar: "bottom", options: { text: "بندول", type: "normal", stylingMode: "text", onClick: function () { var popup = getCreatePopup(); if (popup) popup.hide(); } } }
                 ],
                 onShown: function () {
-                    try { $("#create-item-popup").find(".wi-scroll").get(0).scrollTo({ top: 0, behavior: "smooth" }); } catch (e) { }
+                    try { $("#create-item-popup").find(".accounts-popup-scroll").get(0).scrollTo({ top: 0, behavior: "smooth" }); } catch (e) { }
                     // Auto-generate SKU when popup opens (if user hasn't typed one).
                     var form = $("#create-item-form").dxForm("instance");
                     if (form) {

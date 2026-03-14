@@ -2,22 +2,52 @@
 @using AccountingSystem.Models.Accounts
 @using DevExtreme.AspNet.Mvc.Builders
 <style>
-    .account-popup-body {
-        padding: 1.25rem;
+    .accounts-popup-scroll {
+        max-height: 85vh;
+        overflow-y: auto;
+        padding-right: 12px;
     }
 
-    .section-title {
-        font-size: 1rem;
-        font-weight: 600;
-        margin-bottom: 0.35rem;
+    .accounts-popup-body {
+        display: flex;
+        flex-direction: column;
+        gap: 1.25rem;
     }
 
-    .account-card-body {
-        padding: 1.25rem !important;
+    .accounts-section {
+        border-radius: 16px;
+        border: 1px solid rgba(15, 23, 42, 0.08);
+        background: #ffffff;
+        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
     }
 
-    #account-balance-grid {
-        width: 100%;
+    .accounts-section-header {
+        padding: 1.25rem 1.5rem 0.75rem;
+        border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+    }
+
+    .accounts-section-title {
+        margin: 0;
+        font-size: 1.15rem;
+        font-weight: 700;
+        color: #0f172a;
+    }
+
+    .accounts-section-divider {
+        height: 2px;
+        width: 52px;
+        margin-top: 0.5rem;
+        border-radius: 999px;
+        background-image: linear-gradient(90deg, #0ea5e9 0%, #6366f1 100%);
+    }
+
+    .accounts-section-body {
+        padding: 1.25rem 1.5rem 1.5rem;
+    }
+
+    .accounts-section--disabled {
+        opacity: 0.65;
+        pointer-events: none;
     }
 </style>
 @{
@@ -38,13 +68,12 @@
             .Key("AccountID")
             .LoadAction("Get")
         .UpdateAction("Put"))
-        .FocusedRowEnabled(true)
         .RemoteOperations(true)
         .ShowBorders(true)
         .RowAlternationEnabled(true)
         .ColumnAutoWidth(true)
         .SearchPanel(sp => sp.Visible(true).Placeholder("پلټنه..."))
-        .OnToolbarPreparing("function(e){ e.toolbarOptions.items.unshift({ location: 'before', widget: 'dxButton',      options: { text: 'نوی حساب', type: 'success', icon: 'fa-solid fa-plus', onClick: function () {    openAccountPopup(); } } }); }")
+        .OnToolbarPreparing("function(e){ e.toolbarOptions.items.unshift({ location: 'before', widget: 'dxButton',        options: { text: 'نوی حساب', type: 'success', icon: 'fa-solid fa-plus', onClick: function () {    openAccountPopup(); } } }); }")
         .Paging(p => p.PageSize(15))
         .Editing(e => e
         .Mode(GridEditMode.Row)
@@ -86,6 +115,8 @@
     (function () {
         const accountTypeOptions = @Html.Raw(accountTypeOptionsJson);
         const activeCurrencies = @Html.Raw(activeCurrenciesJson);
+        const balanceDisabledTypeIds = new Set([6, 7]);
+
         let accountsGridInstance;
         let popupInstance;
         let accountFormInstance;
@@ -102,11 +133,24 @@
             AccountTypeID: accountTypeOptions.length ? accountTypeOptions[0].ID : null
         });
 
-        const balanceRows = () => activeCurrencies.map(currency => ({
+        const balanceRows = () => (activeCurrencies || []).map(currency => ({
             CurrencyID: currency.ID,
             CurrencyName: currency.CurrencyName,
             Amount: 0
         }));
+
+        const shouldDisableBalanceSection = typeId => balanceDisabledTypeIds.has(Number(typeId));
+
+        const syncBalanceSection = typeId => {
+            if (!balanceGridInstance)
+                return;
+
+            const disabled = shouldDisableBalanceSection(typeId);
+            balanceGridInstance.option("disabled", disabled);
+            balanceGridInstance.option("editing.allowUpdating", !disabled);
+            balanceGridInstance.columnOption("Amount", "allowEditing", !disabled);
+            $("#initial-balance-section").toggleClass("accounts-section--disabled", disabled);
+        };
 
         const fetchNextCode = () => {
             fetch("/api/Accounts/next-code", { credentials: "same-origin" })
@@ -131,8 +175,10 @@
             if (!accountFormInstance || !balanceGridInstance)
                 return;
 
-            accountFormInstance.option("formData", defaultFormData());
+            const formData = defaultFormData();
+            accountFormInstance.option("formData", formData);
             balanceGridInstance.option("dataSource", balanceRows());
+            syncBalanceSection(formData.AccountTypeID);
             fetchNextCode();
         };
 
@@ -198,8 +244,8 @@
                 visible: false,
                 showTitle: true,
                 dragEnabled: true,
-                width: 780,
-                maxHeight: "80vh",
+                width: 840,
+                maxHeight: "85vh",
                 toolbarItems: [
                     {
                         widget: "dxButton",
@@ -223,29 +269,29 @@
                 ],
                 onShown: resetForm,
                 contentTemplate: contentElement => {
-                    const container = $("<div class='account-popup-body'></div>");
-                    const layout = $("<div class='d-flex flex-column gap-3'></div>");
-                    const contactCard = $("<div class='card shadow-sm border-0'></div>");
-                    const balanceCard = $("<div class='card shadow-sm border-0'></div>");
-                    const contactBody = $("<div class='card-body account-card-body'></div>");
-                    const balanceBody = $("<div class='card-body account-card-body'></div>");
+                    const body = $("<div class='accounts-popup-body'></div>");
 
-                    contactBody.append("<h5 class='section-title'>شخص معلومات</h5>");
-                    contactBody.append("<div id='account-form'></div>");
-                    balanceBody.append("<h5 class='section-title'>اوسنی بلانس</h5>");
-                    balanceBody.append("<div id='account-balance-grid'></div>");
+                    const contactSection = $("<div class='accounts-section'></div>");
+                    const balanceSection = $("<div id='initial-balance-section' class='accounts-section'></div>");
 
-                    contactCard.append(contactBody);
-                    balanceCard.append(balanceBody);
-                    layout.append(contactCard).append(balanceCard);
-                    container.append(layout);
-                    contentElement.append(container);
+                    const contactHeader = $("<div class='accounts-section-header'><h5 class='accounts-section-title'>شخص معلومات</h5><div class='accounts-section-divider'></div></div>");
+                    const contactBody = $("<div class='accounts-section-body'><div id='account-form'></div></div>");
+                    contactSection.append(contactHeader).append(contactBody);
+
+                    const balanceHeader = $("<div class='accounts-section-header'><h5 class='accounts-section-title'>اوسنی بلانس</h5><div class='accounts-section-divider'></div></div>");
+                    const balanceBody = $("<div class='accounts-section-body'><div id='initial-balance-grid'></div></div>");
+                    balanceSection.append(balanceHeader).append(balanceBody);
+
+                    body.append(contactSection).append(balanceSection);
+                    contentElement.append(body);
 
                     accountFormInstance = contactBody.find("#account-form").dxForm({
                         formData: defaultFormData(),
                         labelLocation: "top",
                         colCount: 2,
                         minColWidth: 240,
+                        layout: "horizontal",
+                        stylingMode: "outlined",
                         items: [
                             {
                                 dataField: "Name",
@@ -293,14 +339,16 @@
                                     dataSource: accountTypeOptions || [],
                                     valueExpr: "ID",
                                     displayExpr: "Name",
-                                    placeholder: "حساب ډول انتخاب کړئ"
+                                    placeholder: "حساب ډول انتخاب کړئ",
+                                    searchEnabled: true,
+                                    onValueChanged: e => syncBalanceSection(e?.value)
                                 },
                                 validationRules: [{ type: "required" }]
-                            },
+                            }
                         ]
                     }).dxForm("instance");
 
-                    balanceGridInstance = balanceBody.find("#account-balance-grid").dxDataGrid({
+                    balanceGridInstance = balanceSection.find("#initial-balance-grid").dxDataGrid({
                         dataSource: balanceRows(),
                         showBorders: true,
                         columnAutoWidth: true,
@@ -326,7 +374,7 @@
                                 validationRules: [{ type: "required" }]
                             }
                         ],
-                        height: 280
+                        height: 300
                     }).dxDataGrid("instance");
 
                     resetForm();
