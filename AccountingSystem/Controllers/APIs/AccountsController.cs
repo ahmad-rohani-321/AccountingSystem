@@ -28,7 +28,11 @@ namespace AccountingSystem.Controllers.APIs;
 
     private static readonly int[] AccountsAllowedTypes = { 1, 2, 6, 7 };
     private static readonly int[] IndexAllowedTypes = { 3, 4, 5, 9 };
-    private static readonly int[] AllAllowedTypes = AccountsAllowedTypes.Concat(IndexAllowedTypes).ToArray();
+    private static readonly int[] ContributorAllowedTypes = { 8 };
+    private static readonly int[] AllAllowedTypes = AccountsAllowedTypes
+        .Concat(IndexAllowedTypes)
+        .Concat(ContributorAllowedTypes)
+        .ToArray();
 
     [HttpGet]
     public async Task<object> Get(DataSourceLoadOptions loadOptions, string? types = null)
