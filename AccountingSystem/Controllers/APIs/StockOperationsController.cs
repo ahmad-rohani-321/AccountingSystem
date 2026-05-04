@@ -182,7 +182,7 @@ public class StockOperationsController(ApplicationDbContext db) : ApiControllerB
 
                 var inMainQty = request.Quantity / exchangedAmount;
                 if (inMainQty <= 0)
-                    return await RollbackResultAsync(BadRequest(new { errors = new { Quantity = new[] { "ØªØ¹Ø¯Ø§Ø¯ Ù†Ø§Ø³Ù… Ø¯ÛŒ." } } }));
+                    return await RollbackResultAsync(BadRequest(new { errors = new { Quantity = new[] { "تعداد ناسم دی." } } }));
 
                 // TransactionID=2: add/update by (ItemID, WarehouseID, BatchNo)
                 var balance = await _db.StockBalances.FirstOrDefaultAsync(sb =>

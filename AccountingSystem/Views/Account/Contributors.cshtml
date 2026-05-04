@@ -220,7 +220,7 @@
             try {
                 await balanceGridInstance.saveEditData();
             } catch {
-                DevExpress.ui.notify("Please finalize the currency grid entries before saving.", "error", 3200);
+                DevExpress.ui.notify("مهرباني وکړئ د اسعارو جدول بشپړ ثبت کړئ، بیا خوندي کول ترسره کړئ.", "error", 3200);
                 return;
             }
 
@@ -648,7 +648,7 @@
                         toolbar: "bottom",
                         location: "after",
                         options: {
-                            text: "OK",
+                            text: "سمه ده",
                             onClick: () => comingSoonPopup?.hide()
                         }
                     }

@@ -834,7 +834,7 @@
             this.tableCell5.Name = "tableCell5";
             this.tableCell5.StyleName = "SimpleTextStyle";
             this.tableCell5.StylePriority.UseFont = false;
-            this.tableCell5.Text = "Northwind Traders";
+            this.tableCell5.Text = "د شرکت نوم";
             this.tableCell5.Weight = 1.0198401485769693D;
             // 
             // tableCell6
@@ -843,7 +843,7 @@
             this.tableCell6.Multiline = true;
             this.tableCell6.Name = "tableCell6";
             this.tableCell6.StyleName = "SimpleTextStyle";
-            this.tableCell6.Text = "One Portals Way, Twin Points WA, 98156";
+            this.tableCell6.Text = "د شرکت پته";
             this.tableCell6.Weight = 1.0198401485769693D;
             // 
             // tableCell8
@@ -861,7 +861,7 @@
             this.tableCell9.Multiline = true;
             this.tableCell9.Name = "tableCell9";
             this.tableCell9.StyleName = "SimpleTextStyle";
-            this.tableCell9.Text = "northwind@mail.com";
+            this.tableCell9.Text = "بریښنالیک";
             this.tableCell9.Weight = 1.0198401485769693D;
             // 
             // tableCell7
@@ -870,7 +870,7 @@
             this.tableCell7.Multiline = true;
             this.tableCell7.Name = "tableCell7";
             this.tableCell7.StyleName = "SimpleTextStyle";
-            this.tableCell7.Text = "www.northwind.com";
+            this.tableCell7.Text = "وېبپاڼه";
             this.tableCell7.Weight = 1.0198401485769693D;
             // 
             // tableRow1

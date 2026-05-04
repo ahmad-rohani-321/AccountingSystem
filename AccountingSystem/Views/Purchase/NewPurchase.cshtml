@@ -1,5 +1,5 @@
 ﻿@{
-    ViewData["title"] ??= "Ù†ÙˆÛŒ Ø®Ø±ÛŒØ¯";
+    ViewData["title"] ??= "نوی خرید";
 
 }
 <div class="dx-card px-4 py-3 mb-3">
@@ -8,7 +8,7 @@
             @(
                 Html.DevExtreme().Button()
                 .ID("save-form")
-                .Text("Ø«Ø¨Øª")
+                .Text("ثبت")
                 .Icon("fa-solid fa-floppy-disk")
                 .StylingMode(ButtonStylingMode.Contained)
                 .Type(ButtonType.Success)
@@ -32,7 +32,7 @@
             @(
                 Html.DevExtreme().Button()
                 .ID("select-order")
-                .Text("آرډرنه")
+                .Text("آرډرونه")
                 .Icon("fa-solid fa-clipboard-list")
                 .StylingMode(ButtonStylingMode.Contained)
                 .Type(ButtonType.Default)
@@ -47,17 +47,17 @@
 <div class="dx-card px-4 py-3 mb-3 purchase-form-card">
     <div class="purchase-form-header">
         <div>
-            <h5 class="purchase-form-title">Ø¯ Ø®Ø±ÛŒØ¯ Ù…Ø¹Ù„ÙˆÙ…Ø§Øª</h5>
-            <p class="purchase-form-subtitle">Ø­Ø³Ø§Ø¨ØŒ Ø§Ø³Ø¹Ø§Ø±ØŒ Ø¨Ù„Ø§Ù†Ø³ Ø§Ùˆ Ø§Ú“ÙˆÙ†Ø¯ Ù…Ø¹Ù„ÙˆÙ…Ø§Øª</p>
+            <h5 class="purchase-form-title">د خرید معلومات</h5>
+            <p class="purchase-form-subtitle">حساب، اسعار، بلانس او اړوند معلومات</p>
         </div>
     </div>
     <div class="row g-3 align-items-stretch">
         <div class="col-12 col-lg-4">
             <div class="purchase-field purchase-field-readonly">
-                <label class="purchase-label">Ø¯ Ø®Ø±ÛŒØ¯ Ø´Ù…ÛØ±Ù‡</label>
+                <label class="purchase-label">د خرید شمېره</label>
                 @(Html.DevExtreme().NumberBox()
                    .ID("purchase-no")
-                   .Placeholder("Ø¯ Ø®Ø±ÛŒØ¯ Ø´Ù…ÛØ±Ù‡")
+                   .Placeholder("د خرید شمېره")
                    .ReadOnly(true)
                    .ShowSpinButtons(false)
                 )
@@ -65,7 +65,7 @@
         </div>
         <div class="col-12 col-lg-4">
             <div class="purchase-field">
-                <label class="purchase-label">Ø­Ø³Ø§Ø¨</label>
+                <label class="purchase-label">حساب</label>
                 @(
                     Html.DevExtreme().SelectBox()
                         .ID("account-selector")
@@ -74,19 +74,19 @@
                         .SearchEnabled(true)
                         .ShowClearButton(true)
                         
-                        .Placeholder("Ø­Ø³Ø§Ø¨ Ø§Ù†ØªØ®Ø§Ø¨ Ú©Ú“Ø¦...")
+                        .Placeholder("حساب انتخاب کړئ...")
                         .OnSelectionChanged("purchasePage.onAccountSelectionChanged")
                         .OnValueChanged("purchasePage.onAccountValueChanged")
                         .DataSource(new JS("purchasePage.accountDataSource"))
                 )
-                <small id="account-balance-note" class="purchase-balance-note">Ø¨Ù„Ø§Ù†Ø³: 0 (ØµÙØ±)</small>
+                <small id="account-balance-note" class="purchase-balance-note">بلانس: 0 (صفر)</small>
             </div>
         </div>
 
         
         <div class="col-12 col-lg-4">
             <div class="purchase-field purchase-field-readonly">
-                <label class="purchase-label">Ù…ÙˆØ¨Ø§ÛŒÙ„ Ø´Ù…ÛØ±Ù‡</label>
+                <label class="purchase-label">موبایل شمېره</label>
                 @(
                     Html.DevExtreme().TextBox()
                         .ID("account-phone")
@@ -97,7 +97,7 @@
 
         <div class="col-12 col-lg-4">
             <div class="purchase-field purchase-field-readonly">
-                <label class="purchase-label">Ø§Ø¯Ø±Ø³</label>
+                <label class="purchase-label">ادرس</label>
                 @(
                     Html.DevExtreme().TextBox()
                         .ID("account-address")
@@ -108,7 +108,7 @@
         
         <div class="col-12 col-lg-4">
             <div class="purchase-field">
-                <label class="purchase-label">ØªØ¬Ø±Ø¦/Ø¨Ø§Ù†Ú©</label>
+                <label class="purchase-label">تجري/بانک</label>
                 @(
                     Html.DevExtreme().SelectBox()
                         .ID("treasure-selector")
@@ -116,17 +116,17 @@
                         .DisplayExpr(new JS("purchasePage.accountDisplayExpr"))
                         .SearchEnabled(true)
                         .ShowClearButton(true)
-                        .Placeholder("Ø­Ø³Ø§Ø¨ Ø§Ù†ØªØ®Ø§Ø¨ Ú©Ú“Ø¦...")
+                        .Placeholder("حساب انتخاب کړئ...")
                         .OnSelectionChanged("purchasePage.onTreasureSelectionChanged")
                         .DataSource(new JS("purchasePage.treasureDataSource"))
                 )
-                <small id="treasure-balance-note" class="purchase-balance-note">Ø¨Ù„Ø§Ù†Ø³: 0 (ØµÙØ±)</small>
+                <small id="treasure-balance-note" class="purchase-balance-note">بلانس: 0 (صفر)</small>
             </div>
         </div>
         
         <div class="col-12 col-lg-4">
             <div class="purchase-field">
-                <label class="purchase-label">Ø§Ø³Ø¹Ø§Ø±</label>
+                <label class="purchase-label">اسعار</label>
                 @(
                     Html.DevExtreme().SelectBox()
                         .ID("currency-selector")
@@ -135,7 +135,7 @@
                         .SearchEnabled(true)
                         .ShowClearButton(true)
                         
-                        .Placeholder("Ø§Ø³Ø¹Ø§Ø± Ø§Ù†ØªØ®Ø§Ø¨ Ú©Ú“Ø¦...")
+                        .Placeholder("اسعار انتخاب کړئ...")
                         .OnValueChanged("purchasePage.onCurrencyChanged")
                         .DataSource(new JS("purchasePage.currencyDataSource"))
                 )
@@ -144,7 +144,7 @@
         
         <div class="col-12 col-lg-4">
             <div class="purchase-field purchase-field-readonly">
-                <label class="purchase-label">Ù†ÛÙ¼Ù‡</label>
+                <label class="purchase-label">نېټه</label>
                 @(
                     Html.DevExtreme().DateBox()
                     .ID("purchase-date")
@@ -156,11 +156,11 @@
 
         <div class="col-12 col-lg-4">
             <div class="purchase-field purchase-field-readonly">
-                <label class="purchase-label">Ù…Ø¬Ù…ÙˆØ¹Ù‡</label>
+                <label class="purchase-label">مجموعه</label>
                 @(
                     Html.DevExtreme().NumberBox()
                     .ID("purchase-total")
-                    .Placeholder("Ù…Ø¬Ù…ÙˆØ¹Ù‡...")
+                    .Placeholder("مجموعه...")
                     .Min(0)
                     .Format("#,##0.###")
                     .ReadOnly(true)
@@ -171,11 +171,11 @@
 
         <div class="col-12 col-lg-4">
             <div class="purchase-field purchase-field-readonly">
-                <label class="purchase-label">Ø±Ø³ÛŒØ¯</label>
+                <label class="purchase-label">رسید</label>
                 @(
                     Html.DevExtreme().NumberBox()
                     .ID("purchase-received")
-                    .Placeholder("Ø±Ø³ÛŒØ¯...")
+                    .Placeholder("رسید...")
                     .Min(0)
                     .Format("#,##0.###")
                     .ShowSpinButtons(true)
@@ -186,11 +186,11 @@
 
         <div class="col-12 col-lg-4">
             <div class="purchase-field purchase-field-readonly">
-                <label class="purchase-label">Ø¨Ø§Ù‚ÙŠ</label>
+                <label class="purchase-label">باقي</label>
                 @(
                     Html.DevExtreme().NumberBox()
                     .ID("purchase-remaining")
-                    .Placeholder("Ø¨Ø§Ù‚ÙŠ...")
+                    .Placeholder("باقي...")
                     .Format("#,##0.###")
                     .ReadOnly(true)
                 )
@@ -199,11 +199,11 @@
 
         <div class="col-8">
             <div class="purchase-field purchase-field-wide">
-                <label class="purchase-label">Ù…Ù„Ø§Ø­Ø¸Ø§Øª</label>
+                <label class="purchase-label">ملاحظات</label>
                 @(
                     Html.DevExtreme().TextArea()
                     .ID("purchase-notes")
-                    .Placeholder("Ù…Ù„Ø§Ø­Ø¸Ø§Øª...")
+                    .Placeholder("ملاحظات...")
                 )
             </div>
         </div>
@@ -235,68 +235,68 @@
             {
                 columns.Add()
                     .DataField("ItemID")
-                    .Caption("Ø¬Ù†Ø³")
+                    .Caption("جنس")
                     .Lookup(l => l
                         .DataSource(new JS("purchasePage.itemLookupDataSource"))
                         .ValueExpr("ID")
                         .DisplayExpr("NativeName")
                     )
                     .CalculateDisplayValue(new JS("purchasePage.getItemDisplayText"))
-                    .ValidationRules(r => r.AddRequired().Message("Ø¬Ù†Ø³ Ø¶Ø±ÙˆØ±ÛŒ Ø¯ÛŒ."));
+                    .ValidationRules(r => r.AddRequired().Message("جنس ضروري دی."));
 
                 columns.Add()
                     .DataField("UnitConversionID")
-                    .Caption("ÙˆØ§Ø­Ø¯")
+                    .Caption("واحد")
                     .Lookup(l => l
                         .DataSource(new JS("purchasePage.unitLookupDataSource"))
                         .ValueExpr("UnitConversionID")
                         .DisplayExpr("UnitName")
                     )
                     .CalculateDisplayValue(new JS("purchasePage.getUnitDisplayText"))
-                    .ValidationRules(r => r.AddRequired().Message("ÙˆØ§Ø­Ø¯ Ø¶Ø±ÙˆØ±ÛŒ Ø¯ÛŒ."));
+                    .ValidationRules(r => r.AddRequired().Message("واحد ضروري دی."));
 
                 columns.Add()
                     .DataField("Quantity")
-                    .Caption("Ù…Ù‚Ø¯Ø§Ø±")
+                    .Caption("مقدار")
                     .DataType(GridColumnDataType.Number)
                     .Format("#,##0.###")
                     .ValidationRules(r =>
                     {
-                        r.AddRequired().Message("Ù…Ù‚Ø¯Ø§Ø± Ø¶Ø±ÙˆØ±ÛŒ Ø¯ÛŒ.");
-                        r.AddRange().Min(0.001).Message("Ù…Ù‚Ø¯Ø§Ø± Ø¨Ø§ÛŒØ¯ Ù„Ù‡ ØµÙØ± Ú…Ø®Ù‡ Ø²ÛŒØ§Øª ÙˆÙŠ.");
+                        r.AddRequired().Message("مقدار ضروري دی.");
+                        r.AddRange().Min(0.001).Message("مقدار باید له صفر څخه زیات وي.");
                     });
 
                 columns.Add()
                     .DataField("UnitPrice")
-                    .Caption("ÙÙŠ Ù‚ÛŒÙ…Øª")
+                    .Caption("في قیمت")
                     .DataType(GridColumnDataType.Number)
                     .Format("#,##0.###")
                     .ValidationRules(r =>
                     {
-                        r.AddRequired().Message("Ù‚ÛŒÙ…Øª Ø¶Ø±ÙˆØ±ÛŒ Ø¯ÛŒ.");
+                        r.AddRequired().Message("قیمت ضروري دی.");
                     });
 
                 columns.Add()
                     .DataField("TotalPrice")
-                    .Caption("Ù…Ø¬Ù…ÙˆØ¹Ù‡ Ù‚ÛŒÙ…Øª")
+                    .Caption("مجموعه قیمت")
                     .DataType(GridColumnDataType.Number)
                     .Format("#,##0.###");
 
                 
                 columns.Add()
                     .DataField("WarehouseID")
-                    .Caption("Ú«Ø¯Ø§Ù…")
+                    .Caption("ګدام")
                     .Lookup(l => l
                         .DataSource(new JS("purchasePage.warehouseLookupDataSource"))
                         .ValueExpr("ID")
                         .DisplayExpr("Name")
                     )
                     .CalculateDisplayValue(new JS("purchasePage.getWarehouseDisplayText"))
-                    .ValidationRules(r => r.AddRequired().Message("Ú«Ø¯Ø§Ù… Ø¶Ø±ÙˆØ±ÛŒ Ø¯ÛŒ."));
+                    .ValidationRules(r => r.AddRequired().Message("ګدام ضروري دی."));
 
                 columns.Add()
                     .DataField("Remarks")
-                    .Caption("ÛŒØ§Ø¯ÚšØª");
+                    .Caption("یادښت");
             })
 
             .Summary(summary => summary
@@ -305,18 +305,18 @@
                     items.Add()
                         .Column("ItemID")
                         .SummaryType(SummaryType.Count)
-                        .DisplayFormat("Ù¼ÙˆÙ„ Ù‚Ø·Ø§Ø±ÙˆÙ†Ù‡: {0}");
+                        .DisplayFormat("ټول قطارونه: {0}");
 
                     items.Add()
                         .Column("UnitPrice")
                         .SummaryType(SummaryType.Sum)
-                        .DisplayFormat("Ù…Ø¬Ù…ÙˆØ¹Ù‡: {0}");
+                        .DisplayFormat("مجموعه: {0}");
 
                         
                     items.Add()
                         .Column("TotalPrice")
                         .SummaryType(SummaryType.Sum)
-                        .DisplayFormat("Ù…Ø¬Ù…ÙˆØ¹Ù‡: {0}");
+                        .DisplayFormat("مجموعه: {0}");
 
                 })
             )
@@ -695,59 +695,59 @@
             if (!Number.isFinite(numericValue)) return "";
 
             number = Math.trunc(numericValue);
-            if (number === 0) return "ØµÙØ±";
-            if (number < 0) return "Ù…Ù†ÙÛŒ " + numberToWords(Math.abs(number));
+            if (number === 0) return "صفر";
+            if (number < 0) return "منفي " + numberToWords(Math.abs(number));
 
             var words = "";
 
             if (Math.floor(number / 1000000000) > 0) {
                 if (Math.floor(number / 1000000000) >= 2) {
-                    words += numberToWords(Math.floor(number / 1000000000)) + " Ù…ÛŒÙ„ÛŒØ§Ø±Ø¯Ù‡ ";
+                    words += numberToWords(Math.floor(number / 1000000000)) + " میلیارده ";
                 } else {
-                    words += " ÛŒÙˆ Ù…ÛŒÙ„ÛŒØ§Ø±Ø¯ ";
+                    words += " یو میلیارد ";
                 }
                 number %= 1000000000;
             }
 
             if (Math.floor(number / 1000000) > 0) {
                 if (Math.floor(number / 1000000) >= 2) {
-                    words += numberToWords(Math.floor(number / 1000000)) + " Ù…Ù„ÛŒÙˆÙ†Ù‡ ";
+                    words += numberToWords(Math.floor(number / 1000000)) + " ملیونه ";
                 } else {
-                    words += " ÛŒÙˆ Ù…Ù„ÛŒÙˆÙ† ";
+                    words += " یو ملیون ";
                 }
                 number %= 1000000;
             }
 
             if (Math.floor(number / 1000) > 0) {
                 if (Math.floor(number / 1000) >= 2) {
-                    words += numberToWords(Math.floor(number / 1000)) + " Ø²Ø±Ù‡ ";
+                    words += numberToWords(Math.floor(number / 1000)) + " زره ";
                     number %= 1000;
                 } else {
                     number %= 1000;
-                    words += number > 0 ? " ÛŒÙˆ Ø²Ø± " : " Ø²Ø± ";
+                    words += number > 0 ? " یو زر " : " زر ";
                 }
             }
 
             if (Math.floor(number / 100) > 0) {
                 if (Math.floor(number / 100) >= 2) {
-                    words += numberToWords(Math.floor(number / 100)) + " Ø³ÙˆÙ‡ ";
+                    words += numberToWords(Math.floor(number / 100)) + " سوه ";
                     number %= 100;
                 } else {
                     number %= 100;
-                    words += number > 0 ? " ÛŒÙˆ Ø³Ù„ " : " Ø³Ù„ ";
+                    words += number > 0 ? " یو سل " : " سل ";
                 }
             }
 
             if (number > 0) {
-                if (words !== "") words += "Ø§Ùˆ ";
+                if (words !== "") words += "او ";
 
                 var unitsMap = [
-                    "ØµÙØ±", "ÛŒÙˆ", "Ø¯ÙˆÙ‡", "Ø¯Ø±Û", "Ú…Ù„ÙˆØ±", "Ù¾Ù†ÚÙ‡", "Ø´Ù¾Ú–", "Ø§ÙˆÙˆÙ‡", "Ø§ØªÙ‡", "Ù†Ù‡",
-                    "Ù„Ø³", "ÛŒÙˆÙˆÙ„Ø³", "Ø¯ÙˆÙ„Ø³", "Ø¯ÛŒØ§Ø±Ù„Ø³", "Ú…ÙˆØ§Ø±Ù„Ø³", "Ù¾Ù†ÚÙ„Ø³", "Ø´Ù¾Ø§Ú“Ù„Ø³", "Ø§ÙˆÙˆÙ„Ø³", "Ø§ØªÙ„Ø³", "Ù†ÙˆÙ„Ø³",
-                    "Ø´Ù„", "ÛŒÙˆÙˆÛŒØ´Øª", "Ø¯ÙˆÙ‡ ÙˆÛŒØ´Øª", "Ø¯Ø±ÙˆÛŒØ´Øª", "Ú…Ù„ÙˆØ±ÙˆÛŒØ´Øª", "Ù¾Ù†ÚÙ‡ ÙˆÛŒØ´Øª", "Ø´Ù¾Ú–ÙˆÛŒØ´Øª", "Ø§ÙˆÙ‡ ÙˆÛŒØ´Øª", "Ø§ØªÙ‡ ÙˆÛŒØ´Øª", "Ù†Ù‡ ÙˆÛŒØ´Øª"
+                    "صفر", "یو", "دوه", "درې", "څلور", "پنځه", "شپږ", "اووه", "اته", "نه",
+                    "لس", "یوولس", "دولس", "دیارلس", "څوارلس", "پنځلس", "شپاړلس", "اوولس", "اتلس", "نولس",
+                    "شل", "یوویشت", "دوه ویشت", "درویشت", "څلورویشت", "پنځه ویشت", "شپږویشت", "اوه ویشت", "اته ویشت", "نه ویشت"
                 ];
 
-                var tensMap = ["ØµÙØ±", "Ù„Ø³", "Ø´Ù„", "Ø¯ÛŒØ±Ø´", "Ú…Ù„ÙˆÛŒÚšØª", "Ù¾Ù†ÚÙˆØ³", "Ø´Ù¾ÛŒØªÙ‡", "Ø§ÙˆÛŒØ§", "Ø§ØªÛŒØ§", "Ù†ÙˆÛŒ"];
+                var tensMap = ["صفر", "لس", "شل", "دیرش", "څلوېښت", "پنځوس", "شپیته", "اویا", "اتیا", "نوي"];
 
                 if (number < 30) {
                     words += unitsMap[number];
@@ -765,7 +765,7 @@
 
         function humanizeNumberValue(value) {
             var numericValue = Number(value);
-            if (!Number.isFinite(numericValue)) return "ØµÙØ±";
+            if (!Number.isFinite(numericValue)) return "صفر";
 
             var absoluteValue = Math.abs(numericValue);
             var integerPart = Math.trunc(absoluteValue);
@@ -773,11 +773,11 @@
             var words = numberToWords(integerPart);
 
             if (fractionalPart > 0) {
-                words += " Ø§Ø¹Ø´Ø§Ø±ÛŒÙ‡ " + numberToWords(fractionalPart);
+                words += " اعشاریه " + numberToWords(fractionalPart);
             }
 
             if (numericValue < 0) {
-                words = "Ù…Ù†ÙÛŒ " + words;
+                words = "منفي " + words;
             }
 
             return words.replace(/\s+/g, " ").trim();
@@ -787,7 +787,7 @@
             var currencyInstance = $("#currency-selector").dxSelectBox("instance");
             var currencyId = currencyInstance ? Number(currencyInstance.option("value")) : 0;
             var selectedItem = currencyInstance ? currencyInstance.option("selectedItem") : null;
-            var currencyName = selectedItem && selectedItem.CurrencyName ? selectedItem.CurrencyName : "Ø§Ø³Ø¹Ø§Ø±";
+            var currencyName = selectedItem && selectedItem.CurrencyName ? selectedItem.CurrencyName : "اسعار";
 
             return {
                 currencyId: currencyId,
@@ -801,13 +801,13 @@
 
             var numericText = formatNumeric(balanceValue);
             var wordsText = humanizeNumberValue(balanceValue);
-            label.text("Ø¨Ù„Ø§Ù†Ø³ (" + currencyName + "): " + numericText + " (" + wordsText + ")");
+            label.text("بلانس (" + currencyName + "): " + numericText + " (" + wordsText + ")");
         }
 
         function resetBalanceLabel(labelSelector) {
             var label = $(labelSelector);
             if (!label.length) return;
-            label.text("Ø¨Ù„Ø§Ù†Ø³: 0 (ØµÙØ±)");
+            label.text("بلانس: 0 (صفر)");
         }
 
         function refreshBalanceLabel(accountSelector, labelSelector) {
@@ -911,15 +911,15 @@
         }
 
         function validatePurchaseGridRows(rows) {
-            if (!rows || rows.length === 0) return "Ù„Ú– ØªØ± Ù„Ú–Ù‡ ÛŒÙˆ Ù‚Ø·Ø§Ø± Ø§Ø¶Ø§ÙÙ‡ Ú©Ú“Ø¦.";
+            if (!rows || rows.length === 0) return "لږ تر لږه یو قطار اضافه کړئ.";
 
             for (var i = 0; i < rows.length; i++) {
                 var row = rows[i] || {};
-                if (!row.ItemID) return "Ù¾Ù‡ Ù¼ÙˆÙ„Ùˆ Ù‚Ø·Ø§Ø±ÙˆÙ†Ùˆ Ú©Û Ø¬Ù†Ø³ Ø¶Ø±ÙˆØ±ÛŒ Ø¯ÛŒ.";
-                if (row.UnitConversionID === null || row.UnitConversionID === undefined || row.UnitConversionID === "") return "Ù¾Ù‡ Ù¼ÙˆÙ„Ùˆ Ù‚Ø·Ø§Ø±ÙˆÙ†Ùˆ Ú©Û ÙˆØ§Ø­Ø¯ Ø¶Ø±ÙˆØ±ÛŒ Ø¯ÛŒ.";
-                if (row.Quantity === null || row.Quantity === undefined || row.Quantity === "" || Number(row.Quantity) <= 0) return "Ù¾Ù‡ Ù¼ÙˆÙ„Ùˆ Ù‚Ø·Ø§Ø±ÙˆÙ†Ùˆ Ú©Û Ù…Ù‚Ø¯Ø§Ø± Ø¨Ø§ÛŒØ¯ Ù„Ù‡ ØµÙØ± Ú…Ø®Ù‡ Ø²ÛŒØ§Øª ÙˆÙŠ.";
-                if (row.UnitPrice === null || row.UnitPrice === undefined || row.UnitPrice === "") return "Ù¾Ù‡ Ù¼ÙˆÙ„Ùˆ Ù‚Ø·Ø§Ø±ÙˆÙ†Ùˆ Ú©Û Ù‚ÛŒÙ…Øª Ø¶Ø±ÙˆØ±ÛŒ Ø¯ÛŒ.";
-                if (!row.WarehouseID) return "Ù¾Ù‡ Ù¼ÙˆÙ„Ùˆ Ù‚Ø·Ø§Ø±ÙˆÙ†Ùˆ Ú©Û Ú«Ø¯Ø§Ù… Ø¶Ø±ÙˆØ±ÛŒ Ø¯ÛŒ.";
+                if (!row.ItemID) return "په ټولو قطارونو کې جنس ضروري دی.";
+                if (row.UnitConversionID === null || row.UnitConversionID === undefined || row.UnitConversionID === "") return "په ټولو قطارونو کې واحد ضروري دی.";
+                if (row.Quantity === null || row.Quantity === undefined || row.Quantity === "" || Number(row.Quantity) <= 0) return "په ټولو قطارونو کې مقدار باید له صفر څخه زیات وي.";
+                if (row.UnitPrice === null || row.UnitPrice === undefined || row.UnitPrice === "") return "په ټولو قطارونو کې قیمت ضروري دی.";
+                if (!row.WarehouseID) return "په ټولو قطارونو کې ګدام ضروري دی.";
             }
 
             return "";
@@ -927,7 +927,7 @@
 
         function validatePurchaseGrid() {
             var grid = getPurchaseGrid();
-            if (!grid) return $.Deferred().resolve("Ø¯ Ø¬Ù†Ø³ÙˆÙ†Ùˆ Ø¬Ø¯ÙˆÙ„ ÙˆÙ†Ù‡ Ù…ÙˆÙ†Ø¯Ù„ Ø´Ùˆ.").promise();
+            if (!grid) return $.Deferred().resolve("د جنسونو جدول ونه موندل شو.").promise();
 
             var deferred = $.Deferred();
 
@@ -944,7 +944,7 @@
                     deferred.resolve("");
                 })
                 .fail(function () {
-                    deferred.resolve("Ø¯ Ø¬Ù†Ø³ÙˆÙ†Ùˆ Ø¬Ø¯ÙˆÙ„ Ù…Ø¹Ù„ÙˆÙ…Ø§Øª Ø³Ù… Ù†Ù‡ Ø¯ÙŠ.");
+                    deferred.resolve("د جنسونو جدول معلومات سم نه دي.");
                 });
 
             return deferred.promise();
@@ -985,7 +985,7 @@
                 })
                 .fail(function () {
                     if (purchaseNoInstance) purchaseNoInstance.option("value", null);
-                    DevExpress.ui.notify("Ø¯ Ø®Ø±ÛŒØ¯ Ø´Ù…ÛØ±Ù‡ Ù„Ù‡ Ø³Ø±ÙˆØ± Ú…Ø®Ù‡ ØªØ±Ù„Ø§Ø³Ù‡ Ù†Ù‡ Ø´ÙˆÙ‡.", "error", 2500);
+                    DevExpress.ui.notify("د خرید شمېره له سرور څخه ترلاسه نه شوه.", "error", 2500);
                 });
         }
 
@@ -1076,7 +1076,7 @@
         function extractServerError(xhr) {
             if (xhr && xhr.responseJSON && xhr.responseJSON.Message) return xhr.responseJSON.Message;
             if (xhr && xhr.responseText) return xhr.responseText;
-            return "Ø¯ Ø«Ø¨Øª Ù¾Ø± Ù…Ù‡Ø§Ù„ Ø³ØªÙˆÙ†Ø²Ù‡ Ø±Ø§Ù…Ù†ÚØªÙ‡ Ø´ÙˆÙ‡.";
+            return "د ثبت پر مهال ستونزه رامنځته شوه.";
         }
 
         function refreshPaymentValidators() {
@@ -1127,7 +1127,7 @@
                         contentType: "application/json; charset=utf-8",
                         data: JSON.stringify(buildPurchasePayload())
                     }).done(function (response) {
-                        DevExpress.ui.notify(response && response.Message ? response.Message : "Ø®Ø±ÛŒØ¯ Ù¾Ù‡ Ø¨Ø±ÛŒØ§Ù„ÛŒØªÙˆØ¨ Ø«Ø¨Øª Ø´Ùˆ.", "success", 2200);
+                        DevExpress.ui.notify(response && response.Message ? response.Message : "خرید په بریالیتوب ثبت شو.", "success", 2200);
                         onClearFormClick();
                     }).fail(function (xhr) {
                         DevExpress.ui.notify(extractServerError(xhr), "error", 3500);
@@ -1198,7 +1198,7 @@
                     refreshAllBalanceLabels();
                 })
                 .fail(function () {
-                    DevExpress.ui.notify("Ø¢Ø±Ú‰Ø± ÙˆÙ†Ù‡ Ù…ÙˆÙ†Ø¯Ù„ Ø´Ùˆ.", "error", 2800);
+                    DevExpress.ui.notify("آرډر ونه موندل شو.", "error", 2800);
                 });
         }
 
@@ -1214,7 +1214,7 @@
             if (pendingOrdersPopup) return pendingOrdersPopup;
 
             pendingOrdersPopup = $("#pending-po-popup").dxPopup({
-                title: "Ù†Ø§ØªÚ©Ù…ÛŒÙ„ Ø®Ø±ÛŒØ¯ Ø¢Ø±Ú‰Ø±ÙˆÙ†Ù‡",
+                title: "ناتکمیل خرید آرډرونه",
                 showTitle: true,
                 visible: false,
                 width: 980,
@@ -1233,7 +1233,7 @@
                         showBorders: true,
                         rowAlternationEnabled: true,
                         columnAutoWidth: true,
-                        searchPanel: { visible: true, placeholder: "Ù¾Ù„Ù¼Ù†Ù‡..." },
+                        searchPanel: { visible: true, placeholder: "پلټنه..." },
                         paging: { pageSize: 12 },
                         pager: {
                             showPageSizeSelector: true,
@@ -1241,18 +1241,18 @@
                             showInfo: true
                         },
                         columns: [
-                            { dataField: "ID", caption: "Ø¢Ø±Ú‰Ø± #" },
-                            { dataField: "AccountName", caption: "Ø­Ø³Ø§Ø¨" },
-                            { dataField: "DueDate", caption: "Ø¯ ØªØ§Ø¯ÛŒÛ Ù†ÛÙ¼Ù‡", dataType: "date", format: "yyyy-MM-dd" },
-                            { dataField: "Remarks", caption: "Ù…Ù„Ø§Ø­Ø¸Ø§Øª" },
-                            { dataField: "CreationDate", caption: "Ù†ÛÙ¼Ù‡", dataType: "datetime", format: "yyyy-MM-dd HH:mm" },
+                            { dataField: "ID", caption: "آرډر #" },
+                            { dataField: "AccountName", caption: "حساب" },
+                            { dataField: "DueDate", caption: "د تادیې نېټه", dataType: "date", format: "yyyy-MM-dd" },
+                            { dataField: "Remarks", caption: "ملاحظات" },
+                            { dataField: "CreationDate", caption: "نېټه", dataType: "datetime", format: "yyyy-MM-dd HH:mm" },
                             {
                                 type: "buttons",
-                                caption: "Ø¹Ù…Ù„ÛŒØ§Øª",
+                                caption: "عملیات",
                                 width: 120,
                                 buttons: [
                                     {
-                                        hint: "Ø§Ù†ØªØ®Ø§Ø¨",
+                                        hint: "انتخاب",
                                         icon: "fa-solid fa-check",
                                         onClick: onPendingOrderSelectClick
                                     }
@@ -1346,25 +1346,25 @@
 
             $("#purchase-no").dxValidator({
                 validationRules: [
-                    { type: "required", message: "Ø¯ Ø®Ø±ÛŒØ¯ Ø´Ù…ÛØ±Ù‡ Ù„Ù‡ Ø³Ø±ÙˆØ± Ú…Ø®Ù‡ Ø¶Ø±ÙˆØ±ÛŒ Ø¯Ù‡." }
+                    { type: "required", message: "د خرید شمېره له سرور څخه ضروري ده." }
                 ]
             });
 
             $("#account-selector").dxValidator({
                 validationRules: [
-                    { type: "required", message: "Ø­Ø³Ø§Ø¨ Ø§Ù†ØªØ®Ø§Ø¨ Ú©Ú“Ø¦." }
+                    { type: "required", message: "حساب انتخاب کړئ." }
                 ]
             });
 
             $("#currency-selector").dxValidator({
                 validationRules: [
-                    { type: "required", message: "Ø§Ø³Ø¹Ø§Ø± Ø§Ù†ØªØ®Ø§Ø¨ Ú©Ú“Ø¦." }
+                    { type: "required", message: "اسعار انتخاب کړئ." }
                 ]
             });
 
             $("#purchase-date").dxValidator({
                 validationRules: [
-                    { type: "required", message: "Ù†ÛÙ¼Ù‡ Ø§Ù†ØªØ®Ø§Ø¨ Ú©Ú“Ø¦." }
+                    { type: "required", message: "نېټه انتخاب کړئ." }
                 ]
             });
 
@@ -1373,7 +1373,7 @@
                     {
                         type: "custom",
                         reevaluate: true,
-                        message: "Ú©Ù„Ù‡ Ú†Û Ø±Ø³ÛŒØ¯ Ø¯Ø§Ø®Ù„ ÙˆÙŠØŒ ØªØ¬Ø±Ø¦/Ø¨Ø§Ù†Ú© Ø§Ù†ØªØ®Ø§Ø¨ Ú©Ú“Ø¦.",
+                        message: "کله چې رسید داخل وي، تجري/بانک انتخاب کړئ.",
                         validationCallback: function () {
                             var receivedAmount = getNumberBoxValue("#purchase-received");
                             var treasureAccountId = getSelectBoxValue("#treasure-selector");
@@ -1388,7 +1388,7 @@
                     {
                         type: "custom",
                         reevaluate: true,
-                        message: "Ú©Ù„Ù‡ Ú†Û ØªØ¬Ø±Ø¦/Ø¨Ø§Ù†Ú© Ø§Ù†ØªØ®Ø§Ø¨ ÙˆÙŠØŒ Ø±Ø³ÛŒØ¯ Ø¨Ø§ÛŒØ¯ Ù„Ù‡ ØµÙØ± Ú…Ø®Ù‡ Ø²ÛŒØ§Øª ÙˆÙŠ.",
+                        message: "کله چې تجري/بانک انتخاب وي، رسید باید له صفر څخه زیات وي.",
                         validationCallback: function () {
                             var treasureAccountId = getSelectBoxValue("#treasure-selector");
                             var receivedAmount = getNumberBoxValue("#purchase-received");
@@ -1398,7 +1398,7 @@
                     {
                         type: "custom",
                         reevaluate: true,
-                        message: "Ø±Ø³ÛŒØ¯ Ø¨Ø§ÛŒØ¯ Ù„Ù‡ Ù…Ø¬Ù…ÙˆØ¹Û Ú…Ø®Ù‡ Ø²ÛŒØ§Øª Ù†Ù‡ ÙˆÙŠ.",
+                        message: "رسید باید له مجموعې څخه زیات نه وي.",
                         validationCallback: function () {
                             return getNumberBoxValue("#purchase-received") <= getNumberBoxValue("#purchase-total");
                         }
@@ -1406,7 +1406,7 @@
                     {
                         type: "custom",
                         reevaluate: true,
-                        message: "Ø¯ Ø­Ø³Ø§Ø¨ Ù¼Ø§ÛŒÙ¾ 10 Ù„Ù¾Ø§Ø±Ù‡ Ø±Ø³ÛŒØ¯ Ø¨Ø§ÛŒØ¯ Ù„Ù‡ Ù…Ø¬Ù…ÙˆØ¹Û Ø³Ø±Ù‡ Ù…Ø³Ø§ÙˆÙŠ ÙˆÙŠ.",
+                        message: "د حساب ټایپ 10 لپاره رسید باید له مجموعې سره مساوي وي.",
                         validationCallback: function () {
                             if (!isStrictFullPaymentAccountSelected()) return true;
                             return getNumberBoxValue("#purchase-received") === getNumberBoxValue("#purchase-total");
@@ -1415,7 +1415,7 @@
                     {
                         type: "async",
                         reevaluate: true,
-                        message: "Ø±Ø³ÛŒØ¯ Ù…Ø¨Ù„Øº Ù¾Ù‡ Ø¯Ø®Ù„/Ø¨Ø§Ù†Ú© Ù†Ù‡ Ø¯ÛŒ.",
+                        message: "رسید مبلغ په دخل/بانک کې نه دی.",
                         validationCallback: function () {
                             var treasureAccountId = getSelectBoxValue("#treasure-selector");
                             var currencyId = getSelectBoxValue("#currency-selector");

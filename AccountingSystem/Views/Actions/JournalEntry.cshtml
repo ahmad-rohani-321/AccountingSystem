@@ -338,7 +338,7 @@
                 .then(response => response.json().then(result => ({ response, result })).catch(() => ({ response, result: {} })))
                 .then(({ response, result }) => {
                     if (!response.ok) {
-                        throw new Error(result?.Message || "Failed to load journal entry page data.");
+                        throw new Error(result?.Message || "د ورځني معاملاتو د پاڼې معلومات پورته نه شول.");
                     }
 
                     rebuildLookupState(result);
@@ -539,7 +539,7 @@
                 const response = await fetch("/api/CurrencyExchange", { credentials: "same-origin" });
                 const result = await response.json().catch(() => ({}));
                 if (!response.ok) {
-                    throw new Error(result?.message || "Failed to load exchanges.");
+                    throw new Error(result?.message || "د تبادلې معلومات پورته نه شول.");
                 }
 
                 currencyExchangeRows = normalizeExchangeRows(result).map(item => ({

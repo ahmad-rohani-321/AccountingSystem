@@ -271,7 +271,7 @@
             this.xrTableCell13.Padding = new DevExpress.XtraPrinting.PaddingInfo(5F, 2F, 5F, 5F, 100F);
             this.xrTableCell13.StylePriority.UsePadding = false;
             this.xrTableCell13.StylePriority.UseTextAlignment = false;
-            this.xrTableCell13.Text = "xrTableCell13";
+            this.xrTableCell13.Text = "";
             this.xrTableCell13.TextAlignment = DevExpress.XtraPrinting.TextAlignment.MiddleRight;
             this.xrTableCell13.Weight = 0.91744322287091806D;
             // 

@@ -1,5 +1,5 @@
-﻿@{
-    ViewData["Title"] = "Ø¯ Ø®Ø±ÛŒØ¯Ø§ØªÙˆ Ù„ÛŒØ³Øª";
+@{
+    ViewData["Title"] = "د خریداتو لېست";
 }
 
 <div class="dx-card p-3">
@@ -20,7 +20,7 @@
             .ShowBorders(true)
             .RowAlternationEnabled(true)
             .ColumnAutoWidth(true)
-            .SearchPanel(sp => sp.Visible(true).Placeholder("Ù¾Ù„Ù¼Ù†Ù‡..."))
+            .SearchPanel(sp => sp.Visible(true).Placeholder("پلټنه..."))
             .Paging(p => p.PageSize(15))
             .Pager(p => p
                 .ShowPageSizeSelector(true)
@@ -33,14 +33,14 @@
                     items.Add()
                         .Location(ToolbarItemLocation.Before)
                         .Widget(widget => widget.Button()
-                            .Hint("Ú†Ø§Ù¾")
+                            .Hint("چاپ")
                             .Icon("fa-solid fa-print")
                             .OnClick("purchaseIndexPage.onPrintClick"));
 
                     items.Add()
                         .Location(ToolbarItemLocation.Before)
                         .Widget(widget => widget.Button()
-                            .Text("Ú†Ø§Ú¼")
+                            .Text("چاڼ")
                             .Type(ButtonType.Success)
                             .Icon("fa-solid fa-search")
                             .OnClick("purchaseIndexPage.onFilterClick"));
@@ -49,7 +49,7 @@
                         .Location(ToolbarItemLocation.After)
                         .Widget(widget => widget.Button()
                             .Icon("fa-solid fa-arrows-rotate")
-                            .Hint("Ø¨ÛŒØ§ ØªØ§Ø²Ù‡ Ú©ÙˆÙ„")
+                            .Hint("بیا تازه کول")
                             .OnClick("purchaseIndexPage.onRefreshClick"));
 
                     items.Add().Name(DataGridToolbarItem.SearchPanel);
@@ -57,46 +57,46 @@
             })
             .Columns(columns =>
             {
-                columns.Add().DataField("PurchaseNo").Caption("Ø®Ø±ÛŒØ¯ #");
-                columns.Add().DataField("AccountName").Caption("Ø­Ø³Ø§Ø¨");
-                columns.Add().DataField("CurrencyName").Caption("Ø§Ø³Ø¹Ø§Ø±");
+                columns.Add().DataField("PurchaseNo").Caption("خرید #");
+                columns.Add().DataField("AccountName").Caption("حساب");
+                columns.Add().DataField("CurrencyName").Caption("اسعار");
                 columns.Add()
                     .DataField("TotalAmount")
-                    .Caption("Ù…Ø¬Ù…ÙˆØ¹Ù‡")
+                    .Caption("مجموعه")
                     .DataType(GridColumnDataType.Number)
                     .Format("#,##0.##");
                 columns.Add()
                     .DataField("ReceivedAmount")
-                    .Caption("Ø±Ø³ÛŒØ¯")
+                    .Caption("رسید")
                     .DataType(GridColumnDataType.Number)
                     .Format("#,##0.##");
                 columns.Add()
                     .DataField("RemainingAmount")
-                    .Caption("Ø¨Ø§Ù‚ÙŠ")
+                    .Caption("باقي")
                     .DataType(GridColumnDataType.Number)
                     .Format("#,##0.##");
                 columns.Add()
                     .DataField("ItemCount")
-                    .Caption("Ø¬Ù†Ø³ ØªØ¹Ø¯Ø§Ø¯")
+                    .Caption("جنس تعداد")
                     .DataType(GridColumnDataType.Number);
-                columns.Add().DataField("Remarks").Caption("Ù…Ù„Ø§Ø­Ø¸Ø§Øª");
+                columns.Add().DataField("Remarks").Caption("ملاحظات");
                 columns.Add()
                     .DataField("CreationDate")
-                    .Caption("Ø«Ø¨Øª Ù†ÛÙ¼Ù‡")
+                    .Caption("ثبت نېټه")
                     .DataType(GridColumnDataType.DateTime)
                     .Format("yyyy-MM-dd HH:mm");
                 columns.Add()
                     .Type(GridCommandColumnType.Buttons)
-                    .Caption("Ø¹Ù…Ù„ÛŒØ§Øª")
+                    .Caption("عملیات")
                     .Width(120)
                     .Buttons(buttons =>
                     {
                         buttons.Add()
-                            .Hint("Ú†Ø§Ù¾")
+                            .Hint("چاپ")
                             .Icon("fa-solid fa-print")
                             .OnClick("purchaseIndexPage.onRowPrintClick");
                         buttons.Add()
-                            .Hint("ÙˆØ§Ù¾Ø³ÙŠ")
+                            .Hint("واپسي")
                             .Icon("fa-solid fa-rotate-left")
                             .OnClick("purchaseIndexPage.onReturnClick");
                     });
@@ -253,12 +253,12 @@
             setEditorValidationState(editors.toDate, null);
 
             if (!hasAccount && !hasAnyDate) {
-                DevExpress.ui.notify("Ø¯ Ù¾Ù„Ù¼Ù†Û Ù„Ù¾Ø§Ø±Ù‡ Ø¹Ø±Ø¶Ù‡ Ú©ÙˆÙˆÙ†Ú©ÛŒ ÛŒØ§ Ø¯ Ù†ÛÙ¼Ùˆ Ù…ÙˆØ¯Ù‡ ÙˆÙ¼Ø§Ú©Ø¦.", "error", 2800);
+                DevExpress.ui.notify("د پلټنې لپاره عرضه کوونکی یا د نېټو موده وټاکئ.", "error", 2800);
                 return false;
             }
 
             if (hasAnyDate && !hasBothDates) {
-                var dateMessage = "Ú©Ù‡ ÛŒÙˆÙ‡ Ù†ÛÙ¼Ù‡ Ú‰Ú©ÛÚ–ÙŠ Ù†Ùˆ Ø¨Ù„Ù‡ Ù†ÛÙ¼Ù‡ Ù‡Ù… Ø¶Ø±ÙˆØ±ÙŠ Ø¯Ù‡.";
+                var dateMessage = "که یوه نېټه ډکېږي نو بله نېټه هم ضروري ده.";
                 if (!hasFromDate) {
                     setEditorValidationState(editors.fromDate, dateMessage);
                 }
@@ -309,7 +309,7 @@
 
         function initFilterPopup() {
             filterPopupInstance = $("#purchaseFilterPopup").dxPopup({
-                title: "Ú†Ø§Ú¼",
+                title: "چاڼ",
                 showTitle: true,
                 visible: false,
                 width: 360,
@@ -323,15 +323,15 @@
                     var html = "" +
                         '<div class="purchase-filter-popup-body">' +
                         '  <div class="mb-2">' +
-                        '    <label class="form-label">Ø­Ø³Ø§Ø¨</label>' +
+                        '    <label class="form-label">حساب</label>' +
                         '    <div id="purchaseFilterAccount"></div>' +
                         '  </div>' +
                         '  <div class="mb-2">' +
-                        '    <label class="form-label">Ø¯ Ø´Ø±ÙˆØ¹ Ù†ÛÙ¼Ù‡</label>' +
+                        '    <label class="form-label">د شروع نېټه</label>' +
                         '    <div id="purchaseFilterFromDate"></div>' +
                         '  </div>' +
                         '  <div class="mb-3">' +
-                        '    <label class="form-label">Ø¯ Ù¾Ø§ÛŒ Ù†ÛÙ¼Ù‡</label>' +
+                        '    <label class="form-label">د پای نېټه</label>' +
                         '    <div id="purchaseFilterToDate"></div>' +
                         '  </div>' +
                         '  <div id="purchaseFilterSearchButton"></div>' +
@@ -347,7 +347,7 @@
                         height: 36,
                         searchEnabled: true,
                         showClearButton: true,
-                        placeholder: "Ø­Ø³Ø§Ø¨ Ø§Ù†ØªØ®Ø§Ø¨ Ú©Ú“Ø¦...",
+                        placeholder: "حساب انتخاب کړئ...",
                         width: "100%"
                     });
 
@@ -372,7 +372,7 @@
                     });
 
                     $("#purchaseFilterSearchButton").dxButton({
-                        text: "Ù¾Ù„Ù¼Ù†Ù‡",
+                        text: "پلټنه",
                         icon: "fa-solid fa-search",
                         type: "default",
                         width: "100%",
@@ -412,7 +412,6 @@
             onRefreshClick: onRefreshClick,
             onPrintClick: onPrintClick,
             onFilterClick: onFilterClick,
-
             onReturnClick: onReturnClick,
             onRowPrintClick: onRowPrintClick,
             getFilterAccountIdParam: getFilterAccountIdParam,
