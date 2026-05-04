@@ -1,0 +1,167 @@
+﻿@{
+    ViewData["Title"] = "تنظیمات";
+}
+@using AccountingSystem.ViewModels;
+@using DevExtreme.AspNet.Mvc.Builders;
+
+<div class="px-4 py-3">
+    <div class="row g-4 my-4">
+        <div class="col-12 col-lg-6">
+            <div class="dx-card p-3">
+                <p class="dx-card-header">اسعار</p>
+                <div>
+                    @(
+                    Html.DevExtreme().DataGrid()
+                    .ID("currencies-grid")
+                    .DataSource(ds => ds.WebApi()
+                    .Controller("Currencies")
+                    .Key("ID")
+                    .LoadAction("Get")
+                    .InsertAction("Post")
+                    .UpdateAction("Put")
+                    )
+                    .SearchPanel(sp => sp.Visible(true).Placeholder("پلټنه..."))
+                    .RemoteOperations(true)
+                    .ShowBorders(true)
+                    .RowAlternationEnabled(true)
+                    .ColumnAutoWidth(true)
+                    .Editing(e => e
+                    .Mode(GridEditMode.Row)
+                    .AllowAdding(true)
+                    .AllowUpdating(true)
+                    .AllowDeleting(false)
+                    )
+                    .OnInitNewRow("function(e) { e.data.IsActive = true; }")
+                    .Option("editing.newRowPosition", "last")
+                    .Columns(columns =>
+                    {
+                        columns.Add().DataField("ID").Caption("شمېره").AllowEditing(false).Width(70);
+
+                        columns.Add().DataField("CurrencyName").Caption("اسعار").ValidationRules(r => r.AddRequired());
+
+                        columns.Add().DataField("CurrencySymbole").Caption("سمبول").ValidationRules(r => r.AddRequired());
+
+                        columns.Add().DataField("IsMainCurrency").Caption("اصلي")
+                        .DataType(GridColumnDataType.Boolean)
+                        .TrueText("هغه").FalseText("نه");
+                        columns.Add().DataField("IsActive").Caption("فعال")
+                        .DataType(GridColumnDataType.Boolean)
+                        .TrueText("هغه").FalseText("نه");
+
+                        columns.Add().DataField("CreationDate").Caption("نېټه")
+                        .DataType(GridColumnDataType.DateTime)
+                        .AllowEditing(false);
+                    })
+                    )
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-lg-6">
+            <div class="dx-card p-3">
+                <p>د اسعارو تبادله</p>
+                <div>
+                    @(
+                    Html.DevExtreme().DataGrid()
+                    .ID("currency-exchange-grid")
+                    .DataSource(ds => ds.WebApi()
+                    .Controller("CurrencyExchange")
+                    .Key("SubCurrencyID")
+                    .LoadAction("Get")
+                    )
+                    .RemoteOperations(true)
+                    .ShowBorders(true)
+                    .RowAlternationEnabled(true)
+                    .ColumnAutoWidth(true)
+                    .Editing(e => e
+                    .Mode(GridEditMode.Batch)
+                    .AllowUpdating(true)
+                    )
+                    .Toolbar(tool => tool.Items(items =>
+                    {
+                        items.Add().Location(ToolbarItemLocation.Before)
+                                .Widget(w => w.Button()
+                                .Text("ثبت")
+                                .Type(ButtonType.Success)
+                                .StylingMode(ButtonStylingMode.Contained)
+                                    .OnClick("function(){ saveCurrencyExchange() }"));
+                    }))
+                    .Columns(columns =>
+                    {
+                        columns.Add().DataField(nameof(CurrencyExchangeVM.SubCurrencyName))
+                        .Caption("فرعي اسعار")
+                        .AllowEditing(false);
+
+                        columns.Add().DataField(nameof(CurrencyExchangeVM.SubCurrencyAmount))
+                        .Caption("مبلغ")
+                        .DataType(GridColumnDataType.Number)
+                        .EditorOptions(new { showSpinButtons = true })
+                        .ValidationRules(r => r.AddRequired());
+
+                        columns.Add().DataField(nameof(CurrencyExchangeVM.MainCurrencyAmount))
+                        .Caption("متبادل په")
+                        .DataType(GridColumnDataType.Number)
+                        .EditorOptions(new { showSpinButtons = true })
+                        .ValidationRules(r => r.AddRequired());
+
+                    })
+                    )
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function saveCurrencyExchange() {
+        var grid = $("#currency-exchange-grid").dxDataGrid("instance");
+        if (!grid)
+            return;
+
+        var finishSave = function () {
+            var rows = (grid.getVisibleRows() || []).map(function (row) { return row.data; }).filter(Boolean);
+            var payload = rows.map(function (item) {
+                return {
+                    SubCurrencyID: Number(item.SubCurrencyID || 0),
+                    SubCurrencyName: item.SubCurrencyName || "",
+                    SubCurrencyAmount: Number(item.SubCurrencyAmount || 0),
+                    MainCurrencyAmount: Number(item.MainCurrencyAmount || 0),
+                    ExchangeRate: Number(item.ExchangeRate || 0)
+                };
+            });
+
+            if (payload.length === 0) {
+                DevExpress.ui.notify("سطر نسته", "warning", 2500);
+                return;
+            }
+
+            fetch("/api/CurrencyExchange", {
+                method: "POST",
+                credentials: "same-origin",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            })
+                .then(function (response) {
+                    if (!response.ok) {
+                        return response.json().then(function (data) { throw data; });
+                    }
+                    return response;
+                })
+                .then(function () {
+                    DevExpress.ui.notify("ثبت سو.", "success", 1800);
+                    try { grid.getDataSource().reload(); } catch (err) { }
+                })
+                .catch(function (error) {
+                    var message = (error && error.message) ? error.message : "تېروتنه وسوه";
+                    DevExpress.ui.notify(message, "error", 3200);
+                });
+        };
+
+        var savePromise = grid.saveEditData();
+        if (savePromise && typeof savePromise.then === "function") {
+            savePromise.then(finishSave).catch(finishSave);
+        } else {
+            finishSave();
+        }
+    }
+</script>

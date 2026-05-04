@@ -1,0 +1,291 @@
+@{
+    ViewData["title"] = "د کم سوي اجناسو لیست";
+}
+
+<div class="dx-card px-4 py-3">
+    @(
+    Html.DevExtreme().DataGrid()
+        .ID("least-items-grid")
+        .RemoteOperations(true)
+        .ShowBorders(true)
+        .RowAlternationEnabled(true)
+        .ColumnAutoWidth(true)
+        .FilterRow(fr => fr.Visible(true))
+        .HeaderFilter(hf => hf.Visible(true))
+        .SearchPanel(sp => sp.Visible(true).Placeholder("لټون..."))
+        .Paging(p => p.Enabled(false))
+        .Toolbar(t => t.Items(items =>
+        {
+            items.Add().Name("searchPanel").Location(ToolbarItemLocation.Before);
+            items.Add().Location(ToolbarItemLocation.Before)
+                .Template(@<text>
+<div id="li-filter-item" style="min-width:220px"></div>
+</text>);
+    items.Add().Location(ToolbarItemLocation.Before)
+        .Template(@<text>
+<div id="li-filter-warehouse" style="min-width:220px"></div>
+</text>);
+items.Add().Location(ToolbarItemLocation.Before)
+    .Template(@<text>
+<div id="li-filter-category" style="min-width:220px"></div>
+</text>);
+items.Add().Location(ToolbarItemLocation.Before)
+    .Template(@<text>
+<div id="li-filter-unit" style="min-width:220px"></div>
+</text>);
+items.Add().Location(ToolbarItemLocation.Before)
+    .Widget(w => w.Button()
+        .ID("btn-least-items-report")
+        .Text("راپور")
+        .Type(ButtonType.Normal)
+        .StylingMode(ButtonStylingMode.Contained)
+        .Icon("fa-solid fa-print")
+        .OnClick("leastItemsPage.openReportPopup")
+    );
+        }))
+        .Columns(columns =>
+        {
+            columns.Add().DataField("NativeName").Caption("جنس");
+            columns.Add().DataField("AliasName").Caption("دوهم نوم");
+            columns.Add().DataField("WarehouseName").Caption("ګدام");
+            columns.Add().DataField("CategoryName").Caption("کټیګوري");
+            columns.Add().DataField("UnitName").Caption("عمومي واحد");
+            columns.Add().DataField("Quantity").Caption("موجودي");
+            columns.Add().DataField("MinimumQuantity").Caption("د کمښت خبرتیا");
+        })
+    )
+</div>
+
+<div id="least-items-report-popup"></div>
+
+<script>
+    var leastItemsPage = (function () {
+        var selectedItemId = null;
+        var selectedWarehouseId = null;
+        var selectedCategoryId = null;
+        var selectedUnitId = null;
+        var reportPopup = null;
+
+        var leastItemsStore = DevExpress.data.AspNet.createStore({
+            loadUrl: "/api/StockBalances/LeastItems",
+            onBeforeSend: function (method, ajaxOptions) {
+                ajaxOptions.data = ajaxOptions.data || {};
+                ajaxOptions.data.itemId = selectedItemId || null;
+                ajaxOptions.data.warehouseId = selectedWarehouseId || null;
+                ajaxOptions.data.categoryId = selectedCategoryId || null;
+                ajaxOptions.data.unitId = selectedUnitId || null;
+            }
+        });
+
+        function getGrid() {
+            return $("#least-items-grid").dxDataGrid("instance");
+        }
+
+        function getVisibleGridRows() {
+            var grid = getGrid();
+            if (!grid || !grid.getVisibleRows) return [];
+
+            return (grid.getVisibleRows() || [])
+                .filter(function (row) { return row && row.rowType === "data" && row.data; })
+                .map(function (row) { return row.data; });
+        }
+
+        function normalizeDxResult(r) {
+            if (!r) return [];
+            if (Array.isArray(r)) return r;
+            if (Array.isArray(r.data)) return r.data;
+            return [];
+        }
+
+        function normalizeWhenResult(r) {
+            if (r && typeof r === "object" && Object.prototype.hasOwnProperty.call(r, "0")) {
+                return normalizeDxResult(r[0]);
+            }
+            return normalizeDxResult(r);
+        }
+
+        function reloadGrid() {
+            var grid = getGrid();
+            if (!grid) return;
+
+            var ds = (grid.getDataSource && grid.getDataSource()) ? grid.getDataSource() : null;
+            if (ds && ds.reload) {
+                ds.reload();
+                return;
+            }
+
+            grid.refresh(true);
+        }
+
+        function initFilterControls(items, warehouses, categories, units) {
+            $("#li-filter-item").dxSelectBox({
+                rtlEnabled: true,
+                dataSource: items,
+                displayExpr: "DisplayName",
+                valueExpr: "ID",
+                placeholder: "جنس: ټول",
+                showClearButton: true,
+                searchEnabled: true,
+                onValueChanged: function (e) {
+                    selectedItemId = e.value || null;
+                    reloadGrid();
+                }
+            });
+
+            $("#li-filter-warehouse").dxSelectBox({
+                rtlEnabled: true,
+                dataSource: warehouses,
+                displayExpr: "Name",
+                valueExpr: "ID",
+                placeholder: "ګدام: ټول",
+                showClearButton: true,
+                searchEnabled: true,
+                onValueChanged: function (e) {
+                    selectedWarehouseId = e.value || null;
+                    reloadGrid();
+                }
+            });
+
+            $("#li-filter-category").dxSelectBox({
+                rtlEnabled: true,
+                dataSource: categories,
+                displayExpr: "Name",
+                valueExpr: "ID",
+                placeholder: "کټیګوري: ټول",
+                showClearButton: true,
+                searchEnabled: true,
+                onValueChanged: function (e) {
+                    selectedCategoryId = e.value || null;
+                    reloadGrid();
+                }
+            });
+
+            $("#li-filter-unit").dxSelectBox({
+                rtlEnabled: true,
+                dataSource: units,
+                displayExpr: "Name",
+                valueExpr: "ID",
+                placeholder: "واحد: ټول",
+                showClearButton: true,
+                searchEnabled: true,
+                onValueChanged: function (e) {
+                    selectedUnitId = e.value || null;
+                    reloadGrid();
+                }
+            });
+        }
+
+        function init() {
+            var grid = getGrid();
+            if (grid) {
+                grid.option("dataSource", leastItemsStore);
+            }
+
+            var itemsRequest = $.getJSON("/api/StockOperations/Items");
+            var warehousesRequest = $.getJSON("/api/Warehouses/Active", { take: 100000, skip: 0, requireTotalCount: false });
+            var categoriesRequest = $.getJSON("/api/Categories/Active", { take: 100000, skip: 0, requireTotalCount: false });
+            var unitsRequest = $.getJSON("/api/Units/Active", { take: 100000, skip: 0, requireTotalCount: false });
+
+            $.when(itemsRequest, warehousesRequest, categoriesRequest, unitsRequest)
+                .done(function (itemsRes, warehousesRes, categoriesRes, unitsRes) {
+                    var items = normalizeWhenResult(itemsRes);
+                    var warehouses = normalizeWhenResult(warehousesRes);
+                    var categories = normalizeWhenResult(categoriesRes);
+                    var units = normalizeWhenResult(unitsRes);
+
+                    initFilterControls(items, warehouses, categories, units);
+                    reloadGrid();
+                })
+                .fail(function () {
+                    DevExpress.ui.notify("د فلټرونو معلومات لوډ نسول.", "error", 3000);
+                });
+        }
+
+        function ensureReportPopup() {
+            if (reportPopup) return reportPopup;
+
+            reportPopup = $("#least-items-report-popup").dxPopup({
+                visible: false,
+                showTitle: false,
+                dragEnabled: true,
+                width: 1100,
+                maxWidth: "95vw",
+                height: "90vh",
+                toolbarItems: [
+                    {
+                        widget: "dxButton",
+                        toolbar: "bottom",
+                        location: "after",
+                        options: {
+                            text: "لغوه",
+                            onClick: function () { reportPopup.hide(); }
+                        }
+                    }
+                ],
+                contentTemplate: function (contentElement) {
+                    contentElement.append(
+                        $("<div class='accounts-popup-body'>" +
+                            "<div class='accounts-section'>" +
+                                "<div class='accounts-section-body'>" +
+                                    "<div id='least-items-report-host'>" + window.renderReportLoadingIndicator() + "</div>" +
+                                "</div>" +
+                            "</div>" +
+                        "</div>")
+                    );
+                }
+            }).dxPopup("instance");
+
+            return reportPopup;
+        }
+
+        function loadReport() {
+            var reportHost = $("#least-items-report-host");
+            reportHost.html(window.renderReportLoadingIndicator());
+
+            var rows = getVisibleGridRows();
+            if (!rows.length) {
+                reportHost.html("<div class='text-center py-4'>د راپور لپاره معلومات ونه موندل شول.</div>");
+                DevExpress.ui.notify("د راپور لپاره معلومات ونه موندل شول.", "warning", 2600);
+                return;
+            }
+
+            fetch("/Reports/LeastItemReport", {
+                method: "POST",
+                credentials: "same-origin",
+                headers: { "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8" },
+                body: new URLSearchParams({
+                    dataSource: JSON.stringify(rows)
+                }).toString()
+            })
+                .then(function (response) {
+                    if (!response.ok) throw new Error();
+                    return response.text();
+                })
+                .then(function (html) {
+                    reportHost.html(html);
+                })
+                .catch(function () {
+                    reportHost.html("<div class='text-center py-4'>د راپور په پورته کولو کې ستونزه رامنځته شوه.</div>");
+                    DevExpress.ui.notify("د راپور په پورته کولو کې ستونزه رامنځته شوه.", "error", 3200);
+                });
+        }
+
+        function openReportPopup() {
+            var rows = getVisibleGridRows();
+            if (!rows.length) {
+                DevExpress.ui.notify("د راپور لپاره معلومات ونه موندل شول.", "warning", 2600);
+                return;
+            }
+
+            ensureReportPopup().show();
+            loadReport();
+        }
+
+        $(function () { init(); });
+
+        return {
+            reload: reloadGrid,
+            openReportPopup: openReportPopup
+        };
+    })();
+</script>

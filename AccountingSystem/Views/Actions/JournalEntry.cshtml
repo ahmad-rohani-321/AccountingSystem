@@ -1,0 +1,1535 @@
+﻿@using DevExtreme.AspNet.Mvc.Builders
+@{
+    ViewData["Title"] = "ورځني معاملات";
+}
+
+<style>
+    .journal-entry-card .journal-entry-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 1rem;
+    }
+
+    .journal-entry-card .journal-entry-title {
+        margin: 0;
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #0f172a;
+    }
+
+    .journal-entry-card .journal-entry-card-body {
+        margin-top: 1rem;
+    }
+
+    .journal-entry-popup-body {
+        background: #f1f5f9;
+        border-radius: 1.5rem;
+        padding: 1rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.85rem;
+    }
+
+    .journal-entry-form-card {
+        min-height: 280px;
+        padding: 1rem;
+        border-radius: 1.25rem;
+        background: #ffffff;
+        box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+        border: 1px solid rgba(15, 23, 42, 0.08);
+    }
+
+    .journal-entry-summary {
+        padding: 1rem;
+        border-radius: 1.25rem;
+        background: #0f172a;
+        color: #e0f2ff;
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+    }
+
+    .journal-entry-summary h6 {
+        margin-bottom: 0.75rem;
+        font-size: 1rem;
+        font-weight: 600;
+        color: #bae6fd;
+    }
+
+    .journal-summary-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 0.35rem;
+        margin-bottom: 0.55rem;
+        font-size: 0.95rem;
+        color: rgba(255, 255, 255, 0.95);
+    }
+
+    .journal-summary-row:last-child {
+        margin-bottom: 0;
+    }
+
+    .journal-summary-row .journal-label {
+        font-weight: 600;
+        color: #dbeafe;
+    }
+
+    .journal-summary-row .journal-value {
+        flex: 1;
+        text-align: right;
+        letter-spacing: 0.5px;
+    }
+
+    .journal-summary-row.is-danger,
+    .journal-summary-row.is-danger .journal-label,
+    .journal-summary-row.is-danger .journal-value {
+        color: #f87171;
+    }
+
+    .journal-entry-form-card .dx-field {
+        border: none;
+        padding: 0;
+        margin-bottom: 0.8rem;
+        background: transparent;
+    }
+
+    .journal-entry-form-card .dx-field:last-child {
+        margin-bottom: 0;
+    }
+
+    .journal-search-popup-compact .dx-overlay-content {
+        border-radius: 12px;
+        box-shadow: 0 12px 30px rgba(15, 23, 42, 0.14);
+    }
+
+    .journal-search-popup-body {
+        padding: 12px;
+    }
+
+    .journal-search-popup-body .form-label {
+        font-size: 0.86rem;
+        font-weight: 600;
+        margin-bottom: 4px;
+        color: #334155;
+    }
+
+</style>
+
+<div class="row">
+    <div class="col-12">
+        <div class="dx-card px-4 py-3 journal-entry-card">
+            <div class="journal-entry-header">
+                <h5 class="journal-entry-title">اصلي ژورنال</h5>
+            </div>
+            <div class="journal-entry-card-body">
+                @(
+                    Html.DevExtreme().DataGrid()
+                        .ID("journal-entry-grid")
+                        .DataSource(new JS("journalEntryPage.journalEntriesDataSource"))
+                        .RemoteOperations(true)
+                        .ShowBorders(true)
+                        .ColumnAutoWidth(true)
+                        .RowAlternationEnabled(true)
+                        .Paging(pager => pager.PageSize(10))
+                        .Pager(p => p.ShowPageSizeSelector(true).AllowedPageSizes(new[] { 10, 20, 50 }).ShowInfo(true))
+                        .Toolbar(toolbar => toolbar.Items(items =>
+                        {
+                            items.Add()
+                            .Location(ToolbarItemLocation.Before)
+                            .Widget(widget => widget.Button()
+                                .Text("نوې معامله")
+                                .Type(ButtonType.Success)
+                                .Icon("fa-solid fa-plus")
+                                .OnClick("window.openJournalEntryPopup"));
+
+                            
+                            items.Add()
+                            .Location(ToolbarItemLocation.Before)
+                            .Widget(widget => widget.Button()
+                                .Text("پلټنه")
+                                .Type(ButtonType.Default)
+                                .Icon("fa-solid fa-search")
+                                .OnClick("window.openJournalEntrySearchPopup"));
+
+                            items.Add()
+                            .Location(ToolbarItemLocation.Before)
+                            .Widget(widget => widget.Button()
+                                .Text("چاپ")
+                                .Type(ButtonType.Default)
+                                .Icon("fa-solid fa-print")
+                                .OnClick("window.openJournalEntryReportPopup"));
+                        }))
+                        .Columns(columns =>
+                        {
+                            columns.Add()
+                                .DataField("Date")
+                                .Caption("نېټه")
+                                .DataType(GridColumnDataType.Date)
+                                .Format("yyyy-MM-dd");
+                            columns.Add()
+                                .DataField("AccountName")
+                                .Caption("حساب");
+                            columns.Add()
+                                .DataField("Currency")
+                                .Caption("اسعار");
+                            columns.Add()
+                                .DataField("TransactionType")
+                                .Caption("د معامله ډول");
+                            columns.Add()
+                                .DataField("Credit")
+                                .Caption("رسیدګي")
+                                .DataType(GridColumnDataType.Number)
+                                .Format("#,##0.###");
+                            columns.Add()
+                                .DataField("Debit")
+                                .Caption("بردګي")
+                                .DataType(GridColumnDataType.Number)
+                                .Format("#,##0.###");
+                            columns.Add()
+                                .DataField("Balance")
+                                .Caption("بلانس")
+                                .DataType(GridColumnDataType.Number)
+                                .Format("#,##0.###");
+                            columns.Add()
+                                .DataField("Remarks")
+                                .Caption("تشریحات");
+                        })
+                )
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="journal-entry-popup"></div>
+<div id="journal-entry-report-popup"></div>
+<div id="journal-entry-search-popup"></div>
+
+<script>
+    var journalEntryPage = window.journalEntryPage || (window.journalEntryPage = {});
+    journalEntryPage.journalEntriesDataSource = new DevExpress.data.DataSource({
+        store: new DevExpress.data.CustomStore({
+            key: "Id",
+            load: function () {
+                return $.getJSON('@Url.Content("~/api/JournalEntries")', journalEntryPage.getFilterRequestParams())
+                    .then(function (result) {
+                        var rows = Array.isArray(result) ? result : [];
+                        return {
+                            data: rows,
+                            totalCount: rows.length
+                        };
+                    });
+            }
+        }),
+        paginate: true,
+        pageSize: 10
+    });
+
+    (function () {
+        let activeCurrencies = [];
+        let accountOptions = [];
+        let accountBalances = [];
+        let debitAccountSource = [];
+        let creditAccountSourceByDebitTypeId = {};
+        let currencyValueExpr = "ID";
+        let currencyDisplayExpr = "CurrencyName";
+        let defaultDebitCurrencyId = null;
+        let defaultCreditCurrencyId = null;
+        let mainCurrencyId = null;
+        let pageDataPromise = null;
+        let searchPopupInstance = null;
+        let activeSearchFilters = {
+            accountIds: [],
+            fromDate: null,
+            toDate: null
+        };
+        const creditAccountTypeMap = Object.freeze({
+            1: [1, 2, 3, 4, 5, 7, 8, 9],
+            2: [1, 2, 3, 4, 5, 7, 8, 9],
+            3: [1, 2, 3, 4, 5],
+            4: [1, 2, 3, 4, 5],
+            5: [1, 2, 3, 4, 6, 8, 9],
+            6: [1, 2],
+            8: [1, 2],
+            9: [1, 2]
+        });
+        const debitAccountTypeIds = Object.keys(creditAccountTypeMap).map(Number);
+
+        let popupInstance;
+        let formInstance;
+        let currentAmount = 0;
+        let selectedDebitCurrencyId = defaultDebitCurrencyId;
+        let selectedCreditCurrencyId = defaultCreditCurrencyId;
+        let selectedChequePhotoFile = null;
+        let chequePhotoUploaderInstance;
+        let currencyExchangeRows = [];
+        const summaryAmountValue = $("<span class='journal-value'></span>");
+        const summaryExchangeValue = $("<span class='journal-value'></span>");
+        const summaryDebitValue = $("<span class='journal-value'></span>");
+        const summaryCreditValue = $("<span class='journal-value'></span>");
+        const summaryDebitLabelValue = $("<span class='journal-label'></span>");
+        const summaryCreditLabelValue = $("<span class='journal-label'></span>");
+        const summaryExchangeRow = $("<div class='journal-summary-row'><span class='journal-label'>رسیدګي مقدار په لیکو</span></div>");
+        const summaryDebitRow = $("<div class='journal-summary-row'></div>");
+        const summaryCreditRow = $("<div class='journal-summary-row'></div>");
+
+        function normalizeArrayPayload(result, propertyName) {
+            if (Array.isArray(result)) {
+                return result;
+            }
+
+            if (Array.isArray(result?.[propertyName])) {
+                return result[propertyName];
+            }
+
+            if (Array.isArray(result?.data)) {
+                return result.data;
+            }
+
+            return [];
+        }
+
+        function rebuildLookupState(result) {
+            activeCurrencies = normalizeArrayPayload(result, "ActiveCurrencies");
+            accountOptions = normalizeArrayPayload(result, "AccountOptions").map(acc => ({
+                ...acc,
+                ID: Number(acc.ID),
+                AccountTypeID: Number(acc.AccountTypeID),
+                DisplayName: `${acc.Name || ""} - ${acc.Code || ""} - ${acc.AccountTypeName || ""}`
+            }));
+            accountBalances = normalizeArrayPayload(result, "AccountBalances").map(item => ({
+                AccountID: Number(item.AccountID),
+                CurrencyID: Number(item.CurrencyID),
+                Balance: Number(item.Balance)
+            }));
+
+            debitAccountSource = accountOptions.filter(acc => debitAccountTypeIds.includes(acc.AccountTypeID));
+            creditAccountSourceByDebitTypeId = debitAccountTypeIds.reduce((map, debitTypeId) => {
+                const allowedCreditTypeIds = creditAccountTypeMap[debitTypeId] || [];
+                map[debitTypeId] = accountOptions.filter(acc => allowedCreditTypeIds.includes(Number(acc.AccountTypeID)));
+                return map;
+            }, {});
+
+            currencyValueExpr =
+                activeCurrencies.length && typeof activeCurrencies[0].ID !== "undefined"
+                    ? "ID"
+                    : activeCurrencies.length && typeof activeCurrencies[0].CurrencyID !== "undefined"
+                        ? "CurrencyID"
+                        : "id";
+            currencyDisplayExpr =
+                activeCurrencies.length && typeof activeCurrencies[0].Name !== "undefined"
+                    ? "Name"
+                    : activeCurrencies.length && typeof activeCurrencies[0].CurrencyName !== "undefined"
+                        ? "CurrencyName"
+                        : "Code";
+            defaultDebitCurrencyId = activeCurrencies.length ? Number(activeCurrencies[0][currencyValueExpr]) : null;
+            defaultCreditCurrencyId = activeCurrencies.length > 1
+                ? Number(activeCurrencies[1][currencyValueExpr])
+                : defaultDebitCurrencyId;
+            mainCurrencyId = Number(activeCurrencies.find(item => !!item.IsMainCurrency)?.[currencyValueExpr] ?? defaultDebitCurrencyId);
+            selectedDebitCurrencyId = defaultDebitCurrencyId;
+            selectedCreditCurrencyId = defaultCreditCurrencyId;
+        }
+
+        async function ensurePageDataLoaded(forceReload = false) {
+            if (pageDataPromise && !forceReload) {
+                return pageDataPromise;
+            }
+
+            pageDataPromise = fetch('@Url.Content("~/api/JournalEntries/page-data")', { credentials: "same-origin" })
+                .then(response => response.json().then(result => ({ response, result })).catch(() => ({ response, result: {} })))
+                .then(({ response, result }) => {
+                    if (!response.ok) {
+                        throw new Error(result?.Message || "Failed to load journal entry page data.");
+                    }
+
+                    rebuildLookupState(result);
+                    return result;
+                })
+                .catch(error => {
+                    pageDataPromise = null;
+                    throw error;
+                });
+
+            return pageDataPromise;
+        }
+
+        const formatNumeric = value => {
+            if (value === null || value === undefined || Number.isNaN(value)) {
+                return "0";
+            }
+            return Number(value).toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+        };
+
+        function numberToWords(number) {
+            const numericValue = Number(number);
+            if (!Number.isFinite(numericValue)) {
+                return "";
+            }
+
+            number = Math.trunc(numericValue);
+
+            if (number === 0) {
+                return "صفر";
+            }
+
+            if (number < 0) {
+                return "منفی " + numberToWords(Math.abs(number));
+            }
+
+            let words = "";
+
+            if (Math.floor(number / 1000000000000000000) > 0) {
+                if (Math.floor(number / 1000000000000000000) >= 2) {
+                    words += numberToWords(Math.floor(number / 1000000000000000000)) + " تریلیونه ";
+                    number %= 1000000000000000000;
+                } else {
+                    words += " یو تریلیون ";
+                    number %= 1000000000000000000;
+                }
+            }
+
+            if (Math.floor(number / 1000000000000000) > 0) {
+                if (Math.floor(number / 1000000000000000) >= 2) {
+                    words += numberToWords(Math.floor(number / 1000000000000000)) + " بیلیارډه ";
+                    number %= 1000000000000000;
+                } else {
+                    words += " یو بیلیارډ ";
+                    number %= 1000000000000000;
+                }
+            }
+
+            if (Math.floor(number / 1000000000000) > 0) {
+                if (Math.floor(number / 1000000000000) >= 2) {
+                    words += numberToWords(Math.floor(number / 1000000000000)) + " بیلیونه ";
+                    number %= 1000000000000;
+                } else {
+                    words += " یو بیلیون ";
+                    number %= 1000000000000;
+                }
+            }
+
+            if (Math.floor(number / 1000000000) > 0) {
+                if (Math.floor(number / 1000000000) >= 2) {
+                    words += numberToWords(Math.floor(number / 1000000000)) + " میلیارده ";
+                    number %= 1000000000;
+                } else {
+                    words += " یو میلیارد ";
+                    number %= 1000000000;
+                }
+            }
+
+            if (Math.floor(number / 1000000) > 0) {
+                if (Math.floor(number / 1000000) >= 2) {
+                    words += numberToWords(Math.floor(number / 1000000)) + " ملیونه ";
+                    number %= 1000000;
+                } else {
+                    words += " یو ملیون ";
+                    number %= 1000000;
+                }
+            }
+
+            if (Math.floor(number / 1000) > 0) {
+                if (Math.floor(number / 1000) >= 2) {
+                    words += numberToWords(Math.floor(number / 1000)) + " زره ";
+                    number %= 1000;
+                } else {
+                    number %= 1000;
+                    words += number > 0 ? " یو زر " : " زر ";
+                }
+            }
+
+            if (Math.floor(number / 100) > 0) {
+                if (Math.floor(number / 100) >= 2) {
+                    words += numberToWords(Math.floor(number / 100)) + " سوه ";
+                    number %= 100;
+                } else {
+                    number %= 100;
+                    words += number > 0 ? " یو سل " : " سل ";
+                }
+            }
+
+            if (number > 0) {
+                if (words !== "") {
+                    words += "او ";
+                }
+
+                const unitsMap = [
+                    "صفر", "یو", "دوه", "درې", "څلور", "پنځه", "شپږ", "اووه", "اته", "نه",
+                    "لس", "یوولس", "دولس", "دیارلس", "څوارلس", "پنځلس", "شپاړلس", "اوولس", "اتلس", "نولس",
+                    "شل", "یوویشت", "دوه ویشت", "درویشت", "څلورویشت", "پنځه ویشت", "شپږویشت", "اوه ویشت", "اته ویشت", "نه ویشت"
+                ];
+
+                const tensMap = [
+                    "صفر", "لس", "شل", "دیرش", "څلویښت", "پنځوس", "شپیته", "اویا", "اتیا", "نوی"
+                ];
+
+                if (number < 30) {
+                    words += unitsMap[number];
+                } else {
+                    let lastWords = "";
+                    const lastTens = tensMap[Math.floor(number / 10)];
+                    if ((number % 10) > 0) {
+                        lastWords += unitsMap[number % 10];
+                    }
+                    lastWords += " " + lastTens;
+                    words += lastWords;
+                }
+            }
+
+            return words.replace(/\s+/g, " ").trim();
+        }
+
+        function humanizeNumberValue(value) {
+            const numericValue = Number(value);
+            if (!Number.isFinite(numericValue)) {
+                return "صفر";
+            }
+
+            const absoluteValue = Math.abs(numericValue);
+            const integerPart = Math.trunc(absoluteValue);
+            const fractionalPart = Math.round((absoluteValue - integerPart) * 100);
+            let words = numberToWords(integerPart);
+
+            if (fractionalPart > 0) {
+                words += ` اعشاریه ${numberToWords(fractionalPart)}`;
+            }
+
+            if (numericValue < 0) {
+                words = `منفی ${words}`;
+            }
+
+            return words.replace(/\s+/g, " ").trim();
+        }
+
+        function getCurrencyNameById(currencyId) {
+            const selectedCurrency = activeCurrencies.find(item => Number(item?.[currencyValueExpr]) === Number(currencyId));
+            return selectedCurrency?.[currencyDisplayExpr] || "اسعار";
+        }
+
+        function getAccountBalance(accountId, currencyId) {
+            if (!accountId || !currencyId) {
+                return null;
+            }
+
+            const balanceItem = accountBalances.find(item =>
+                item.AccountID === Number(accountId) &&
+                item.CurrencyID === Number(currencyId)
+            );
+
+            return balanceItem ? Number(balanceItem.Balance) : null;
+        }
+
+        function getAccountById(accountId) {
+            return accountOptions.find(acc => acc.ID === Number(accountId)) || null;
+        }
+
+        function normalizeExchangeRows(result) {
+            if (Array.isArray(result)) {
+                return result;
+            }
+
+            if (Array.isArray(result?.data)) {
+                return result.data;
+            }
+
+            return [];
+        }
+
+        async function loadCurrencyExchangeRows() {
+            try {
+                const response = await fetch("/api/CurrencyExchange", { credentials: "same-origin" });
+                const result = await response.json().catch(() => ({}));
+                if (!response.ok) {
+                    throw new Error(result?.message || "Failed to load exchanges.");
+                }
+
+                currencyExchangeRows = normalizeExchangeRows(result).map(item => ({
+                    ...item,
+                    SubCurrencyID: Number(item.SubCurrencyID),
+                    SubCurrencyAmount: Number(item.SubCurrencyAmount || 0),
+                    MainCurrencyAmount: Number(item.MainCurrencyAmount || 0),
+                    ExchangeRate: Number(item.ExchangeRate || 0)
+                }));
+
+                syncExchangeFields();
+                updateSummary();
+                updateBalanceNotes();
+            } catch {
+                DevExpress.ui.notify("د اسعارو تبادله رانغلله نه.", "warning", 2500);
+            }
+        }
+
+        function getCurrencyExchangeBySubCurrency(currencyId) {
+            return currencyExchangeRows.find(item => Number(item.SubCurrencyID) === Number(currencyId)) || null;
+        }
+
+        function getCurrencyStoredExchangeRate(currencyId) {
+            if (!currencyId) {
+                return 0;
+            }
+
+            if (Number(currencyId) === Number(mainCurrencyId)) {
+                return 1;
+            }
+
+            const exchangeRow = getCurrencyExchangeBySubCurrency(currencyId);
+            const rate = Number(exchangeRow?.ExchangeRate || 0);
+            return rate > 0 ? rate : 0;
+        }
+
+        function resolveExchangeFields(debitCurrencyId, creditCurrencyId) {
+            const sameCurrency = Number(debitCurrencyId) === Number(creditCurrencyId);
+            if (!debitCurrencyId || !creditCurrencyId || sameCurrency) {
+                return {
+                    firstCurrencyValue: 1,
+                    secondCurrencyValue: 1,
+                    exchangeRate: 1
+                };
+            }
+
+            const debitIsMain = Number(debitCurrencyId) === Number(mainCurrencyId);
+            const creditIsMain = Number(creditCurrencyId) === Number(mainCurrencyId);
+
+            if (debitIsMain) {
+                const directCreditExchange = getCurrencyExchangeBySubCurrency(creditCurrencyId);
+                if (directCreditExchange) {
+                    const firstCurrencyValue = Number(directCreditExchange.MainCurrencyAmount || 0);
+                    const secondCurrencyValue = Number(directCreditExchange.SubCurrencyAmount || 0);
+                    const exchangeRate = secondCurrencyValue !== 0 ? firstCurrencyValue / secondCurrencyValue : 0;
+                    return { firstCurrencyValue, secondCurrencyValue, exchangeRate };
+                }
+            }
+
+            if (creditIsMain) {
+                const directDebitExchange = getCurrencyExchangeBySubCurrency(debitCurrencyId);
+                if (directDebitExchange) {
+                    const firstCurrencyValue = Number(directDebitExchange.SubCurrencyAmount || 0);
+                    const secondCurrencyValue = Number(directDebitExchange.MainCurrencyAmount || 0);
+                    const exchangeRate = secondCurrencyValue !== 0 ? firstCurrencyValue / secondCurrencyValue : 0;
+                    return { firstCurrencyValue, secondCurrencyValue, exchangeRate };
+                }
+            }
+
+            const firstCurrencyValue = getCurrencyStoredExchangeRate(debitCurrencyId);
+            const secondCurrencyValue = getCurrencyStoredExchangeRate(creditCurrencyId);
+            const exchangeRate = secondCurrencyValue !== 0 ? firstCurrencyValue / secondCurrencyValue : 0;
+
+            return { firstCurrencyValue, secondCurrencyValue, exchangeRate };
+        }
+
+        function syncExchangeFields() {
+            if (!formInstance) {
+                return;
+            }
+
+            const formData = formInstance.option("formData") ?? {};
+            const exchangeFields = resolveExchangeFields(formData.DebitCurrencyId, formData.CreditCurrencyId);
+            formInstance.updateData("FirstCurrencyExchangeValue", exchangeFields.firstCurrencyValue);
+            formInstance.updateData("SecondCurrencyExchangeValue", exchangeFields.secondCurrencyValue);
+            formInstance.updateData("ExchangeRate", exchangeFields.exchangeRate);
+        }
+
+        function getConvertedCreditAmount(formData = formInstance?.option("formData") ?? {}) {
+            if (!currentAmount) {
+                return 0;
+            }
+
+            const exchangeRate = Number(formData.ExchangeRate || 0);
+            if (Number(formData.DebitCurrencyId) === Number(formData.CreditCurrencyId)) {
+                return currentAmount;
+            }
+
+            if (exchangeRate <= 0) {
+                return 0;
+            }
+
+            return currentAmount / exchangeRate;
+        }
+
+        function getExchangeValidationMessage(formData = formInstance?.option("formData") ?? {}) {
+            if (!formData.DebitCurrencyId || !formData.CreditCurrencyId) {
+                return "";
+            }
+
+            if (Number(formData.DebitCurrencyId) === Number(formData.CreditCurrencyId)) {
+                return "";
+            }
+
+            return Number(formData.ExchangeRate || 0) > 0
+                ? ""
+                : "د تبادلې نرخ موجود نه دی.";
+        }
+
+        function getProjectedBalances(formData = formInstance?.option("formData") ?? {}) {
+            const debitBalance = getAccountBalance(formData.DebitAccountId, formData.DebitCurrencyId) ?? 0;
+            const creditBalance = getAccountBalance(formData.CreditAccountId, formData.CreditCurrencyId) ?? 0;
+            const convertedCreditAmount = getConvertedCreditAmount(formData);
+
+            return {
+                debitBalance,
+                creditBalance,
+                debitAfter: debitBalance - currentAmount,
+                creditAfter: creditBalance + convertedCreditAmount,
+                convertedCreditAmount
+            };
+        }
+
+        function getRestrictedNegativeValidationMessage(formData = formInstance?.option("formData") ?? {}) {
+            const debitAccount = getAccountById(formData.DebitAccountId);
+            const creditAccount = getAccountById(formData.CreditAccountId);
+            const { debitAfter, creditAfter } = getProjectedBalances(formData);
+            const bothAccountsRequireNonNegative =
+                debitAccount &&
+                creditAccount &&
+                [3, 4, 5].includes(Number(debitAccount.AccountTypeID)) &&
+                [3, 4, 5].includes(Number(creditAccount.AccountTypeID));
+
+            if (debitAccount && [1, 2].includes(Number(debitAccount.AccountTypeID)) && debitAfter < 0) {
+                return `${debitAccount.Name} منفي کېدای نه سي.`;
+            }
+
+            if (creditAccount && [1, 2].includes(Number(creditAccount.AccountTypeID)) && creditAfter < 0) {
+                return `${creditAccount.Name} منفي کېدای نه سي.`;
+            }
+
+            if (bothAccountsRequireNonNegative && debitAfter < 0) {
+                return `${debitAccount.Name} منفي کېدای نه سي.`;
+            }
+
+            if (bothAccountsRequireNonNegative && creditAfter < 0) {
+                return `${creditAccount.Name} منفي کېدای نه سي.`;
+            }
+
+            return "";
+        }
+
+        function updateAmountValidationState() {
+            const amountEditor = formInstance?.getEditor("Amount");
+            if (!amountEditor) {
+                return;
+            }
+
+            const message = getExchangeValidationMessage() || getRestrictedNegativeValidationMessage();
+            amountEditor.option("isValid", !message);
+            amountEditor.option("validationError", message ? { message } : null);
+        }
+
+        function updateBalanceNotes() {
+            const formData = formInstance?.option("formData") ?? {};
+            const debitCurrencyName = getCurrencyNameById(formData.DebitCurrencyId);
+            const creditCurrencyName = getCurrencyNameById(formData.CreditCurrencyId);
+            const debitBalance = getAccountBalance(formData.DebitAccountId, formData.DebitCurrencyId);
+            const creditBalance = getAccountBalance(formData.CreditAccountId, formData.CreditCurrencyId);
+            const debitBalanceWords = humanizeNumberValue(debitBalance ?? 0);
+            const creditBalanceWords = humanizeNumberValue(creditBalance ?? 0);
+
+            formInstance?.itemOption(
+                "DebitAccountId",
+                "helpText",
+                formData.DebitAccountId ? `بیلانس (${debitCurrencyName}): ${formatNumeric(debitBalance ?? 0)} (${debitBalanceWords || "صفر"})` : ""
+            );
+
+            formInstance?.itemOption(
+                "CreditAccountId",
+                "helpText",
+                formData.CreditAccountId ? `بیلانس (${creditCurrencyName}): ${formatNumeric(creditBalance ?? 0)} (${creditBalanceWords || "صفر"})` : ""
+            );
+        }
+
+        function updateSummary() {
+            const formData = formInstance?.option("formData") ?? {};
+            const amountWords = humanizeNumberValue(currentAmount);
+            summaryAmountValue.text(`${formatNumeric(currentAmount)} (${amountWords || "صفر"})`);
+
+            const { debitAfter, creditAfter, convertedCreditAmount } = getProjectedBalances(formData);
+            const debitAccountName = getAccountById(formData.DebitAccountId)?.Name || "د پور وروسته";
+            const creditAccountName = getAccountById(formData.CreditAccountId)?.Name || "د کریډیټ وروسته";
+            const debitCurrencyName = getCurrencyNameById(formData.DebitCurrencyId);
+            const creditCurrencyName = getCurrencyNameById(formData.CreditCurrencyId);
+            const convertedCreditWords = humanizeNumberValue(convertedCreditAmount);
+
+            summaryDebitLabelValue.text(debitAccountName);
+            summaryCreditLabelValue.text(creditAccountName);
+            summaryExchangeValue.text(`${formatNumeric(convertedCreditAmount)} ${creditCurrencyName} (${convertedCreditWords || "صفر"})`);
+            summaryDebitValue.text(`${formatNumeric(debitAfter)} ${debitCurrencyName} (${humanizeNumberValue(debitAfter) || "صفر"})`);
+            summaryCreditValue.text(`${formatNumeric(creditAfter)} ${creditCurrencyName} (${humanizeNumberValue(creditAfter) || "صفر"})`);
+            summaryDebitRow.toggleClass("is-danger", debitAfter < 0);
+            summaryCreditRow.toggleClass("is-danger", creditAfter < 0);
+            summaryCreditRow.attr("title", convertedCreditAmount
+                ? `رسیدګي مقدار: ${formatNumeric(convertedCreditAmount)} ${creditCurrencyName}`
+                : "");
+            updateAmountValidationState();
+        }
+
+        function getCreditAccountSource(debitAccountId) {
+            if (!debitAccountId) {
+                return [];
+            }
+
+            const selectedDebitAccount = accountOptions.find(acc => acc.ID === Number(debitAccountId));
+            if (!selectedDebitAccount) {
+                return [];
+            }
+
+            return creditAccountSourceByDebitTypeId[selectedDebitAccount.AccountTypeID] || [];
+        }
+
+        function syncCreditEditor(creditSource, creditAccountId) {
+            if (!formInstance) {
+                return;
+            }
+
+            const creditEditorOptions = {
+                items: creditSource,
+                disabled: creditSource.length === 0,
+                valueExpr: "ID",
+                displayExpr: "DisplayName",
+                placeholder: "حساب انتخاب کړئ...",
+                searchEnabled: true,
+                onValueChanged: () => {
+                    updateBalanceNotes();
+                    updateSummary();
+                }
+            };
+
+            formInstance.itemOption("CreditAccountId", "editorOptions", creditEditorOptions);
+            formInstance.updateData("CreditAccountId", creditAccountId ?? null);
+        }
+
+        function updateAccountEditors(debitAccountId, forceResetCredit = false) {
+            if (!formInstance) {
+                return;
+            }
+
+            const debitEditor = formInstance.getEditor("DebitAccountId");
+            debitEditor?.option("items", debitAccountSource);
+
+            const creditSource = getCreditAccountSource(debitAccountId);
+            const formData = formInstance.option("formData") ?? {};
+            const hasSelectedCredit = !forceResetCredit && creditSource.some(acc => acc.ID === Number(formData.CreditAccountId));
+            const nextCreditAccountId = hasSelectedCredit ? formData.CreditAccountId : null;
+
+            if ((forceResetCredit || !hasSelectedCredit) && formData.CreditAccountId !== null) {
+                formInstance.updateData("CreditAccountId", null);
+            }
+
+            syncCreditEditor(creditSource, nextCreditAccountId);
+
+            updateBalanceNotes();
+            updateSummary();
+        }
+
+        function resetForm() {
+            if (!formInstance) {
+                return;
+            }
+            currentAmount = 0;
+            selectedChequePhotoFile = null;
+            chequePhotoUploaderInstance?.reset();
+            formInstance.option("formData", {
+                JournalDate: new Date(),
+                DebitCurrencyId: defaultDebitCurrencyId,
+                CreditCurrencyId: defaultCreditCurrencyId,
+                FirstCurrencyExchangeValue: 1,
+                SecondCurrencyExchangeValue: 1,
+                ExchangeRate: defaultDebitCurrencyId === defaultCreditCurrencyId ? 1 : 0,
+                DebitAccountId: null,
+                CreditAccountId: null,
+                Amount: 0,
+                Remarks: "",
+                ChequePhoto: null
+            });
+            selectedDebitCurrencyId = defaultDebitCurrencyId;
+            selectedCreditCurrencyId = defaultCreditCurrencyId;
+            syncExchangeFields();
+            updateAccountEditors(null);
+            updateSummary();
+        }
+
+        function toInvariantNumberString(value, fallback = "0") {
+            const numericValue = Number(value);
+            return Number.isFinite(numericValue) ? numericValue.toString() : fallback;
+        }
+
+        function getJournalEntryGridInstance() {
+            return $("#journal-entry-grid").dxDataGrid("instance");
+        }
+
+        function normalizeDxLoadResult(result) {
+            if (Array.isArray(result)) return result;
+            if (result && Array.isArray(result.data)) return result.data;
+            return [];
+        }
+
+        function accountDisplayExpr(item) {
+            if (!item) return "";
+            const code = item.Code ? (item.Code + " - ") : "";
+            return code + (item.Name || "");
+        }
+
+        function getFilterRequestParams() {
+            return {
+                accountIds: Array.isArray(activeSearchFilters.accountIds) && activeSearchFilters.accountIds.length
+                    ? activeSearchFilters.accountIds.join(",")
+                    : null,
+                fromDate: activeSearchFilters.fromDate,
+                toDate: activeSearchFilters.toDate
+            };
+        }
+
+        journalEntryPage.getFilterRequestParams = getFilterRequestParams;
+
+        function reloadJournalEntryGrid() {
+            const grid = getJournalEntryGridInstance();
+            if (!grid) return;
+
+            grid.getDataSource().reload();
+        }
+
+        function getSearchEditors() {
+            return {
+                account: $("#journalEntrySearchAccount").dxTagBox("instance"),
+                fromDate: $("#journalEntrySearchFromDate").dxDateBox("instance"),
+                toDate: $("#journalEntrySearchToDate").dxDateBox("instance")
+            };
+        }
+
+        function setEditorValidationState(editor, message) {
+            if (!editor) return;
+
+            editor.option({
+                isValid: !message,
+                validationError: message ? { message: message } : null
+            });
+        }
+
+        function clearEditorValidation(editors) {
+            setEditorValidationState(editors.account, null);
+            setEditorValidationState(editors.fromDate, null);
+            setEditorValidationState(editors.toDate, null);
+        }
+
+        function normalizeDateParamValue(value) {
+            if (!value) return null;
+
+            const dateValue = value instanceof Date ? value : new Date(value);
+            if (isNaN(dateValue.getTime())) return null;
+
+            const year = dateValue.getFullYear();
+            const month = String(dateValue.getMonth() + 1).padStart(2, "0");
+            const day = String(dateValue.getDate()).padStart(2, "0");
+            return year + "-" + month + "-" + day;
+        }
+
+        function validateSearchCriteria(editors) {
+            const accountIds = editors.account ? editors.account.option("value") : [];
+            const fromDate = editors.fromDate ? editors.fromDate.option("value") : null;
+            const toDate = editors.toDate ? editors.toDate.option("value") : null;
+            const hasAccount = Array.isArray(accountIds) && accountIds.length > 0;
+            const hasFromDate = !!fromDate;
+            const hasToDate = !!toDate;
+
+            clearEditorValidation(editors);
+
+            let isValid = true;
+
+            if (!hasAccount) {
+                setEditorValidationState(editors.account, "د حساب ټاکل ضروري دي.");
+                isValid = false;
+            }
+
+            if (!hasFromDate) {
+                setEditorValidationState(editors.fromDate, "د شروع نېټه ضروري ده.");
+                isValid = false;
+            }
+
+            if (!hasToDate) {
+                setEditorValidationState(editors.toDate, "د پای نېټه ضروري ده.");
+                isValid = false;
+            }
+
+            if (!isValid) {
+                return false;
+            }
+
+            if (new Date(toDate) < new Date(fromDate)) {
+                const rangeMessage = "د پای نېټه باید د شروع نېټې سره برابره یا وروسته وي.";
+                setEditorValidationState(editors.toDate, rangeMessage);
+                return false;
+            }
+
+            return true;
+        }
+
+        function applySearchFilters(filters) {
+            activeSearchFilters.accountIds = filters.accountIds;
+            activeSearchFilters.fromDate = filters.fromDate;
+            activeSearchFilters.toDate = filters.toDate;
+        }
+
+        function buildSearchFiltersFromEditors(editors) {
+            return {
+                accountIds: (editors.account ? editors.account.option("value") : []).map(Number),
+                fromDate: normalizeDateParamValue(editors.fromDate ? editors.fromDate.option("value") : null),
+                toDate: normalizeDateParamValue(editors.toDate ? editors.toDate.option("value") : null)
+            };
+        }
+
+        function onSearchPopupSubmit() {
+            const editors = getSearchEditors();
+            if (!validateSearchCriteria(editors)) {
+                return;
+            }
+
+            applySearchFilters(buildSearchFiltersFromEditors(editors));
+            reloadJournalEntryGrid();
+            if (searchPopupInstance) {
+                searchPopupInstance.hide();
+            }
+        }
+
+        function initSearchPopup() {
+            searchPopupInstance = $("#journal-entry-search-popup").dxPopup({
+                title: "پلټنه",
+                showTitle: true,
+                visible: false,
+                width: 360,
+                maxWidth: "92vw",
+                height: "auto",
+                dragEnabled: true,
+                hideOnOutsideClick: true,
+                showCloseButton: true,
+                wrapperAttr: { class: "journal-search-popup-compact" },
+                contentTemplate: function (contentElement) {
+                    const html = "" +
+                        '<div class="journal-search-popup-body">' +
+                        '  <div class="mb-2">' +
+                        '    <label class="form-label">حساب</label>' +
+                        '    <div id="journalEntrySearchAccount"></div>' +
+                        '  </div>' +
+                        '  <div class="mb-2">' +
+                        '    <label class="form-label">د شروع نېټه</label>' +
+                        '    <div id="journalEntrySearchFromDate"></div>' +
+                        '  </div>' +
+                        '  <div class="mb-3">' +
+                        '    <label class="form-label">د پای نېټه</label>' +
+                        '    <div id="journalEntrySearchToDate"></div>' +
+                        '  </div>' +
+                        '  <div id="journalEntrySearchButton"></div>' +
+                        '</div>';
+
+                    contentElement.append(html);
+
+                    $("#journalEntrySearchAccount").dxTagBox({
+                        dataSource: accountOptions.map(function (account) {
+                            return {
+                                AccountID: account.ID,
+                                Name: account.Name,
+                                Code: account.Code,
+                                AccountTypeName: account.AccountTypeName
+                            };
+                        }),
+                        value: activeSearchFilters.accountIds,
+                        valueExpr: "AccountID",
+                        displayExpr: accountDisplayExpr,
+                        height: 36,
+                        searchEnabled: true,
+                        showSelectionControls: true,
+                        hideSelectedItems: false,
+                        multiline: true,
+                        showClearButton: true,
+                        validationMessageMode: "always",
+                        placeholder: "حسابونه انتخاب کړئ...",
+                        width: "100%"
+                    });
+
+                    $("#journalEntrySearchFromDate").dxDateBox({
+                        type: "date",
+                        value: activeSearchFilters.fromDate ? new Date(activeSearchFilters.fromDate) : null,
+                        height: 36,
+                        displayFormat: "yyyy-MM-dd",
+                        showClearButton: true,
+                        showDropDownButton: true,
+                        showTodayButton: true,
+                        validationMessageMode: "always",
+                        width: "100%"
+                    });
+
+                    $("#journalEntrySearchToDate").dxDateBox({
+                        type: "date",
+                        value: activeSearchFilters.toDate ? new Date(activeSearchFilters.toDate) : null,
+                        height: 36,
+                        displayFormat: "yyyy-MM-dd",
+                        showClearButton: true,
+                        showDropDownButton: true,
+                        showTodayButton: true,
+                        validationMessageMode: "always",
+                        width: "100%"
+                    });
+
+                    $("#journalEntrySearchButton").dxButton({
+                        text: "پلټنه",
+                        icon: "fa-solid fa-search",
+                        type: "default",
+                        width: "100%",
+                        onClick: onSearchPopupSubmit
+                    });
+                }
+            }).dxPopup("instance");
+        }
+
+        window.openJournalEntrySearchPopup = function () {
+            if (!searchPopupInstance) {
+                initSearchPopup();
+            }
+
+            searchPopupInstance.show();
+        };
+
+        function getVisibleJournalEntryRows() {
+            const grid = getJournalEntryGridInstance();
+            if (!grid || !grid.getVisibleRows) return [];
+
+            return (grid.getVisibleRows() || [])
+                .filter(row => row && row.rowType === "data" && row.data)
+                .map(row => row.data);
+        }
+
+        let reportPopupInstance;
+
+        function ensureReportPopup() {
+            if (reportPopupInstance) return reportPopupInstance;
+
+            reportPopupInstance = $("#journal-entry-report-popup").dxPopup({
+                visible: false,
+                showTitle: false,
+                dragEnabled: true,
+                width: 1100,
+                maxWidth: "95vw",
+                height: "90vh",
+                toolbarItems: [
+                    {
+                        widget: "dxButton",
+                        toolbar: "bottom",
+                        location: "after",
+                        options: {
+                            text: "لغوه",
+                            onClick: function () { reportPopupInstance.hide(); }
+                        }
+                    }
+                ],
+                contentTemplate: function (contentElement) {
+                    contentElement.append(
+                        $("<div style='display:flex; flex-direction:column; gap:12px;'>" +
+                            "<div style='border-radius:16px; border:1px solid rgba(15,23,42,0.08); background:#fff; box-shadow:0 10px 30px rgba(15,23,42,0.08);'>" +
+                            "<div style='padding:16px;'>" +
+                            "<div id='journal-entry-report-host'>" + window.renderReportLoadingIndicator() + "</div>" +
+                            "</div>" +
+                            "</div>" +
+                            "</div>")
+                    );
+                }
+            }).dxPopup("instance");
+
+            return reportPopupInstance;
+        }
+
+        function loadReport() {
+            const reportHost = $("#journal-entry-report-host");
+            reportHost.html(window.renderReportLoadingIndicator());
+
+            const rows = getVisibleJournalEntryRows();
+            if (!rows.length) {
+                reportHost.html("<div class='text-center py-4'>د راپور لپاره معلومات ونه موندل شول.</div>");
+                DevExpress.ui.notify("د راپور لپاره معلومات ونه موندل شول.", "warning", 2600);
+                return;
+            }
+
+            fetch("/Reports/JournalEntry", {
+                method: "POST",
+                credentials: "same-origin",
+                headers: { "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8" },
+                body: new URLSearchParams({
+                    dataSource: JSON.stringify(rows)
+                }).toString()
+            })
+                .then(function (response) {
+                    if (!response.ok) throw new Error();
+                    return response.text();
+                })
+                .then(function (html) {
+                    reportHost.html(html);
+                })
+                .catch(function () {
+                    reportHost.html("<div class='text-center py-4'>د راپور په پورته کولو کې ستونزه رامنځته شوه.</div>");
+                    DevExpress.ui.notify("د راپور په پورته کولو کې ستونزه رامنځته شوه.", "error", 3200);
+                });
+        }
+
+        window.openJournalEntryReportPopup = function () {
+            const rows = getVisibleJournalEntryRows();
+            if (!rows.length) {
+                DevExpress.ui.notify("د راپور لپاره معلومات ونه موندل شول.", "warning", 2600);
+                return;
+            }
+
+            ensureReportPopup().show();
+            loadReport();
+        };
+
+        async function handleSave() {
+            if (!formInstance) return;
+            const validation = formInstance.validate();
+            if (!validation.isValid) return;
+            const validationMessage = getExchangeValidationMessage() || getRestrictedNegativeValidationMessage();
+            if (validationMessage) {
+                updateAmountValidationState();
+                DevExpress.ui.notify(validationMessage, "error", 3000);
+                return;
+            }
+
+            const formData = formInstance.option("formData") ?? {};
+            const payload = new FormData();
+            payload.append("DebitCurrencyId", toInvariantNumberString(formData.DebitCurrencyId, ""));
+            payload.append("CreditCurrencyId", toInvariantNumberString(formData.CreditCurrencyId, ""));
+            payload.append("ExchangeRate", toInvariantNumberString(formData.ExchangeRate, "0"));
+            payload.append("DebitAccountId", toInvariantNumberString(formData.DebitAccountId, ""));
+            payload.append("CreditAccountId", toInvariantNumberString(formData.CreditAccountId, ""));
+            payload.append("Amount", toInvariantNumberString(formData.Amount, "0"));
+            payload.append("Remarks", String(formData.Remarks ?? "").trim());
+            if (selectedChequePhotoFile) {
+                payload.append("ChequePhoto", selectedChequePhotoFile);
+            }
+
+            try {
+                const response = await fetch("/api/accounts/journal-entry", {
+                    method: "POST",
+                    credentials: "same-origin",
+                    headers: {
+                        "X-Requested-With": "XMLHttpRequest"
+                    },
+                    body: payload
+                });
+
+                const result = await response.json().catch(() => ({}));
+                if (!response.ok) {
+                    DevExpress.ui.notify(result?.Message || "د ژورنال ثبت ناکام سو.", "error", 3500);
+                    return;
+                }
+
+                const debitBalanceIndex = accountBalances.findIndex(item =>
+                    item.AccountID === Number(formData.DebitAccountId) &&
+                    item.CurrencyID === Number(formData.DebitCurrencyId)
+                );
+
+                if (debitBalanceIndex >= 0) {
+                    accountBalances[debitBalanceIndex].Balance = Number(result?.DebitAccountBalance ?? accountBalances[debitBalanceIndex].Balance);
+                } else {
+                    accountBalances.push({
+                        AccountID: Number(formData.DebitAccountId),
+                        CurrencyID: Number(formData.DebitCurrencyId),
+                        Balance: Number(result?.DebitAccountBalance ?? 0)
+                    });
+                }
+
+                const creditBalanceIndex = accountBalances.findIndex(item =>
+                    item.AccountID === Number(formData.CreditAccountId) &&
+                    item.CurrencyID === Number(formData.CreditCurrencyId)
+                );
+
+                if (creditBalanceIndex >= 0) {
+                    accountBalances[creditBalanceIndex].Balance = Number(result?.CreditAccountBalance ?? accountBalances[creditBalanceIndex].Balance);
+                } else {
+                    accountBalances.push({
+                        AccountID: Number(formData.CreditAccountId),
+                        CurrencyID: Number(formData.CreditCurrencyId),
+                        Balance: Number(result?.CreditAccountBalance ?? 0)
+                    });
+                }
+
+                if (Array.isArray(result?.JournalEntries) && result.JournalEntries.length) {
+                    const journalGrid = getJournalEntryGridInstance();
+                    journalGrid?.getDataSource()?.reload();
+                }
+
+                updateBalanceNotes();
+                updateSummary();
+                DevExpress.ui.notify("ژورنال ثبت سو.", "success", 2500);
+                popupInstance?.hide();
+            } catch {
+                DevExpress.ui.notify("د ژورنال ثبت ناکام سو.", "error", 3500);
+            }
+        }
+
+        function initPopup() {
+            if (popupInstance) return;
+
+            const summarySection = $("<div class='journal-entry-summary'></div>");
+            summarySection.append("<h6>معلومات</h6>");
+            const amountRow = $("<div class='journal-summary-row'><span class='journal-label'>مقدار په لیکو</span></div>");
+            amountRow.append(summaryAmountValue);
+            summaryExchangeRow.append(summaryExchangeValue);
+            summaryDebitRow.append(summaryDebitLabelValue, summaryDebitValue);
+            summaryCreditRow.append(summaryCreditLabelValue, summaryCreditValue);
+            summarySection.append(amountRow, summaryExchangeRow, summaryDebitRow, summaryCreditRow);
+
+            popupInstance = $("#journal-entry-popup").dxPopup({
+                title: "نوی معامله",
+                visible: false,
+                showTitle: true,
+                showCloseButton: true,
+                dragEnabled: false,
+                hideOnOutsideClick: false,
+                shading: true,
+                width: 840,
+                height: "auto",
+                maxHeight: "92vh",
+                toolbarItems: [
+                    {
+                        widget: "dxButton",
+                        toolbar: "bottom",
+                        location: "after",
+                        options: {
+                            text: "ثبت",
+                            type: "success",
+                            onClick: handleSave
+                        }
+                    },
+                    {
+                        widget: "dxButton",
+                        toolbar: "bottom",
+                        location: "after",
+                        options: {
+                            text: "لغوه",
+                            onClick: () => popupInstance.hide()
+                        }
+                    }
+                ],
+                onShown: () => {
+                    resetForm();
+                    loadCurrencyExchangeRows();
+                },
+                contentTemplate: content => {
+                    const body = $("<div class='journal-entry-popup-body'></div>");
+                    const formSection = $("<div class='journal-entry-form-section journal-entry-form-card'></div>");
+                    formSection.append("<h6 class='mb-3'>تفصیلي معلومات</h6>");
+
+                    formInstance = formSection.dxForm({
+                        formData: {
+                            JournalDate: new Date(),
+                            DebitCurrencyId: defaultDebitCurrencyId,
+                            CreditCurrencyId: defaultCreditCurrencyId,
+                            FirstCurrencyExchangeValue: 1,
+                            SecondCurrencyExchangeValue: 1,
+                            ExchangeRate: defaultDebitCurrencyId === defaultCreditCurrencyId ? 1 : 0,
+                            DebitAccountId: null,
+                            CreditAccountId: null,
+                            Amount: 0,
+                            Remarks: "",
+                            ChequePhoto: null
+                        },
+                        labelLocation: "top",
+                        colCount: 2,
+                        minColWidth: 240,
+                        layout: "horizontal",
+                        stylingMode: "outlined",
+                        items: [
+                            {
+                                dataField: "JournalDate",
+                                label: { text: "نېټه" },
+                                editorType: "dxDateBox",
+                                editorOptions: {
+                                    disabled: true,
+                                    width: "100%",
+                                    displayFormat: "yyyy-MM-dd"
+                                },
+                                validationRules: [{ type: "required" }],
+                            },
+                            {
+                                dataField: "DebitCurrencyId",
+                                label: { text: "بردګي اسعار" },
+                                editorType: "dxSelectBox",
+                                editorOptions: {
+                                    dataSource: activeCurrencies,
+                                    valueExpr: currencyValueExpr,
+                                    displayExpr: currencyDisplayExpr,
+                                    placeholder: "اسعار وټاکئ...",
+                                    searchEnabled: true,
+                                    onValueChanged: e => {
+                                        selectedDebitCurrencyId = Number(e.value);
+                                        syncExchangeFields();
+                                        updateBalanceNotes();
+                                        updateSummary();
+                                    }
+                                },
+                                validationRules: [{ type: "required" }],
+                            },
+                            {
+                                dataField: "CreditCurrencyId",
+                                label: { text: "رسیدګي اسعار" },
+                                editorType: "dxSelectBox",
+                                editorOptions: {
+                                    dataSource: activeCurrencies,
+                                    valueExpr: currencyValueExpr,
+                                    displayExpr: currencyDisplayExpr,
+                                    placeholder: "اسعار وټاکئ...",
+                                    searchEnabled: true,
+                                    onValueChanged: e => {
+                                        selectedCreditCurrencyId = Number(e.value);
+                                        syncExchangeFields();
+                                        updateBalanceNotes();
+                                        updateSummary();
+                                    }
+                                },
+                                validationRules: [{ type: "required" }],
+                            },
+                            {
+                                dataField: "FirstCurrencyExchangeValue",
+                                label: { text: "لومړی اسعار" },
+                                editorType: "dxNumberBox",
+                                editorOptions: {
+                                    showSpinButtons: true,
+                                    format: { type: "fixedPoint", precision: 6 },
+                                    onValueChanged: e => {
+                                        const formData = formInstance?.option("formData") ?? {};
+                                        const firstValue = Number(e.value) || 0;
+                                        const secondValue = Number(formData.SecondCurrencyExchangeValue || 0);
+                                        const exchangeRate = secondValue !== 0 ? firstValue / secondValue : 0;
+                                        formInstance?.updateData("ExchangeRate", exchangeRate);
+                                        updateSummary();
+                                    }
+                                }
+                            },
+                            {
+                                dataField: "SecondCurrencyExchangeValue",
+                                label: { text: "تبادله په" },
+                                editorType: "dxNumberBox",
+                                editorOptions: {
+                                    showSpinButtons: true,
+                                    format: { type: "fixedPoint", precision: 6 },
+                                    onValueChanged: e => {
+                                        const formData = formInstance?.option("formData") ?? {};
+                                        const firstValue = Number(formData.FirstCurrencyExchangeValue || 0);
+                                        const secondValue = Number(e.value) || 0;
+                                        const exchangeRate = secondValue !== 0 ? firstValue / secondValue : 0;
+                                        formInstance?.updateData("ExchangeRate", exchangeRate);
+                                        updateSummary();
+                                    }
+                                }
+                            },
+                            {
+                                dataField: "ExchangeRate",
+                                label: { text: "د تبادلې نرخ" },
+                                editorType: "dxNumberBox",
+                                editorOptions: {
+                                    readOnly: true,
+                                    format: { type: "fixedPoint", precision: 6 }
+                                }
+                            },
+                            {
+                                dataField: "DebitAccountId",
+                                label: { text: "بردګي حساب" },
+                                editorType: "dxSelectBox",
+                                editorOptions: {
+                                    items: debitAccountSource,
+                                    valueExpr: "ID",
+                                    displayExpr: "DisplayName",
+                                    placeholder: "حساب انتخاب کړئ...",
+                                    searchEnabled: true,
+                                    onValueChanged: e => {
+                                        updateAccountEditors(e.value, true);
+                                    }
+                                },
+                                validationRules: [{ type: "required" }]
+                            },
+                            {
+                                dataField: "CreditAccountId",
+                                label: { text: "رسیدګي حساب" },
+                                editorType: "dxSelectBox",
+                                editorOptions: {
+                                    items: [],
+                                    disabled: true,
+                                    valueExpr: "ID",
+                                    displayExpr: "DisplayName",
+                                    placeholder: "حساب انتخاب کړئ...",
+                                    searchEnabled: true,
+                                    onValueChanged: () => {
+                                        updateBalanceNotes();
+                                        updateSummary();
+                                    }
+                                },
+                                validationRules: [{ type: "required" }]
+                            },
+                            {
+                                dataField: "Amount",
+                                label: { text: "مبلغ" },
+                                editorType: "dxNumberBox",
+                                editorOptions: {
+                                    showSpinButtons: true,
+                                    format: { type: "fixedPoint", precision: 2 },
+                                    onValueChanged: e => {
+                                        currentAmount = Number(e.value) || 0;
+                                        updateSummary();
+                                    }
+                                },
+                                validationRules: [{ type: "required" }]
+                            },
+                            {
+                                dataField: "Remarks",
+                                label: { text: "تشریحات" },
+                                editorType: "dxTextArea",
+                                editorOptions: { minHeight: 100 },
+                                validationRules: [{ type: "required" }]
+                            },
+                            {
+                                name: "ChequePhotoUploader",
+                                colSpan: 2,
+                                template: () => {
+                                    const wrapper = $("<div></div>");
+                                    wrapper.append("<label class='form-label d-block mb-2'>د سند عکس (.jpg)</label>");
+                                    const uploader = $("<div></div>").dxFileUploader({
+                                        multiple: false,
+                                        accept: ".jpg",
+                                        uploadMode: "useForm",
+                                        selectButtonText: "عکس انتخاب کړئ",
+                                        labelText: "",
+                                        allowedFileExtensions: [".jpg"],
+                                        invalidFileExtensionMessage: "یوازې .jpg فایل منل کېږي.",
+                                        onValueChanged: e => {
+                                            selectedChequePhotoFile = e.value?.[0] ?? null;
+                                            formInstance?.updateData("ChequePhoto", selectedChequePhotoFile ? selectedChequePhotoFile.name : null);
+                                        }
+                                    });
+                                    chequePhotoUploaderInstance = uploader.dxFileUploader("instance");
+                                    wrapper.append(uploader);
+                                    return wrapper;
+                                }
+                            }
+                        ]
+                    }).dxForm("instance");
+
+                    body.append(formSection).append(summarySection);
+                    content.append(body);
+                    resetForm();
+                }
+            }).dxPopup("instance");
+        }
+
+        window.openJournalEntryPopup = async () => {
+            try {
+                await ensurePageDataLoaded();
+                if (!popupInstance) {
+                    initPopup();
+                }
+                popupInstance?.show();
+            } catch {
+                DevExpress.ui.notify("د ژورنال معلومات رانغلله نه.", "error", 3000);
+            }
+        };
+
+        document.addEventListener("DOMContentLoaded", () => {
+            ensurePageDataLoaded()
+                .then(initPopup)
+                .catch(() => DevExpress.ui.notify("د ژورنال معلومات رانغلله نه.", "warning", 3000));
+        });
+    })();
+</script>

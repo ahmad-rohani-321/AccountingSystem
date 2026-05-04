@@ -1,0 +1,64 @@
+@{
+    ViewData["Title"] = "د اجناسو قیمتونه";
+}
+
+<div class="dx-card px-4 py-3">
+    @(
+        Html.DevExtreme().DataGrid()
+            .ID("item-prices-grid")
+            .DataSource(ds => ds.WebApi()
+                .Controller("JournalEntries")
+                .Key("ItemID")
+                .LoadAction("GetItemPrices")
+                .UpdateAction("PutItemPrice")
+                .DeleteAction("DeleteItemPrice")
+            )
+            .SearchPanel(sp => sp.Visible(true).Placeholder("لټون..."))
+            .RemoteOperations(false)
+            .Paging(p => p.Enabled(false))
+            .ShowBorders(true)
+            .RowAlternationEnabled(true)
+            .ColumnAutoWidth(true)
+            .Editing(editing => editing
+                .Mode(GridEditMode.Row)
+                .AllowAdding(false)
+                .AllowUpdating(true)
+                .AllowDeleting(true)
+                .UseIcons(true)
+            )
+            .Columns(columns =>
+            {
+                columns.Add()
+                    .DataField("ItemName")
+                    .Caption("د جنس نوم")
+                    .AllowEditing(false);
+
+                columns.Add()
+                    .DataField("Price")
+                    .Caption("قیمت")
+                    .DataType(GridColumnDataType.Number)
+                    .Format("#,##0.##")
+                    .ValidationRules(r =>
+                    {
+                        r.AddRequired().Message("قیمت ضروری دی.");
+                        r.AddRange().Min(0).Message("قیمت باید منفي نه وي.");
+                    });
+
+                columns.Add()
+                    .DataField("Description")
+                    .Caption("تشریح");
+
+                columns.Add()
+                    .Type(GridCommandColumnType.Buttons)
+                    .Caption("عملیات")
+                    .Width(140)
+                    .Buttons(buttons =>
+                    {
+                        buttons.Add().Name(GridColumnButtonName.Edit).Icon("fa-solid fa-pen-to-square");
+                        buttons.Add().Name(GridColumnButtonName.Save).Icon("fa-solid fa-floppy-disk");
+                        buttons.Add().Name(GridColumnButtonName.Delete).Icon("fa-solid fa-trash");
+                        buttons.Add().Name(GridColumnButtonName.Cancel).Icon("fa-solid fa-xmark");
+                    });
+            })
+    )
+</div>

@@ -1,0 +1,423 @@
+﻿@{
+    ViewData["Title"] = "Ø¯ Ø®Ø±ÛŒØ¯Ø§ØªÙˆ Ù„ÛŒØ³Øª";
+}
+
+<div class="dx-card p-3">
+    @(
+        Html.DevExtreme().DataGrid()
+            .ID("today-purchases-grid")
+            .DataSource(ds => ds.WebApi()
+                .Controller("Purchases")
+                .LoadAction("GetToday")
+                .LoadParams(new
+                {
+                    fromDate = new JS("purchaseIndexPage.getFilterFromDateParam"),
+                    toDate = new JS("purchaseIndexPage.getFilterToDateParam"),
+                    accountId = new JS("purchaseIndexPage.getFilterAccountIdParam")
+                })
+                .Key("ID"))
+            .RemoteOperations(true)
+            .ShowBorders(true)
+            .RowAlternationEnabled(true)
+            .ColumnAutoWidth(true)
+            .SearchPanel(sp => sp.Visible(true).Placeholder("Ù¾Ù„Ù¼Ù†Ù‡..."))
+            .Paging(p => p.PageSize(15))
+            .Pager(p => p
+                .ShowPageSizeSelector(true)
+                .AllowedPageSizes(new[] { 15, 30, 50 })
+                .ShowInfo(true))
+            .Toolbar(toolbar =>
+            {
+                toolbar.Items(items =>
+                {
+                    items.Add()
+                        .Location(ToolbarItemLocation.Before)
+                        .Widget(widget => widget.Button()
+                            .Hint("Ú†Ø§Ù¾")
+                            .Icon("fa-solid fa-print")
+                            .OnClick("purchaseIndexPage.onPrintClick"));
+
+                    items.Add()
+                        .Location(ToolbarItemLocation.Before)
+                        .Widget(widget => widget.Button()
+                            .Text("Ú†Ø§Ú¼")
+                            .Type(ButtonType.Success)
+                            .Icon("fa-solid fa-search")
+                            .OnClick("purchaseIndexPage.onFilterClick"));
+
+                    items.Add()
+                        .Location(ToolbarItemLocation.After)
+                        .Widget(widget => widget.Button()
+                            .Icon("fa-solid fa-arrows-rotate")
+                            .Hint("Ø¨ÛŒØ§ ØªØ§Ø²Ù‡ Ú©ÙˆÙ„")
+                            .OnClick("purchaseIndexPage.onRefreshClick"));
+
+                    items.Add().Name(DataGridToolbarItem.SearchPanel);
+                });
+            })
+            .Columns(columns =>
+            {
+                columns.Add().DataField("PurchaseNo").Caption("Ø®Ø±ÛŒØ¯ #");
+                columns.Add().DataField("AccountName").Caption("Ø­Ø³Ø§Ø¨");
+                columns.Add().DataField("CurrencyName").Caption("Ø§Ø³Ø¹Ø§Ø±");
+                columns.Add()
+                    .DataField("TotalAmount")
+                    .Caption("Ù…Ø¬Ù…ÙˆØ¹Ù‡")
+                    .DataType(GridColumnDataType.Number)
+                    .Format("#,##0.##");
+                columns.Add()
+                    .DataField("ReceivedAmount")
+                    .Caption("Ø±Ø³ÛŒØ¯")
+                    .DataType(GridColumnDataType.Number)
+                    .Format("#,##0.##");
+                columns.Add()
+                    .DataField("RemainingAmount")
+                    .Caption("Ø¨Ø§Ù‚ÙŠ")
+                    .DataType(GridColumnDataType.Number)
+                    .Format("#,##0.##");
+                columns.Add()
+                    .DataField("ItemCount")
+                    .Caption("Ø¬Ù†Ø³ ØªØ¹Ø¯Ø§Ø¯")
+                    .DataType(GridColumnDataType.Number);
+                columns.Add().DataField("Remarks").Caption("Ù…Ù„Ø§Ø­Ø¸Ø§Øª");
+                columns.Add()
+                    .DataField("CreationDate")
+                    .Caption("Ø«Ø¨Øª Ù†ÛÙ¼Ù‡")
+                    .DataType(GridColumnDataType.DateTime)
+                    .Format("yyyy-MM-dd HH:mm");
+                columns.Add()
+                    .Type(GridCommandColumnType.Buttons)
+                    .Caption("Ø¹Ù…Ù„ÛŒØ§Øª")
+                    .Width(120)
+                    .Buttons(buttons =>
+                    {
+                        buttons.Add()
+                            .Hint("Ú†Ø§Ù¾")
+                            .Icon("fa-solid fa-print")
+                            .OnClick("purchaseIndexPage.onRowPrintClick");
+                        buttons.Add()
+                            .Hint("ÙˆØ§Ù¾Ø³ÙŠ")
+                            .Icon("fa-solid fa-rotate-left")
+                            .OnClick("purchaseIndexPage.onReturnClick");
+                    });
+            })
+    )
+</div>
+
+<div id="purchaseFilterPopup"></div>
+
+<style>
+    .purchase-filter-popup-compact .dx-overlay-content {
+        border-radius: 12px;
+        box-shadow: 0 12px 30px rgba(15, 23, 42, 0.14);
+    }
+
+    .purchase-filter-popup-body {
+        padding: 12px;
+    }
+
+    .purchase-filter-popup-body .form-label {
+        font-size: 0.86rem;
+        font-weight: 600;
+        margin-bottom: 4px;
+        color: #334155;
+    }
+</style>
+
+<script>
+    var purchaseIndexPage = (function () {
+
+        var purchasesApiBaseUrl = "@Url.Content("~/api/Purchases/")";
+        var filterPopupInstance = null;
+
+        var activeFilters = {
+            accountId: null,
+            fromDate: null,
+            toDate: null
+        };
+
+        var activeAccountFilterDataSource = new DevExpress.data.DataSource({
+            store: DevExpress.data.AspNet.createStore({
+                key: "AccountID",
+                loadUrl: "@Url.Content("~/api/Accounts")",
+                loadParams: { types: "4,5, 10" }
+            }),
+            paginate: true,
+            pageSize: 200,
+            postProcess: function (data) {
+                var rows = normalizeDxLoadResult(data);
+                return rows.filter(function (row) {
+                    return row && row.IsActive;
+                });
+            }
+        });
+
+        function getGrid() {
+            return $("#today-purchases-grid").dxDataGrid("instance");
+        }
+
+        function normalizeDxLoadResult(result) {
+            if (Array.isArray(result)) return result;
+            if (result && Array.isArray(result.data)) return result.data;
+            return [];
+        }
+
+        function accountDisplayExpr(item) {
+            if (!item) return "";
+            var code = item.Code ? (item.Code + " - ") : "";
+            return code + (item.Name || "");
+        }
+
+        function clearActiveFilters() {
+            activeFilters.accountId = null;
+            activeFilters.fromDate = null;
+            activeFilters.toDate = null;
+        }
+
+        function applyActiveFilters(filters) {
+            activeFilters.accountId = filters.accountId;
+            activeFilters.fromDate = filters.fromDate;
+            activeFilters.toDate = filters.toDate;
+        }
+
+        function getFilterRequestParams() {
+            return {
+                fromDate: activeFilters.fromDate,
+                toDate: activeFilters.toDate,
+                accountId: activeFilters.accountId
+            };
+        }
+
+        function createPurchasesDataSource(loadAction) {
+            return {
+                store: new DevExpress.data.CustomStore({
+                    key: "ID",
+                    load: function () {
+                        return $.getJSON(purchasesApiBaseUrl + loadAction, getFilterRequestParams())
+                            .then(function (result) {
+                                var rows = Array.isArray(result) ? result : [];
+                                return {
+                                    data: rows,
+                                    totalCount: rows.length
+                                };
+                            });
+                    }
+                })
+            };
+        }
+
+        function reloadGridWithAction(loadAction) {
+            var grid = getGrid();
+            if (!grid) return;
+
+            grid.option("dataSource", createPurchasesDataSource(loadAction));
+        }
+
+        function onRefreshClick() {
+            clearActiveFilters();
+            reloadGridWithAction("GetCreatedToday");
+        }
+
+        function onPrintClick() {
+            window.print();
+        }
+
+        function getFilterDateEditors() {
+            return {
+                account: $("#purchaseFilterAccount").dxSelectBox("instance"),
+                fromDate: $("#purchaseFilterFromDate").dxDateBox("instance"),
+                toDate: $("#purchaseFilterToDate").dxDateBox("instance")
+            };
+        }
+
+        function setEditorValidationState(editor, message) {
+            if (!editor) return;
+
+            editor.option({
+                isValid: !message,
+                validationError: message ? { message: message } : null
+            });
+        }
+
+        function validateFilterCriteria(editors) {
+            var accountId = editors.account ? editors.account.option("value") : null;
+            var fromDate = editors.fromDate ? editors.fromDate.option("value") : null;
+            var toDate = editors.toDate ? editors.toDate.option("value") : null;
+            var hasAccount = !!accountId;
+            var hasFromDate = !!fromDate;
+            var hasToDate = !!toDate;
+            var hasAnyDate = hasFromDate || hasToDate;
+            var hasBothDates = hasFromDate && hasToDate;
+
+            setEditorValidationState(editors.fromDate, null);
+            setEditorValidationState(editors.toDate, null);
+
+            if (!hasAccount && !hasAnyDate) {
+                DevExpress.ui.notify("Ø¯ Ù¾Ù„Ù¼Ù†Û Ù„Ù¾Ø§Ø±Ù‡ Ø¹Ø±Ø¶Ù‡ Ú©ÙˆÙˆÙ†Ú©ÛŒ ÛŒØ§ Ø¯ Ù†ÛÙ¼Ùˆ Ù…ÙˆØ¯Ù‡ ÙˆÙ¼Ø§Ú©Ø¦.", "error", 2800);
+                return false;
+            }
+
+            if (hasAnyDate && !hasBothDates) {
+                var dateMessage = "Ú©Ù‡ ÛŒÙˆÙ‡ Ù†ÛÙ¼Ù‡ Ú‰Ú©ÛÚ–ÙŠ Ù†Ùˆ Ø¨Ù„Ù‡ Ù†ÛÙ¼Ù‡ Ù‡Ù… Ø¶Ø±ÙˆØ±ÙŠ Ø¯Ù‡.";
+                if (!hasFromDate) {
+                    setEditorValidationState(editors.fromDate, dateMessage);
+                }
+
+                if (!hasToDate) {
+                    setEditorValidationState(editors.toDate, dateMessage);
+                }
+
+                DevExpress.ui.notify(dateMessage, "error", 2800);
+                return false;
+            }
+
+            return true;
+        }
+
+        function normalizeDateParamValue(value) {
+            if (!value) return null;
+
+            var dateValue = value instanceof Date ? value : new Date(value);
+            if (isNaN(dateValue.getTime())) return null;
+
+            var year = dateValue.getFullYear();
+            var month = String(dateValue.getMonth() + 1).padStart(2, "0");
+            var day = String(dateValue.getDate()).padStart(2, "0");
+            return year + "-" + month + "-" + day;
+        }
+
+        function buildFiltersFromEditors(editors) {
+            return {
+                accountId: editors.account ? editors.account.option("value") : null,
+                fromDate: normalizeDateParamValue(editors.fromDate ? editors.fromDate.option("value") : null),
+                toDate: normalizeDateParamValue(editors.toDate ? editors.toDate.option("value") : null)
+            };
+        }
+
+        function onFilterSearchClick() {
+            var editors = getFilterDateEditors();
+            if (!validateFilterCriteria(editors)) {
+                return;
+            }
+
+            applyActiveFilters(buildFiltersFromEditors(editors));
+            reloadGridWithAction("GetToday");
+            if (filterPopupInstance) {
+                filterPopupInstance.hide();
+            }
+        }
+
+        function initFilterPopup() {
+            filterPopupInstance = $("#purchaseFilterPopup").dxPopup({
+                title: "Ú†Ø§Ú¼",
+                showTitle: true,
+                visible: false,
+                width: 360,
+                maxWidth: "92vw",
+                height: "auto",
+                dragEnabled: true,
+                hideOnOutsideClick: true,
+                showCloseButton: true,
+                wrapperAttr: { class: "purchase-filter-popup-compact" },
+                contentTemplate: function (contentElement) {
+                    var html = "" +
+                        '<div class="purchase-filter-popup-body">' +
+                        '  <div class="mb-2">' +
+                        '    <label class="form-label">Ø­Ø³Ø§Ø¨</label>' +
+                        '    <div id="purchaseFilterAccount"></div>' +
+                        '  </div>' +
+                        '  <div class="mb-2">' +
+                        '    <label class="form-label">Ø¯ Ø´Ø±ÙˆØ¹ Ù†ÛÙ¼Ù‡</label>' +
+                        '    <div id="purchaseFilterFromDate"></div>' +
+                        '  </div>' +
+                        '  <div class="mb-3">' +
+                        '    <label class="form-label">Ø¯ Ù¾Ø§ÛŒ Ù†ÛÙ¼Ù‡</label>' +
+                        '    <div id="purchaseFilterToDate"></div>' +
+                        '  </div>' +
+                        '  <div id="purchaseFilterSearchButton"></div>' +
+                        '</div>';
+
+                    contentElement.append(html);
+
+                    $("#purchaseFilterAccount").dxSelectBox({
+                        dataSource: activeAccountFilterDataSource,
+                        value: activeFilters.accountId,
+                        valueExpr: "AccountID",
+                        displayExpr: accountDisplayExpr,
+                        height: 36,
+                        searchEnabled: true,
+                        showClearButton: true,
+                        placeholder: "Ø­Ø³Ø§Ø¨ Ø§Ù†ØªØ®Ø§Ø¨ Ú©Ú“Ø¦...",
+                        width: "100%"
+                    });
+
+                    $("#purchaseFilterFromDate").dxDateBox({
+                        type: "date",
+                        height: 36,
+                        displayFormat: "yyyy-MM-dd",
+                        showClearButton: true,
+                        showDropDownButton: true,
+                        showTodayButton: true,
+                        width: "100%"
+                    });
+
+                    $("#purchaseFilterToDate").dxDateBox({
+                        type: "date",
+                        height: 36,
+                        displayFormat: "yyyy-MM-dd",
+                        showClearButton: true,
+                        showDropDownButton: true,
+                        showTodayButton: true,
+                        width: "100%"
+                    });
+
+                    $("#purchaseFilterSearchButton").dxButton({
+                        text: "Ù¾Ù„Ù¼Ù†Ù‡",
+                        icon: "fa-solid fa-search",
+                        type: "default",
+                        width: "100%",
+                        onClick: onFilterSearchClick
+                    });
+                }
+            }).dxPopup("instance");
+        }
+
+        function onFilterClick() {
+            if (!filterPopupInstance) {
+                initFilterPopup();
+            }
+
+            filterPopupInstance.show();
+        }
+
+        function getFilterFromDateParam() {
+            return activeFilters.fromDate;
+        }
+
+        function getFilterToDateParam() {
+            return activeFilters.toDate;
+        }
+
+        function getFilterAccountIdParam() {
+            return activeFilters.accountId;
+        }
+
+        function onReturnClick(e) {
+        }
+
+        function onRowPrintClick(e) {
+        }
+
+        return {
+            onRefreshClick: onRefreshClick,
+            onPrintClick: onPrintClick,
+            onFilterClick: onFilterClick,
+
+            onReturnClick: onReturnClick,
+            onRowPrintClick: onRowPrintClick,
+            getFilterAccountIdParam: getFilterAccountIdParam,
+            getFilterFromDateParam: getFilterFromDateParam,
+            getFilterToDateParam: getFilterToDateParam
+        };
+    })();
+</script>

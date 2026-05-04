@@ -1,0 +1,887 @@
+﻿@{
+    ViewData["Title"] = "د خرید آرډرونه";
+}
+
+<div class="dx-card p-3">
+    @(
+        Html.DevExtreme().DataGrid()
+            .ID("purchaseOrdersTodayGrid")
+            .DataSource(ds => ds.WebApi()
+                .Controller("PurchaseOrders")
+                .LoadAction("GetToday")
+                .LoadParams(new
+                {
+                    fromDate = new JS("purchaseOrderIndexPage.getFilterFromDateParam"),
+                    toDate = new JS("purchaseOrderIndexPage.getFilterToDateParam"),
+                    accountId = new JS("purchaseOrderIndexPage.getFilterAccountIdParam")
+                })
+                .Key("ID"))
+            .RemoteOperations(true)
+            .ShowBorders(true)
+            .RowAlternationEnabled(true)
+            .ColumnAutoWidth(true)
+            .SearchPanel(sp => sp.Visible(true).Placeholder("پلټنه..."))
+            .Paging(p => p.PageSize(15))
+            .Pager(p => p
+                .ShowPageSizeSelector(true)
+                .AllowedPageSizes(new[] { 15, 30, 50 })
+                .ShowInfo(true))
+            .Toolbar(toolbar =>
+            {
+                toolbar.Items(items =>
+                {
+                    items.Add()
+                        .Location(ToolbarItemLocation.Before)
+                        .Widget(widget => widget.Button()
+                            .Text("نوی خرید آرډر")
+                            .Type(ButtonType.Success)
+                            .Icon("fa-solid fa-plus")
+                            .OnClick("purchaseOrderIndexPage.onNewOrderClick"));
+
+                    items.Add()
+                        .Location(ToolbarItemLocation.Before)
+                        .Widget(widget => widget.Button()
+                            .Text("چاڼ")
+                            .Type(ButtonType.Success)
+                            .Icon("fa-solid fa-search")
+                            .OnClick("purchaseOrderIndexPage.onFilterClick"));
+
+                    items.Add().Location(ToolbarItemLocation.After).Widget(widget => widget.Button()
+                        .Icon("fa-solid fa-arrows-rotate")
+                        .OnClick("purchaseOrderIndexPage.onRefreshClick"));
+
+
+                    items.Add().Name(DataGridToolbarItem.SearchPanel);
+                });
+            })
+            .Columns(columns =>
+            {
+                columns.Add().DataField("ID").Caption("آرډر #");
+                columns.Add().DataField("AccountName").Caption("حساب");
+                columns.Add().DataField("AccountCode").Caption("کوډ");
+                columns.Add()
+                    .DataField("DueDate")
+                    .Caption("د تادیې نېټه")
+                    .DataType(GridColumnDataType.Date)
+                    .Format("yyyy-MM-dd");
+                columns.Add().DataField("Remarks").Caption("ملاحظات");
+                columns.Add()
+                    .DataField("CreationDate")
+                    .Caption("نېټه")
+                    .DataType(GridColumnDataType.DateTime)
+                    .Format("yyyy-MM-dd HH:mm");
+                columns.Add()
+                    .DataField("IsCompleted")
+                    .Caption("حالت")
+                    .DataType(GridColumnDataType.Boolean)
+                    .TrueText("بشپړ")
+                    .FalseText("نوی");
+
+                columns.Add()
+                    .Type(GridCommandColumnType.Buttons)
+                    .Caption("عملیات")
+                    .Width(140)
+                    .Buttons(buttons =>
+                    {
+                        buttons.Add()
+                            .Hint("سمون")
+                            .Icon("fa-solid fa-pen-to-square")
+                            .OnClick("purchaseOrderIndexPage.onEditClick");
+
+                        buttons.Add()
+                            .Hint("حذف")
+                            .Icon("fa-solid fa-trash")
+                            .OnClick("purchaseOrderIndexPage.onDeleteClick");
+                    });
+            })
+    )
+</div>
+
+<div id="poEditPopup"></div>
+<div id="poFilterPopup"></div>
+
+<style>
+    .po-edit-popup-compact .dx-overlay-content {
+        border-radius: 12px;
+        box-shadow: 0 14px 38px rgba(15, 23, 42, 0.16);
+    }
+
+    .po-edit-popup-body {
+        padding: 10px 12px 6px;
+    }
+
+    .po-edit-popup-body .form-label {
+        font-size: 0.86rem;
+        font-weight: 600;
+        margin-bottom: 4px;
+        color: #334155;
+    }
+
+    .po-filter-popup-compact .dx-overlay-content {
+        border-radius: 12px;
+        box-shadow: 0 12px 30px rgba(15, 23, 42, 0.14);
+    }
+
+    .po-filter-popup-body {
+        padding: 12px;
+    }
+
+    .po-filter-popup-body .form-label {
+        font-size: 0.86rem;
+        font-weight: 600;
+        margin-bottom: 4px;
+        color: #334155;
+    }
+</style>
+
+<script>
+    var purchaseOrderIndexPage = (function () {
+        var purchaseOrdersApiBaseUrl = "@Url.Content("~/api/PurchaseOrders/")";
+
+        var activeFilters = {
+            accountId: null,
+            fromDate: null,
+            toDate: null
+        };
+
+        function getFilterRequestParams() {
+            return {
+                fromDate: activeFilters.fromDate,
+                toDate: activeFilters.toDate,
+                accountId: activeFilters.accountId
+            };
+        }
+
+        function createPurchaseOrdersDataSource(loadAction) {
+            return {
+                store: new DevExpress.data.CustomStore({
+                    key: "ID",
+                    load: function () {
+                        return $.getJSON(purchaseOrdersApiBaseUrl + loadAction, getFilterRequestParams())
+                            .then(function (result) {
+                                var rows = Array.isArray(result) ? result : [];
+                                return {
+                                    data: rows,
+                                    totalCount: rows.length
+                                };
+                            });
+                    }
+                })
+            };
+        }
+
+        var popupInstance = null;
+        var filterPopupInstance = null;
+        var popupOrderId = null;
+        var popupRows = [];
+        var popupRowCounter = 1;
+        var unitOptionsByItemId = {};
+        var activeItemsCache = [];
+        var activeItemNameById = {};
+
+        var accountDataSource = new DevExpress.data.DataSource({
+            store: DevExpress.data.AspNet.createStore({
+                key: "AccountID",
+                loadUrl: "@Url.Content("~/api/Accounts")",
+                loadParams: { types: "4,5" }
+            }),
+            paginate: true,
+            pageSize: 200
+        });
+
+        var activeAccountFilterDataSource = new DevExpress.data.DataSource({
+            store: DevExpress.data.AspNet.createStore({
+                key: "AccountID",
+                loadUrl: "@Url.Content("~/api/Accounts")",
+                loadParams: { types: "4,5" }
+            }),
+            paginate: true,
+            pageSize: 200,
+            postProcess: function (data) {
+                var rows = normalizeDxLoadResult(data);
+                return rows.filter(function (row) {
+                    return row && row.IsActive;
+                });
+            }
+        });
+
+        var activeItemsDataSource = new DevExpress.data.DataSource({
+            store: DevExpress.data.AspNet.createStore({
+                key: "ID",
+                loadUrl: "@Url.Content("~/api/Items")"
+            }),
+            paginate: true,
+            pageSize: 200
+        });
+
+        function getGrid() {
+            return $("#purchaseOrdersTodayGrid").dxDataGrid("instance");
+        }
+
+        function clearActiveFilters() {
+            activeFilters.accountId = null;
+            activeFilters.fromDate = null;
+            activeFilters.toDate = null;
+        }
+
+        function applyActiveFilters(filters) {
+            activeFilters.accountId = filters.accountId;
+            activeFilters.fromDate = filters.fromDate;
+            activeFilters.toDate = filters.toDate;
+        }
+
+        function reloadGridWithAction(loadAction) {
+            var grid = getGrid();
+            if (!grid) return;
+
+            grid.option("dataSource", createPurchaseOrdersDataSource(loadAction));
+        }
+
+        function getEditGrid() {
+            return $("#poEditDetailsGrid").dxDataGrid("instance");
+        }
+
+        function accountDisplayExpr(item) {
+            if (!item) return "";
+            var code = item.Code ? (item.Code + " - ") : "";
+            return code + (item.Name || "");
+        }
+
+        function normalizeDxLoadResult(result) {
+            if (Array.isArray(result)) return result;
+            if (result && Array.isArray(result.data)) return result.data;
+            return [];
+        }
+
+        function refreshActiveItemsCache() {
+            return activeItemsDataSource.load().then(function (result) {
+                var allRows = normalizeDxLoadResult(result);
+                activeItemsCache = allRows.filter(function (row) {
+                    return row && row.IsActive;
+                });
+
+                activeItemNameById = {};
+                for (var i = 0; i < activeItemsCache.length; i++) {
+                    var item = activeItemsCache[i];
+                    if (item && item.ID) {
+                        activeItemNameById[item.ID] = item.NativeName || "";
+                    }
+                }
+            });
+        }
+
+        function loadUnitOptionsForItem(itemId) {
+            if (!itemId) return $.Deferred().resolve([]).promise();
+            if (unitOptionsByItemId[itemId]) {
+                return $.Deferred().resolve(unitOptionsByItemId[itemId]).promise();
+            }
+
+            return $.getJSON("/api/Items/" + itemId + "/InitialStock/UnitOptions")
+                .then(function (options) {
+                    var rows = Array.isArray(options) ? options : [];
+                    unitOptionsByItemId[itemId] = rows;
+                    return rows;
+                }, function () {
+                    return [];
+                });
+        }
+
+        function getItemDisplayText(rowData) {
+            if (!rowData || !rowData.ItemID) return "";
+            return activeItemNameById[rowData.ItemID] || rowData.ItemID;
+        }
+
+        function getUnitDisplayText(rowData) {
+            if (!rowData || rowData.UnitConversionID === null || rowData.UnitConversionID === undefined) {
+                return "";
+            }
+
+            var options = Array.isArray(rowData.UnitOptions) ? rowData.UnitOptions : [];
+            for (var i = 0; i < options.length; i++) {
+                var unit = options[i];
+                if (unit && unit.UnitConversionID === rowData.UnitConversionID) {
+                    return unit.UnitName || "";
+                }
+            }
+
+            return rowData.UnitConversionID;
+        }
+
+        function onEditGridInitNewRow(e) {
+            e.data.RowID = popupRowCounter++;
+            e.data.ItemID = null;
+            e.data.UnitConversionID = null;
+            e.data.Quantity = null;
+            e.data.Remarks = "";
+            e.data.UnitOptions = [];
+        }
+
+        function onEditGridEditorPreparing(e) {
+            if (e.parentType !== "dataRow") return;
+
+            if (e.dataField === "ItemID") {
+                e.editorName = "dxSelectBox";
+                e.editorOptions.dataSource = activeItemsCache;
+                e.editorOptions.displayExpr = "NativeName";
+                e.editorOptions.valueExpr = "ID";
+                e.editorOptions.searchEnabled = true;
+                e.editorOptions.showClearButton = true;
+
+                var baseItemChanged = e.editorOptions.onValueChanged;
+                e.editorOptions.onValueChanged = function (args) {
+                    if (baseItemChanged) baseItemChanged(args);
+
+                    var selectedItemId = args && args.value ? args.value : null;
+                    var rowIndex = e.row.rowIndex;
+                    var grid = e.component;
+                    var rowData = e.row && e.row.data ? e.row.data : null;
+
+                    grid.cellValue(rowIndex, "ItemID", selectedItemId);
+                    grid.cellValue(rowIndex, "UnitConversionID", null);
+
+                    if (rowData) rowData.UnitOptions = [];
+
+                    if (!selectedItemId) {
+                        grid.repaintRows([rowIndex]);
+                        return;
+                    }
+
+                    loadUnitOptionsForItem(selectedItemId).then(function (options) {
+                        if (rowData) rowData.UnitOptions = options;
+                        if (options.length === 1) {
+                            grid.cellValue(rowIndex, "UnitConversionID", options[0].UnitConversionID);
+                        }
+                        grid.repaintRows([rowIndex]);
+                    });
+                };
+                return;
+            }
+
+            if (e.dataField === "UnitConversionID") {
+                var rowDataForUnit = e.row && e.row.data ? e.row.data : null;
+                var selectedItemIdForUnit = rowDataForUnit ? rowDataForUnit.ItemID : null;
+                var optionsForUnit = rowDataForUnit && Array.isArray(rowDataForUnit.UnitOptions)
+                    ? rowDataForUnit.UnitOptions
+                    : [];
+
+                e.editorName = "dxSelectBox";
+                e.editorOptions.dataSource = optionsForUnit;
+                e.editorOptions.displayExpr = "UnitName";
+                e.editorOptions.valueExpr = "UnitConversionID";
+                e.editorOptions.searchEnabled = true;
+                e.editorOptions.showClearButton = true;
+
+                if (selectedItemIdForUnit && optionsForUnit.length === 0) {
+                    loadUnitOptionsForItem(selectedItemIdForUnit).then(function (options) {
+                        if (rowDataForUnit) rowDataForUnit.UnitOptions = options;
+                        e.component.repaintRows([e.row.rowIndex]);
+                    });
+                }
+                return;
+            }
+
+            if (e.dataField === "Quantity") {
+                e.editorName = "dxNumberBox";
+                e.editorOptions.showSpinButtons = true;
+                e.editorOptions.min = 0;
+                e.editorOptions.step = 0.01;
+                e.editorOptions.format = "#,##0.###";
+            }
+        }
+
+        function extractServerError(xhr) {
+            if (xhr && xhr.responseJSON && xhr.responseJSON.Message) return xhr.responseJSON.Message;
+            if (xhr && xhr.responseText) return xhr.responseText;
+            return "خطا رامنځته شوه.";
+        }
+
+        function loadOrderForPopup(orderId) {
+            return $.getJSON("/api/PurchaseOrders/" + orderId).then(function (data) {
+                popupOrderId = data && data.ID ? data.ID : null;
+
+                var accountEditor = $("#poEditAccount").dxSelectBox("instance");
+                var dateEditor = $("#poEditDueDate").dxDateBox("instance");
+
+                if (accountEditor) {
+                    accountEditor.option("value", data && data.AccountID ? data.AccountID : null);
+                }
+
+                if (dateEditor && data && data.DueDate) {
+                    dateEditor.option("value", new Date(data.DueDate));
+                }
+
+                popupRows.length = 0;
+                popupRowCounter = 1;
+
+                var details = data && Array.isArray(data.Details) ? data.Details : [];
+                for (var i = 0; i < details.length; i++) {
+                    var row = details[i];
+                    popupRows.push({
+                        RowID: popupRowCounter++,
+                        ItemID: row.ItemID || null,
+                        UnitConversionID: row.UnitConversionID || null,
+                        Quantity: row.Quantity || null,
+                        Remarks: row.Remarks || "",
+                        UnitOptions: []
+                    });
+                }
+
+                var editGrid = getEditGrid();
+                if (editGrid) {
+                    editGrid.cancelEditData();
+                    editGrid.refresh();
+                }
+
+                var loaders = [];
+                for (var j = 0; j < popupRows.length; j++) {
+                    (function (targetRow) {
+                        if (!targetRow.ItemID) return;
+                        loaders.push(loadUnitOptionsForItem(targetRow.ItemID).then(function (options) {
+                            targetRow.UnitOptions = options;
+                        }));
+                    })(popupRows[j]);
+                }
+
+                if (loaders.length > 0 && editGrid) {
+                    $.when.apply($, loaders).always(function () {
+                        editGrid.refresh();
+                    });
+                }
+
+                return data;
+            });
+        }
+
+        function validatePopupPayload(payload) {
+            if (!payload.AccountID) return "حساب ضروری دی.";
+            if (!payload.DueDate) return "د تادیې نېټه ضروری ده.";
+            if (!payload.Details || payload.Details.length === 0) return "لږ تر لږه یو قطار اضافه کړئ.";
+
+            for (var i = 0; i < payload.Details.length; i++) {
+                var row = payload.Details[i];
+                if (!row.ItemID) return "په ټولو قطارونو کې جنس ضروری دی.";
+                if (row.UnitConversionID === null || row.UnitConversionID === undefined) return "په ټولو قطارونو کې واحد ضروری دی.";
+                if (!row.Quantity || row.Quantity <= 0) return "په ټولو قطارونو کې مقدار باید له صفر څخه زیات وي.";
+            }
+
+            return "";
+        }
+
+        function onPopupSaveClick() {
+            var editGrid = getEditGrid();
+            var saveEditPromise = editGrid ? editGrid.saveEditData() : $.Deferred().resolve().promise();
+
+            $.when(saveEditPromise).done(function () {
+                var accountId = $("#poEditAccount").dxSelectBox("instance").option("value");
+                var dueDate = $("#poEditDueDate").dxDateBox("instance").option("value");
+
+                var payload = {
+                    OrderID: popupOrderId,
+                    AccountID: accountId || null,
+                    DueDate: dueDate,
+                    Details: popupRows.map(function (row) {
+                        return {
+                            ItemID: row.ItemID || null,
+                            UnitConversionID: row.UnitConversionID || null,
+                            Quantity: row.Quantity || null,
+                            Remarks: row.Remarks || ""
+                        };
+                    })
+                };
+
+                var validationMessage = validatePopupPayload(payload);
+                if (validationMessage) {
+                    DevExpress.ui.notify(validationMessage, "error", 2500);
+                    return;
+                }
+
+                $.ajax({
+                    url: "/api/PurchaseOrders",
+                    method: "POST",
+                    contentType: "application/json; charset=utf-8",
+                    data: JSON.stringify(payload)
+                }).done(function (response) {
+                    var successMessage = response && response.Message
+                        ? response.Message
+                        : "آرډر په بریالیتوب سره ثبت سو.";
+
+                    DevExpress.ui.notify(successMessage, "success", 2200);
+                    if (popupInstance) popupInstance.hide();
+                    onRefreshClick();
+                }).fail(function (xhr) {
+                    DevExpress.ui.notify(extractServerError(xhr), "error", 3500);
+                });
+            });
+        }
+
+        function onPopupCloseClick() {
+            if (popupInstance) {
+                popupInstance.hide();
+            }
+        }
+
+        function getFilterDateEditors() {
+            return {
+                account: $("#poFilterAccount").dxSelectBox("instance"),
+                fromDate: $("#poFilterFromDate").dxDateBox("instance"),
+                toDate: $("#poFilterToDate").dxDateBox("instance")
+            };
+        }
+
+        function setEditorValidationState(editor, message) {
+            if (!editor) return;
+
+            editor.option({
+                isValid: !message,
+                validationError: message ? { message: message } : null
+            });
+        }
+
+        function validateFilterCriteria(editors) {
+            var accountId = editors.account ? editors.account.option("value") : null;
+            var fromDate = editors.fromDate ? editors.fromDate.option("value") : null;
+            var toDate = editors.toDate ? editors.toDate.option("value") : null;
+            var hasAccount = !!accountId;
+            var hasFromDate = !!fromDate;
+            var hasToDate = !!toDate;
+            var hasAnyDate = hasFromDate || hasToDate;
+            var hasBothDates = hasFromDate && hasToDate;
+
+            setEditorValidationState(editors.fromDate, null);
+            setEditorValidationState(editors.toDate, null);
+
+            if (!hasAccount && !hasAnyDate) {
+                DevExpress.ui.notify("د پلټنې لپاره عرضه کوونکی یا د نېټو موده وټاکئ.", "error", 2800);
+                return false;
+            }
+
+            if (hasAnyDate && !hasBothDates) {
+                var dateMessage = "که یوه نېټه ډکېږي نو بله نېټه هم ضروري ده.";
+                if (!hasFromDate) {
+                    setEditorValidationState(editors.fromDate, dateMessage);
+                }
+
+                if (!hasToDate) {
+                    setEditorValidationState(editors.toDate, dateMessage);
+                }
+
+                DevExpress.ui.notify(dateMessage, "error", 2800);
+                return false;
+            }
+
+            return true;
+        }
+
+        function normalizeDateParamValue(value) {
+            if (!value) return null;
+
+            var dateValue = value instanceof Date ? value : new Date(value);
+            if (isNaN(dateValue.getTime())) return null;
+
+            var year = dateValue.getFullYear();
+            var month = String(dateValue.getMonth() + 1).padStart(2, "0");
+            var day = String(dateValue.getDate()).padStart(2, "0");
+            return year + "-" + month + "-" + day;
+        }
+
+        function buildFiltersFromEditors(editors) {
+            return {
+                accountId: editors.account ? editors.account.option("value") : null,
+                fromDate: normalizeDateParamValue(editors.fromDate ? editors.fromDate.option("value") : null),
+                toDate: normalizeDateParamValue(editors.toDate ? editors.toDate.option("value") : null)
+            };
+        }
+
+        function onFilterSearchClick() {
+            var editors = getFilterDateEditors();
+            if (!validateFilterCriteria(editors)) {
+                return;
+            }
+
+            applyActiveFilters(buildFiltersFromEditors(editors));
+            reloadGridWithAction("GetToday");
+            if (filterPopupInstance) {
+                filterPopupInstance.hide();
+            }
+        }
+
+        function initFilterPopup() {
+            filterPopupInstance = $("#poFilterPopup").dxPopup({
+                title: "چاڼ",
+                showTitle: true,
+                visible: false,
+                width: 360,
+                maxWidth: "92vw",
+                height: "auto",
+                dragEnabled: true,
+                hideOnOutsideClick: true,
+                showCloseButton: true,
+                wrapperAttr: { class: "po-filter-popup-compact" },
+                contentTemplate: function (contentElement) {
+                    var html = "" +
+                        '<div class="po-filter-popup-body">' +
+                        '  <div class="mb-2">' +
+                        '    <label class="form-label">حساب</label>' +
+                        '    <div id="poFilterAccount"></div>' +
+                        '  </div>' +
+                        '  <div class="mb-2">' +
+                        '    <label class="form-label">د شروع نېټه</label>' +
+                        '    <div id="poFilterFromDate"></div>' +
+                        '  </div>' +
+                        '  <div class="mb-3">' +
+                        '    <label class="form-label">د پای نېټه</label>' +
+                        '    <div id="poFilterToDate"></div>' +
+                        '  </div>' +
+                        '  <div id="poFilterSearchButton"></div>' +
+                        '</div>';
+
+                    contentElement.append(html);
+
+                    $("#poFilterAccount").dxSelectBox({
+                        dataSource: activeAccountFilterDataSource,
+                        value: activeFilters.accountId,
+                        valueExpr: "AccountID",
+                        displayExpr: accountDisplayExpr,
+                        height: 36,
+                        searchEnabled: true,
+                        showClearButton: true,
+                        placeholder: "حساب انتخاب کړئ...",
+                        width: "100%"
+                    });
+
+                    $("#poFilterFromDate").dxDateBox({
+                        type: "date",
+                        height: 36,
+                        displayFormat: "yyyy-MM-dd",
+                        showClearButton: true,
+                        showDropDownButton: true,
+                        width: "100%"
+                    });
+
+                    $("#poFilterToDate").dxDateBox({
+                        type: "date",
+                        height: 36,
+                        displayFormat: "yyyy-MM-dd",
+                        showClearButton: true,
+                        showDropDownButton: true,
+                        width: "100%"
+                    });
+
+                    $("#poFilterSearchButton").dxButton({
+                        text: "پلټنه",
+                        icon: "fa-solid fa-search",
+                        type: "default",
+                        width: "100%",
+                        onClick: onFilterSearchClick
+                    });
+                }
+            }).dxPopup("instance");
+        }
+
+        function initPopup() {
+            popupInstance = $("#poEditPopup").dxPopup({
+                title: "سمون خرید آرډر",
+                showTitle: true,
+                visible: false,
+                width: 900,
+                maxWidth: "92vw",
+                height: "auto",
+                maxHeight: "86vh",
+                dragEnabled: true,
+                hideOnOutsideClick: false,
+                wrapperAttr: { class: "po-edit-popup-compact" },
+                toolbarItems: [
+                    {
+                        widget: "dxButton",
+                        toolbar: "bottom",
+                        location: "after",
+                        options: {
+                            text: "ثبت",
+                            type: "success",
+                            icon: "fa-solid fa-floppy-disk",
+                            onClick: onPopupSaveClick
+                        }
+                    },
+                    {
+                        widget: "dxButton",
+                        toolbar: "bottom",
+                        location: "after",
+                        options: {
+                            text: "بندول",
+                            icon: "fa-solid fa-xmark",
+                            onClick: onPopupCloseClick
+                        }
+                    }
+                ],
+                contentTemplate: function (contentElement) {
+                    var html = "" +
+                        '<div class="po-edit-popup-body">' +
+                        '  <div class="row g-2 mb-2">' +
+                        '    <div class="col-12 col-lg-6">' +
+                        '      <label class="form-label">حساب</label>' +
+                        '      <div id="poEditAccount"></div>' +
+                        '    </div>' +
+                        '    <div class="col-12 col-lg-6">' +
+                        '      <label class="form-label">د تادیې نېټه</label>' +
+                        '      <div id="poEditDueDate"></div>' +
+                        '    </div>' +
+                        '  </div>' +
+                        '  <div id="poEditDetailsGrid"></div>' +
+                        '</div>';
+
+                    contentElement.append(html);
+
+                    $("#poEditAccount").dxSelectBox({
+                        dataSource: accountDataSource,
+                        valueExpr: "AccountID",
+                        displayExpr: accountDisplayExpr,
+                        height: 36,
+                        searchEnabled: true,
+                        showClearButton: true,
+                        placeholder: "حساب انتخاب کړئ..."
+                    });
+
+                    $("#poEditDueDate").dxDateBox({
+                        type: "date",
+                        height: 36,
+                        displayFormat: "yyyy-MM-dd",
+                        showClearButton: true,
+                        showDropDownButton: true
+                    });
+
+                    $("#poEditDetailsGrid").dxDataGrid({
+                        dataSource: popupRows,
+                        keyExpr: "RowID",
+                        showBorders: true,
+                        rowAlternationEnabled: true,
+                        columnAutoWidth: true,
+                        height: "52vh",
+                        wordWrapEnabled: false,
+                        paging: { enabled: false },
+                        editing: {
+                            mode: "cell",
+                            allowAdding: true,
+                            allowUpdating: true,
+                            allowDeleting: true,
+                            useIcons: true
+                        },
+                        onInitNewRow: onEditGridInitNewRow,
+                        onEditorPreparing: onEditGridEditorPreparing,
+                        columns: [
+                            {
+                                dataField: "ItemID",
+                                caption: "جنس",
+                                calculateDisplayValue: getItemDisplayText,
+                                validationRules: [{ type: "required", message: "جنس ضروری دی." }]
+                            },
+                            {
+                                dataField: "UnitConversionID",
+                                caption: "واحد",
+                                calculateDisplayValue: getUnitDisplayText,
+                                validationRules: [{ type: "required", message: "واحد ضروری دی." }]
+                            },
+                            {
+                                dataField: "Quantity",
+                                caption: "مقدار",
+                                dataType: "number",
+                                format: "#,##0.###",
+                                validationRules: [
+                                    { type: "required", message: "مقدار ضروری دی." },
+                                    { type: "range", min: 0.001, message: "مقدار باید له صفر څخه زیات وي." }
+                                ]
+                            },
+                            {
+                                dataField: "Remarks",
+                                caption: "یادښت"
+                            }
+                        ]
+                    });
+                }
+            }).dxPopup("instance");
+        }
+
+        function onRefreshClick() {
+            clearActiveFilters();
+            reloadGridWithAction("GetCreatedToday");
+        }
+
+        function getFilterFromDateParam() {
+            return activeFilters.fromDate;
+        }
+
+        function getFilterToDateParam() {
+            return activeFilters.toDate;
+        }
+
+        function getFilterAccountIdParam() {
+            return activeFilters.accountId;
+        }
+
+        function onFilterClick() {
+            if (!filterPopupInstance) {
+                initFilterPopup();
+            }
+
+            filterPopupInstance.show();
+        }
+
+        function onNewOrderClick() {
+            window.location.href = '@Url.Action("NewPurchaseOrder", "PurchaseOrder")';
+        }
+
+        function onEditClick(e) {
+            var rowData = e && e.row ? e.row.data : null;
+            if (!rowData || !rowData.ID) return;
+
+            refreshActiveItemsCache().always(function () {
+                if (!popupInstance) {
+                    initPopup();
+                }
+
+                popupInstance.show();
+                loadOrderForPopup(rowData.ID).fail(function (xhr) {
+                    DevExpress.ui.notify(extractServerError(xhr), "error", 3500);
+                });
+            });
+        }
+
+
+        function onDeleteClick(e) {
+            var rowData = e && e.row ? e.row.data : null;
+            if (!rowData || !rowData.ID) return;
+
+            DevExpress.ui.dialog.confirm("دا آرډر او اړوند تفصیلات حذف شي؟", "تایید").done(function (confirmed) {
+                if (!confirmed) return;
+
+                $.ajax({
+                    url: "/api/PurchaseOrders/" + rowData.ID,
+                    method: "DELETE"
+                }).done(function (response) {
+                    var message = response && response.Message
+                        ? response.Message
+                        : "آرډر حذف شو.";
+
+                    DevExpress.ui.notify(message, "success", 2200);
+                    onRefreshClick();
+                }).fail(function (xhr) {
+                    DevExpress.ui.notify(extractServerError(xhr), "error", 3200);
+                });
+            });
+        }
+
+        $(function () {
+            refreshActiveItemsCache();
+        });
+
+        return {
+            onFilterClick: onFilterClick,
+            onRefreshClick: onRefreshClick,
+            getFilterAccountIdParam: getFilterAccountIdParam,
+            getFilterFromDateParam: getFilterFromDateParam,
+            getFilterToDateParam: getFilterToDateParam,
+            onNewOrderClick: onNewOrderClick,
+            onEditClick: onEditClick,
+            onDeleteClick: onDeleteClick
+        };
+    })();
+</script>

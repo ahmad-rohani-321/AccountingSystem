@@ -1,0 +1,30 @@
+@using DevExpress.AspNetCore
+@using DevExpress.XtraReports.UI
+@model XtraReport
+@{
+    var viewerId = $"DocumentViewer_{Guid.NewGuid():N}";
+}
+
+<style>
+    .dxrd-report-preview-holder,
+    .dxrd-report-preview-holder *,
+    .dxrd-preview,
+    .dxrd-preview *,
+    .dx-designer-host,
+    .dx-designer-host * {
+        font-family: "Vazirmatn", "Segoe UI", Tahoma, sans-serif !important;
+    }
+</style>
+
+@(
+Html.DevExpress()
+    .WebDocumentViewer(viewerId)
+    .Height("1000px")
+    .Bind(Model)
+    .ExportSettings(settings =>
+    {
+        settings.ShowPrintNotificationDialog = false;
+        settings.UseAsynchronousExport = true;
+        settings.UseSameTab = true;
+    })
+)

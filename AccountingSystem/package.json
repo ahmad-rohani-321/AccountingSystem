@@ -1,0 +1,13 @@
+{
+  "name": "AccountingSystem",
+  "version": "1.0.0",
+  "license": "MIT",
+  "private": true,
+  "dependencies": {
+    "@fortawesome/fontawesome-free": "^7.2.0",
+    "bootstrap": "^5.3.8",
+    "devextreme-aspnet-data": "5.1.0",
+    "devextreme-dist": "25.2-stable",
+    "jquery": "^3.7.1"
+  }
+}

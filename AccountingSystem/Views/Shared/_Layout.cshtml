@@ -1,0 +1,403 @@
+﻿<!DOCTYPE html>
+
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>@ViewData["title"]</title>
+    <link rel="stylesheet" href="~/css/css/all.min.css" />
+    <link href="~/css/devextreme/dx.fluent.saas.light.css" rel="stylesheet" />
+    <link rel="stylesheet" href="~/css/Site.css" />
+    <link href="~/css/bootstrap/bootstrap-grid.rtl.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="~/css/reporting.viewer.part.bundle.css" />
+    <style>
+        .report-loading-indicator {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 160px;
+            padding: 1.5rem;
+        }
+
+        .report-loading-indicator__spinner {
+            width: 3rem;
+            height: 3rem;
+            border: 0.3rem solid rgba(15, 23, 42, 0.12);
+            border-top-color: #0f766e;
+            border-radius: 50%;
+            animation: report-loading-spin 0.85s linear infinite;
+        }
+
+        @@keyframes report-loading-spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+    
+    <script src="~/js/vendor.js"></script>
+    
+    <link rel="icon" type="image/x-icon" href="~/MainIcon.ico">
+        <script src="~/js/devextreme/jquery.js"></script>
+        <script src="~/js/devextreme/dx.all.js"></script>
+        <script src="~/js/devextreme/aspnet/dx.aspnet.mvc.js"></script>
+        <script src="~/js/devextreme/aspnet/dx.aspnet.data.js"></script>
+        <script src="~/js/reporting.viewer.part.bundle.js"></script>
+    </head>
+
+    <body class="dx-viewport">
+        <form id="logoutForm" method="post" action="@Url.Action("Logout", "Auth")" style="display:none;">
+            @Html.AntiForgeryToken()
+        </form>
+
+        <div id="app-side-nav-outer-toolbar">
+            <div class="layout-header">
+                @(
+                Html.DevExtreme().Toolbar()
+                    .Items(items =>
+                    {
+                        items.Add()
+                            .Widget(w => w
+                                .Button()
+                                .Icon("fa-solid fa-bars")
+                                .OnClick("DevExtremeAspNetCoreAppMatMvcViews.onMenuButtonClick")
+                            )
+                            .Location(ToolbarItemLocation.Before)
+                            .CssClass("menu-button");
+                        items.Add()
+                            .Text("مالي او حسابي سیسټم")
+                            .Location(ToolbarItemLocation.Center)
+                            .CssClass("header-title");
+                        items.Add().
+                            Widget(b =>
+                                b.Button()
+                                 .Icon("fa-solid fa-arrow-right-from-bracket")
+                                 .Text("وتل")
+                                 .Type(ButtonType.Danger)
+                                 .StylingMode(ButtonStylingMode.Text)
+                                 .OnClick("showYesNoMessageBox")
+                                ).Location(ToolbarItemLocation.After);
+
+                    })
+                )
+            </div>
+            <div class="layout-body layout-body-hidden">
+                @(Html.DevExtreme().Drawer()
+                    .ID("layout-drawer")
+                    .Position(DrawerPosition.Right)
+                    .OpenedStateMode(DrawerOpenedStateMode.Overlap)
+                    .Opened(new JS("DevExtremeAspNetCoreAppMatMvcViews.restoreDrawerOpened()"))
+                    .Content(@<text>
+<div id="layout-drawer-scrollview" class="with-footer">
+                    <div class="container-fluid mt-3">
+                        <div class="dx-card px-4 py-3">
+                            <h4 class="m-0 fw-semibold">@ViewData["Title"]</h4>
+                        </div>
+                        <div class="my-4"></div>
+                        @RenderBody()
+
+                    </div>
+                </div>
+            </text>)
+                .Template(new TemplateName("navigation-menu"))
+                                                                                                                                                                                                                                                                                                                )
+        </div>
+    </div>
+
+    @using (Html.DevExtreme().NamedTemplate("navigation-menu"))
+    {
+        <div class="menu-container dx-swatch-additional">
+
+            @{
+                string GetUrl(string action, string controller)
+                {
+                    return Url.Action(action, controller);
+                }
+                string GetCurrentUrl()
+                {
+                    string action = ViewContext.RouteData.Values["action"].ToString();
+                    string controller = ViewContext.RouteData.Values["controller"].ToString();
+                    return GetUrl(action, controller);
+                }
+                bool IsCurrentUrl(string action, string controller)
+                {
+                    string url = GetUrl(action, controller);
+                    string currentUrl = GetCurrentUrl();
+                    return url == currentUrl;
+                }
+            }
+
+            @(
+    Html.DevExtreme().TreeView()
+    .Items(items =>
+    {
+        // main page
+        items.Add()
+            .Text("عمومي صفحه")
+            .Icon("fa-solid fa-house")
+            .Option("path", GetUrl("Index", "Home"))
+            .Selected(IsCurrentUrl("Index", "Home"));
+
+        // accounts
+        items.Add()
+            .Text("حسابونه")
+            .Icon("fa-solid fa-person")
+            .Expanded(GetCurrentUrl().Contains("Account"))
+            .Items(acc =>
+            {
+                acc.Add()
+                    .Text("اشخاص")
+                    .Option("path", GetUrl("Index", "Account"))
+                    .Selected(IsCurrentUrl("Index", "Account"));
+
+                acc.Add()
+                    .Text("حسابونه")
+                    .Option("path", GetUrl("Accounts", "Account"))
+                    .Selected(IsCurrentUrl("Accounts", "Account"));
+
+
+                acc.Add()
+                    .Text("شریکان")
+                    .Option("path", GetUrl("Contributors", "Account"))
+                    .Selected(IsCurrentUrl("Contributors", "Account"));
+            });
+        // items section
+        items.Add().Text("ګدام داري").Icon("fa-solid fa-warehouse").Expanded(GetCurrentUrl().Contains("Warehouse"))
+        .Items(
+        sec =>
+        {
+            string mainControllerName = "Warehouse";
+            sec.Add()
+                .Text("اجناس")
+                .Option("path", GetUrl("Index", mainControllerName))
+                .Selected(IsCurrentUrl("Index", mainControllerName));
+
+            sec.Add()
+                .Text("د ګدام موجودي")
+                .Option("path", GetUrl("RemainingStock", mainControllerName))
+                .Selected(IsCurrentUrl("RemainingStock", mainControllerName));
+
+            sec.Add()
+                .Text("د کمښت لیست")
+                .Option("path", GetUrl("LeastItems", mainControllerName))
+                .Selected(IsCurrentUrl("LeastItems", mainControllerName));
+
+            sec.Add()
+                .Text("د ګدام مدیریت")
+                .Option("path", GetUrl("Settings", mainControllerName))
+                .Selected(IsCurrentUrl("Settings", mainControllerName));
+        }
+        );
+
+        items.Add().Text("مالي چارې").Icon("fa-solid fa-book").Expanded(GetCurrentUrl().Contains("Actions"))
+        .Items(sec =>
+        {
+            string mainControllerName = "Actions";
+            sec.Add()
+            .Text("ورځني معاملات")
+            .Option("path", GetUrl("JournalEntry", mainControllerName))
+            .Selected(IsCurrentUrl("JournalEntry", mainControllerName));
+
+            sec.Add()
+            .Text("د اجناسو قیمتونه")
+            .Option("path", GetUrl("ItemPrices", mainControllerName))
+            .Selected(IsCurrentUrl("ItemPrices", mainControllerName));
+
+            sec.Add()
+            .Text("خریداري")
+            .Icon("fa-solid fa-cart-shopping")
+            .Expanded(ViewContext.RouteData.Values["controller"].ToString() == "Purchase")
+            .Items(actions =>
+            {
+                string controllerName = "Purchase";
+                actions.Add().Text("ننني خریدات")
+                .Option("path", GetUrl("Index", controllerName))
+                .Selected(IsCurrentUrl("Index", controllerName));
+
+                actions.Add().Text("نوی خرید")
+                .Option("path", GetUrl("NewPurchase", controllerName))
+                .Selected(IsCurrentUrl("NewPurchase", controllerName));
+            });
+
+
+            sec.Add()
+                .Text("خرید آرډر")
+                .Icon("fa-solid fa-cart-shopping")
+                .Expanded(ViewContext.RouteData.Values["controller"].ToString() == "PurchaseOrder")
+                .Items(actions =>
+                {
+                    string controllerName = "PurchaseOrder";
+                    actions.Add().Text("آرډرونه")
+                    .Option("path", GetUrl("Index", controllerName))
+                    .Selected(IsCurrentUrl("Index", controllerName));
+
+                    actions.Add().Text("نوی آرډر")
+                    .Option("path", GetUrl("NewPurchaseOrder", controllerName))
+                    .Selected(IsCurrentUrl("NewPurchaseOrder", controllerName));
+                });
+
+            
+        });
+
+        items.Add().Text("تنظیمات").Icon("fa-solid fa-gear").Expanded(GetCurrentUrl().Contains("Settings"))
+        .Items(sec =>
+        {
+            sec.Add().Text("عمومي تنظیمات")
+            .Option("path", GetUrl("Index", "Settings"))
+            .Selected(IsCurrentUrl("Index", "Settings"));
+
+        });
+    })
+    .ExpandEvent(TreeViewExpandEvent.Click)
+    .SelectionMode(NavSelectionMode.Single)
+    .SelectedExpr("selected")
+    .FocusStateEnabled(false)
+    .OnItemClick("DevExtremeAspNetCoreAppMatMvcViews.onTreeViewItemClick")
+)
+
+        </div>
+    }
+    <script>
+
+            var DevExtremeAspNetCoreAppMatMvcViews = (function () {
+
+                var DRAWER_OPENED_KEY = "DevExtremeAspNetCoreAppMatMvcViews-drawer-opened";
+
+                var breakpoints = {
+                    xSmallMedia: window.matchMedia("(max-width: 599.99px)"),
+                    smallMedia: window.matchMedia("(min-width: 600px) and (max-width: 959.99px)"),
+                    mediumMedia: window.matchMedia("(min-width: 960px) and (max-width: 1279.99px)"),
+                    largeMedia: window.matchMedia("(min-width: 1280px)")
+                };
+
+                function getDrawer() {
+                    return $("#layout-drawer").dxDrawer("instance");
+                }
+
+                function restoreDrawerOpened() {
+                    var isLarge = breakpoints.largeMedia.matches;
+                    if (!isLarge)
+                        return false;
+
+                    var state = sessionStorage.getItem(DRAWER_OPENED_KEY);
+                    if (state === null)
+                        return isLarge;
+
+                    return state === "true";
+                }
+
+                function saveDrawerOpened() {
+                    sessionStorage.setItem(DRAWER_OPENED_KEY, getDrawer().option("opened"));
+                }
+
+                function updateDrawer() {
+                    var isXSmall = breakpoints.xSmallMedia.matches,
+                        isLarge = breakpoints.largeMedia.matches;
+
+                    getDrawer().option({
+                        openedStateMode: isLarge ? "shrink" : "overlap",
+                        revealMode: isXSmall ? "slide" : "expand",
+                        minSize: isXSmall ? 0 : 60,
+                        shading: !isLarge,
+                    });
+                }
+
+                function init() {
+                    $("#layout-drawer-scrollview").dxScrollView({ direction: "vertical" });
+
+                    $.each(breakpoints, function (_, size) {
+                        size.addListener(function (e) {
+                            if (e.matches)
+                                updateDrawer();
+                        });
+                    });
+
+                    updateDrawer();
+
+                    $('.layout-body').removeClass('layout-body-hidden');
+                }
+
+                function navigate(url, delay) {
+                    if (url)
+                        setTimeout(function () { location.href = url }, delay);
+                }
+
+                function onMenuButtonClick() {
+                    getDrawer().toggle();
+                    saveDrawerOpened();
+                }
+
+                function onTreeViewItemClick(e) {
+                    var drawer = getDrawer();
+                    var savedOpened = restoreDrawerOpened();
+                    var actualOpened = drawer.option("opened");
+
+                    if (!actualOpened) {
+                        drawer.show();
+                    } else {
+                        var willHide = !savedOpened || !breakpoints.largeMedia.matches;
+                        var willNavigate = !e.itemData.selected;
+
+                        if (willHide)
+                            drawer.hide();
+
+                        if (willNavigate)
+                            navigate(e.itemData.path, willHide ? 400 : 0);
+                    }
+                }
+
+                return {
+                    init: init,
+                    restoreDrawerOpened: restoreDrawerOpened,
+                    onMenuButtonClick: onMenuButtonClick,
+                    onTreeViewItemClick: onTreeViewItemClick
+                };
+            })();
+
+            document.addEventListener("DOMContentLoaded", function documentReady() {
+                this.removeEventListener("DOMContentLoaded", documentReady);
+                DevExtremeAspNetCoreAppMatMvcViews.init();
+            });
+            // Locale + messages are configured after dx.messages.ps-af.js loads.
+    </script>
+    <script>
+            document.addEventListener("DOMContentLoaded", function documentReady() {
+                this.removeEventListener("DOMContentLoaded", documentReady);
+                const app = window.uitgAppContext;
+                if (app && app.LayoutController && app.ThemeController && app.SPARouter) {
+                    app.LayoutController.init();
+                    app.ThemeController.init();
+                    app.SPARouter.init();
+                }
+            });
+
+            function showYesNoMessageBox() {
+                DevExpress.ui.dialog.confirm(
+                    "غواړئ له سیسټم څخه ووځئ؟",
+                    "وتل"
+                ).done(function (result) {
+                    if (result) {
+                        document.getElementById("logoutForm").submit();
+                    }
+                });
+            }
+    </script>
+    <script src="~/js/devextreme/localization/dx.messages.ps-af.js"></script>
+    <script>
+            DevExpress.localization.locale("ps-AF");
+            DevExpress.config({ rtlEnabled: true });
+            // Ensure popups/overlays appear above the header (header has a high z-index in Site.css).
+            if (DevExpress && DevExpress.ui && DevExpress.ui.dxOverlay && typeof DevExpress.ui.dxOverlay.baseZIndex === "function") {
+                DevExpress.ui.dxOverlay.baseZIndex(30000);
+            }
+
+            window.renderReportLoadingIndicator = function () {
+                return "<div class='report-loading-indicator' role='status' aria-live='polite' aria-label='Loading report'>" +
+                    "<div class='report-loading-indicator__spinner' aria-hidden='true'></div>" +
+                    "</div>";
+            };
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,690 @@
+@using System.Collections.Generic
+@using AccountingSystem.ViewModels
+@using DevExtreme.AspNet.Mvc.Builders
+<style>
+    .accounts-popup-scroll {
+        max-height: 85vh;
+        overflow-y: auto;
+        padding-right: 12px;
+    }
+
+    .accounts-popup-body {
+        display: flex;
+        flex-direction: column;
+        gap: 1.25rem;
+    }
+
+    .accounts-section {
+        border-radius: 16px;
+        border: 1px solid rgba(15, 23, 42, 0.08);
+        background: #ffffff;
+        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+    }
+
+    .accounts-section-header {
+        padding: 1.25rem 1.5rem 0.75rem;
+        border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+    }
+
+    .accounts-section-title {
+        margin: 0;
+        font-size: 1.15rem;
+        font-weight: 700;
+        color: #0f172a;
+    }
+
+    .accounts-section-divider {
+        height: 2px;
+        width: 52px;
+        margin-top: 0.5rem;
+        border-radius: 999px;
+        background-image: linear-gradient(90deg, #0ea5e9 0%, #6366f1 100%);
+    }
+
+    .accounts-section-body {
+        padding: 1.25rem 1.5rem 1.5rem;
+    }
+
+    .accounts-section--disabled {
+        opacity: 0.65;
+        pointer-events: none;
+    }
+</style>
+@{
+    ViewData["Title"] = "شریکان";
+    var accountTypeOptions = ViewBag.AccountTypeOptions as List<AccountTypeOption> ?? new();
+    var accountTypeOptionsJson = ViewBag.AccountTypeOptionsJson as string ?? "[]";
+    var activeCurrenciesJson = ViewBag.ActiveCurrenciesJson as string ?? "[]";
+}
+
+<div class="dx-card">
+    <div class="p-3">
+        <div class="d-flex justify-content-end mb-3">
+            <div id="contributors-report-action"></div>
+        </div>
+        @(
+        Html.DevExtreme().DataGrid()
+        .ID("accounts-grid")
+        .DataSource(ds => ds.WebApi()
+        .LoadParams(new { types = "8" })
+            .Controller("Accounts")
+            .Key("AccountID")
+            .LoadAction("Get")
+        .UpdateAction("Put"))
+        .RemoteOperations(true)
+        .ShowBorders(true)
+        .RowAlternationEnabled(true)
+        .ColumnAutoWidth(true)
+        .SearchPanel(sp => sp.Visible(true).Placeholder("پلټنه..."))
+        .OnToolbarPreparing("function(e){ e.toolbarOptions.items.unshift({ location: 'before', widget: 'dxButton', options: { text: 'د شراکت ویش', icon: 'fa-solid fa-info-circle', onClick: function () { window.showComingSoonPopup('ډیر ژر...'); } } }); e.toolbarOptions.items.unshift({ location: 'before', widget: 'dxButton', options: { text: 'د سهم محاسبه', icon: 'fa-solid fa-info-circle', onClick: function () { window.showComingSoonPopup('ډیر ژر...'); } } }); e.toolbarOptions.items.unshift({ location: 'before', widget: 'dxButton', options: { text: 'نوی حساب', type: 'success', icon: 'fa-solid fa-plus', onClick: function () { openAccountPopup(); } } }); }")
+        .Paging(p => p.PageSize(15))
+        .Editing(e => e
+        .Mode(GridEditMode.Row)
+        .AllowUpdating(true)
+        .AllowAdding(false)
+        .AllowDeleting(false))
+        .Columns(columns =>
+        {
+            columns.Add().DataField(nameof(AccountListItem.Name)).Caption("نوم").ValidationRules(r => r.AddRequired());
+            columns.Add().DataField(nameof(AccountListItem.Code)).Caption("کوډ").ValidationRules(r => r.AddRequired());
+            columns.Add().DataField(nameof(AccountListItem.NIC)).Caption("تذکره");
+            columns.Add().DataField(nameof(AccountListItem.FirstPhone)).Caption("لومړی شمېره").ValidationRules(r =>
+            r.AddRequired());
+            columns.Add().DataField(nameof(AccountListItem.SecondPhone)).Caption("دوهمه شمېره");
+            columns.Add().DataField(nameof(AccountListItem.Email)).Caption("ایمیل");
+            columns.Add().DataField(nameof(AccountListItem.Address)).Caption("ادرس");
+            columns.Add()
+            .DataField(nameof(AccountListItem.AccountTypeID))
+            .Caption("حساب ډول")
+            .Lookup(lookup => lookup
+            .DataSource(accountTypeOptions)
+            .ValueExpr(nameof(AccountTypeOption.ID))
+            .DisplayExpr(nameof(AccountTypeOption.Name)))
+            .ValidationRules(r => r.AddRequired());
+            columns.Add()
+            .DataField(nameof(AccountListItem.IsActive))
+            .Caption("فعال")
+            .DataType(GridColumnDataType.Boolean)
+            .TrueText("هغه")
+            .FalseText("نه");
+            columns.Add()
+            .Type(GridCommandColumnType.Buttons)
+            .Caption("عملیات")
+            .Width(170)
+            .Buttons(buttons =>
+            {
+                buttons.Add().Name(GridColumnButtonName.Edit);
+                buttons.Add()
+                .Hint("بلانسونه وګورئ")
+                .Icon("fa-solid fa-wallet")
+                .Text("بلانسونه")
+                .OnClick("function(e) { openAccountBalancesPopup(e.row && e.row.data ? e.row.data : null); }");
+            });
+        })
+        )
+    </div>
+</div>
+
+<div id="account-form-popup"></div>
+<div id="contributors-report-popup"></div>
+<div id="coming-soon-popup"></div>
+<div id="account-balances-popup"></div>
+
+<script>
+    (function () {
+        const accountTypeOptions = @Html.Raw(accountTypeOptionsJson);
+        const activeCurrencies = @Html.Raw(activeCurrenciesJson);
+        const balanceDisabledTypeIds = new Set([6, 7]);
+
+        let accountsGridInstance;
+        let popupInstance;
+        let accountFormInstance;
+        let balanceGridInstance;
+        let reportPopupInstance;
+        let comingSoonPopup;
+        let comingSoonMessageElement;
+        let accountBalancesPopupInstance;
+        let accountBalancesFormInstance;
+        let accountBalancesGridInstance;
+
+        const defaultFormData = () => ({
+            Name: "",
+            Code: "",
+            NIC: "",
+            FirstPhone: "",
+            SecondPhone: "",
+            Email: "",
+            Address: "",
+            AccountTypeID: accountTypeOptions.length ? accountTypeOptions[0].ID : null
+        });
+
+        const balanceRows = () => (activeCurrencies || []).map(currency => ({
+            CurrencyID: currency.ID,
+            CurrencyName: currency.CurrencyName,
+            Amount: 0
+        }));
+
+        const shouldDisableBalanceSection = typeId => balanceDisabledTypeIds.has(Number(typeId));
+
+        const syncBalanceSection = typeId => {
+            if (!balanceGridInstance)
+                return;
+
+            const disabled = shouldDisableBalanceSection(typeId);
+            balanceGridInstance.option("disabled", disabled);
+            balanceGridInstance.option("editing.allowUpdating", !disabled);
+            balanceGridInstance.columnOption("Amount", "allowEditing", !disabled);
+            $("#initial-balance-section").toggleClass("accounts-section--disabled", disabled);
+        };
+
+        const fetchNextCode = () => {
+            fetch("/api/Accounts/next-code", { credentials: "same-origin" })
+                .then(response => {
+                    if (!response.ok)
+                        return response.json().then(error => Promise.reject(error));
+                    return response.json();
+                })
+                .then(data => {
+                    if (!accountFormInstance)
+                        return;
+                    const currentData = { ...accountFormInstance.option("formData") };
+                    currentData.Code = data?.Code ?? currentData.Code;
+                    accountFormInstance.option("formData", currentData);
+                })
+                .catch(() => {
+                    DevExpress.ui.notify("کوډ نسو ترلاسه کولی.", "warning", 2600);
+                });
+        };
+
+        const resetForm = () => {
+            if (!accountFormInstance || !balanceGridInstance)
+                return;
+
+            const formData = defaultFormData();
+            accountFormInstance.option("formData", formData);
+            balanceGridInstance.option("dataSource", balanceRows());
+            syncBalanceSection(formData.AccountTypeID);
+            fetchNextCode();
+        };
+
+        const saveAccount = async () => {
+            if (!accountFormInstance || !balanceGridInstance)
+                return;
+
+            const validationResult = accountFormInstance.validate();
+            if (!validationResult.isValid) {
+                DevExpress.ui.notify("مهرباني وکړئ اړین فیلډونه ډک کړئ.", "error", 3200);
+                return;
+            }
+
+            try {
+                await balanceGridInstance.saveEditData();
+            } catch {
+                DevExpress.ui.notify("Please finalize the currency grid entries before saving.", "error", 3200);
+                return;
+            }
+
+            const formPayload = { ...accountFormInstance.option("formData") };
+            const balances = (balanceGridInstance.getDataSource().items() || []).map(row => ({
+                CurrencyID: row.CurrencyID,
+                Amount: Number(row.Amount || 0)
+            }));
+
+            const payload = { ...formPayload, Balances: balances };
+
+            fetch("/api/Accounts", {
+                method: "POST",
+                credentials: "same-origin",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            })
+                .then(async response => {
+                    const result = await response.json().catch(() => null);
+                    if (!response.ok) {
+                        const message = result?.Message ?? result?.message ?? "تېروتنه وسوه.";
+                        return Promise.reject(message);
+                    }
+                    return result;
+                })
+                .then(() => {
+                    DevExpress.ui.notify("حساب په بریالیتوب ثبت سو.", "success", 2500);
+                    popupInstance?.hide();
+                    try {
+                        accountsGridInstance?.getDataSource()?.reload();
+                    } catch { }
+                })
+                .catch(message => {
+                    const text = typeof message === "string" ? message : "تېروتنه وسوه.";
+                    DevExpress.ui.notify(text, "error", 3200);
+                });
+        };
+
+        window.openAccountPopup = () => {
+            popupInstance?.show();
+        };
+
+        window.openAccountBalancesPopup = account => {
+            if (!account?.AccountID)
+                return;
+
+            accountBalancesPopupInstance?.show();
+            loadAccountBalances(account);
+        };
+
+        const loadAccountBalances = async account => {
+            if (!accountBalancesFormInstance || !accountBalancesGridInstance)
+                return;
+
+            accountBalancesFormInstance.option("formData", {
+                Name: account.Name ?? "",
+                Code: account.Code ?? "",
+                AccountTypeName: account.AccountTypeName ?? ""
+            });
+
+            accountBalancesGridInstance.option("dataSource", []);
+            accountBalancesGridInstance.beginCustomLoading("معلومات پورته کېږي...");
+
+            try {
+                const response = await fetch(`/api/Accounts/${account.AccountID}/balances`, {
+                    credentials: "same-origin"
+                });
+
+                const result = await response.json().catch(() => null);
+                if (!response.ok) {
+                    const message = result?.Message ?? result?.message ?? "د حساب بلانسونه پورته نه شول.";
+                    throw new Error(message);
+                }
+
+                const formAccount = result?.Account ?? {};
+                accountBalancesFormInstance.option("formData", {
+                    Name: formAccount.Name ?? account.Name ?? "",
+                    Code: formAccount.Code ?? account.Code ?? "",
+                    AccountTypeName: formAccount.AccountTypeName ?? account.AccountTypeName ?? ""
+                });
+                accountBalancesGridInstance.option("dataSource", result?.Balances ?? []);
+            } catch (error) {
+                accountBalancesGridInstance.option("dataSource", []);
+                DevExpress.ui.notify(error?.message ?? "د حساب بلانسونه پورته نه شول.", "error", 3200);
+            } finally {
+                accountBalancesGridInstance.endCustomLoading();
+            }
+        };
+
+        const getGridReportRows = () => {
+            if (!accountsGridInstance?.getVisibleRows)
+                return [];
+
+            return (accountsGridInstance.getVisibleRows() || [])
+                .filter(row => row && row.rowType === "data" && row.data)
+                .map(row => row.data);
+        };
+
+        const loadContributorsReport = () => {
+            const reportHost = $("#contributors-report-host");
+            reportHost.html(window.renderReportLoadingIndicator());
+
+            const rows = getGridReportRows();
+            if (!rows.length) {
+                reportHost.html("<div class='text-center py-4'>د راپور لپاره معلومات ونه موندل شول.</div>");
+                DevExpress.ui.notify("د راپور لپاره معلومات ونه موندل شول.", "warning", 2600);
+                return;
+            }
+
+            fetch("/Reports/ContributorAccounts", {
+                method: "POST",
+                credentials: "same-origin",
+                headers: { "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8" },
+                body: new URLSearchParams({
+                    dataSource: JSON.stringify(rows)
+                }).toString()
+            })
+                .then(response => {
+                    if (!response.ok)
+                        throw new Error();
+                    return response.text();
+                })
+                .then(html => {
+                    reportHost.html(html);
+                })
+                .catch(() => {
+                    reportHost.html("<div class='text-center py-4'>د راپور په پورته کولو کې ستونزه رامنځته شوه.</div>");
+                    DevExpress.ui.notify("د راپور په پورته کولو کې ستونزه رامنځته شوه.", "error", 3200);
+                });
+        };
+
+        const initReportPopup = () => {
+            reportPopupInstance = $("#contributors-report-popup").dxPopup({
+                visible: false,
+                showTitle: false,
+                dragEnabled: true,
+                width: 1100,
+                maxWidth: "95vw",
+                height: "90vh",
+                toolbarItems: [
+                    {
+                        widget: "dxButton",
+                        toolbar: "bottom",
+                        location: "after",
+                        options: {
+                            text: "لغوه",
+                            onClick: () => reportPopupInstance.hide()
+                        }
+                    }
+                ],
+                contentTemplate: contentElement => {
+                    const body = $(`
+                        <div class="accounts-popup-body">
+                            <div class="accounts-section">
+                                <div class="accounts-section-body">
+                                    <div id="contributors-report-host">${window.renderReportLoadingIndicator()}</div>
+                                </div>
+                            </div>
+                        </div>
+                    `);
+
+                    contentElement.append(body);
+                }
+            }).dxPopup("instance");
+        };
+
+        window.openContributorsReportPopup = () => {
+            const rows = getGridReportRows();
+            if (!rows.length) {
+                DevExpress.ui.notify("د راپور لپاره معلومات ونه موندل شول.", "warning", 2600);
+                return;
+            }
+
+            reportPopupInstance?.show();
+            loadContributorsReport();
+        };
+
+        const initAccountBalancesPopup = () => {
+            accountBalancesPopupInstance = $("#account-balances-popup").dxPopup({
+                title: "د حساب بلانسونه",
+                visible: false,
+                showTitle: true,
+                dragEnabled: true,
+                width: 760,
+                maxWidth: "95vw",
+                maxHeight: "85vh",
+                toolbarItems: [
+                    {
+                        widget: "dxButton",
+                        toolbar: "bottom",
+                        location: "after",
+                        options: {
+                            text: "بند",
+                            onClick: () => accountBalancesPopupInstance.hide()
+                        }
+                    }
+                ],
+                contentTemplate: contentElement => {
+                    const body = $("<div class='accounts-popup-body'></div>");
+                    const infoSection = $("<div class='accounts-section'></div>");
+                    const gridSection = $("<div class='accounts-section'></div>");
+
+                    const infoHeader = $("<div class='accounts-section-header'><h5 class='accounts-section-title'>د حساب معلومات</h5><div class='accounts-section-divider'></div></div>");
+                    const infoBody = $("<div class='accounts-section-body'><div id='account-balances-form'></div></div>");
+                    infoSection.append(infoHeader).append(infoBody);
+
+                    const gridHeader = $("<div class='accounts-section-header'><h5 class='accounts-section-title'>د اسعارو بلانسونه</h5><div class='accounts-section-divider'></div></div>");
+                    const gridBody = $("<div class='accounts-section-body'><div id='account-balances-grid'></div></div>");
+                    gridSection.append(gridHeader).append(gridBody);
+
+                    body.append(infoSection).append(gridSection);
+                    contentElement.append(body);
+
+                    accountBalancesFormInstance = infoBody.find("#account-balances-form").dxForm({
+                        formData: {
+                            Name: "",
+                            Code: "",
+                            AccountTypeName: ""
+                        },
+                        labelLocation: "top",
+                        colCount: 3,
+                        minColWidth: 180,
+                        stylingMode: "outlined",
+                        readOnly: true,
+                        items: [
+                            { dataField: "Name", label: { text: "نوم" } },
+                            { dataField: "Code", label: { text: "کوډ" } },
+                            { dataField: "AccountTypeName", label: { text: "حساب ډول" } }
+                        ]
+                    }).dxForm("instance");
+
+                    accountBalancesGridInstance = gridBody.find("#account-balances-grid").dxDataGrid({
+                        dataSource: [],
+                        showBorders: true,
+                        columnAutoWidth: true,
+                        rowAlternationEnabled: true,
+                        paging: { enabled: false },
+                        editing: {
+                            allowAdding: false,
+                            allowDeleting: false,
+                            allowUpdating: false
+                        },
+                        columns: [
+                            {
+                                dataField: "CurrencyName",
+                                caption: "اسعار",
+                                allowEditing: false
+                            },
+                            {
+                                dataField: "Balance",
+                                caption: "بلانس",
+                                dataType: "number",
+                                format: {
+                                    type: "fixedPoint",
+                                    precision: 2
+                                },
+                                allowEditing: false
+                            }
+                        ],
+                        height: 360,
+                        noDataText: "بلانسونه ونه موندل شول."
+                    }).dxDataGrid("instance");
+                }
+            }).dxPopup("instance");
+        };
+
+        const initPopup = () => {
+            popupInstance = $("#account-form-popup").dxPopup({
+                title: "نوی حساب",
+                visible: false,
+                showTitle: true,
+                dragEnabled: true,
+                width: 840,
+                maxHeight: "85vh",
+                toolbarItems: [
+                    {
+                        widget: "dxButton",
+                        toolbar: "bottom",
+                        location: "after",
+                        options: {
+                            text: "ثبت",
+                            type: "success",
+                            onClick: saveAccount
+                        }
+                    },
+                    {
+                        widget: "dxButton",
+                        toolbar: "bottom",
+                        location: "after",
+                        options: {
+                            text: "لغوه",
+                            onClick: () => popupInstance.hide()
+                        }
+                    }
+                ],
+                onShown: resetForm,
+                contentTemplate: contentElement => {
+                    const body = $("<div class='accounts-popup-body'></div>");
+
+                    const contactSection = $("<div class='accounts-section'></div>");
+                    const balanceSection = $("<div id='initial-balance-section' class='accounts-section'></div>");
+
+                    const contactHeader = $("<div class='accounts-section-header'><h5 class='accounts-section-title'>شخص معلومات</h5><div class='accounts-section-divider'></div></div>");
+                    const contactBody = $("<div class='accounts-section-body'><div id='account-form'></div></div>");
+                    contactSection.append(contactHeader).append(contactBody);
+
+                    const balanceHeader = $("<div class='accounts-section-header'><h5 class='accounts-section-title'>اوسنی بلانس</h5><div class='accounts-section-divider'></div></div>");
+                    const balanceBody = $("<div class='accounts-section-body'><div id='initial-balance-grid'></div></div>");
+                    balanceSection.append(balanceHeader).append(balanceBody);
+
+                    body.append(contactSection).append(balanceSection);
+                    contentElement.append(body);
+
+                    accountFormInstance = contactBody.find("#account-form").dxForm({
+                        formData: defaultFormData(),
+                        labelLocation: "top",
+                        colCount: 2,
+                        minColWidth: 240,
+                        layout: "horizontal",
+                        stylingMode: "outlined",
+                        items: [
+                            {
+                                dataField: "Name",
+                                label: { text: "نوم" },
+                                editorOptions: { placeholder: "نوم" },
+                                validationRules: [{ type: "required" }]
+                            },
+                            {
+                                dataField: "Code",
+                                label: { text: "کوډ" },
+                                editorOptions: { placeholder: "کوډ (مثلاً ACC001)" },
+                                validationRules: [{ type: "required" }]
+                            },
+                            {
+                                dataField: "NIC",
+                                label: { text: "تذکره" },
+                                editorOptions: { placeholder: "تذکره (اختیاري)" }
+                            },
+                            {
+                                dataField: "FirstPhone",
+                                label: { text: "لومړی شمېره" },
+                                editorOptions: { placeholder: "لومړی شمېره" },
+                                validationRules: [{ type: "required" }]
+                            },
+                            {
+                                dataField: "SecondPhone",
+                                label: { text: "دوهمه شمېره" },
+                                editorOptions: { placeholder: "دوهمه شمېره (اختیاري)" }
+                            },
+                            {
+                                dataField: "Email",
+                                label: { text: "ایمیل" },
+                                editorOptions: { placeholder: "ایمیل (اختیاري)" }
+                            },
+                            {
+                                dataField: "Address",
+                                label: { text: "ادرس" },
+                                editorOptions: { placeholder: "ادرس (اختیاري)" }
+                            },
+                            {
+                                dataField: "AccountTypeID",
+                                label: { text: "حساب ډول" },
+                                editorType: "dxSelectBox",
+                                editorOptions: {
+                                    dataSource: accountTypeOptions || [],
+                                    valueExpr: "ID",
+                                    displayExpr: "Name",
+                                    placeholder: "حساب ډول انتخاب کړئ",
+                                    searchEnabled: true,
+                                    onValueChanged: e => syncBalanceSection(e?.value),
+                                    disabled: true
+                                },
+                                validationRules: [{ type: "required" }]
+                            }
+                        ]
+                    }).dxForm("instance");
+
+                    balanceGridInstance = balanceSection.find("#initial-balance-grid").dxDataGrid({
+                        dataSource: balanceRows(),
+                        showBorders: true,
+                        columnAutoWidth: true,
+                        rowAlternationEnabled: true,
+                        paging: { enabled: false },
+                        editing: {
+                            mode: "cell",
+                            allowUpdating: true,
+                            allowAdding: false,
+                            allowDeleting: false
+                        },
+                        columns: [
+                            {
+                                dataField: "CurrencyName",
+                                caption: "اسعار",
+                                allowEditing: false
+                            },
+                            {
+                                dataField: "Amount",
+                                caption: "مبلغ",
+                                dataType: "number",
+                                editorOptions: { showSpinButtons: true },
+                                validationRules: [{ type: "required" }]
+                            }
+                        ],
+                        height: 300
+                    }).dxDataGrid("instance");
+
+                    resetForm();
+                }
+            }).dxPopup("instance");
+        };
+
+        const getComingSoonPopup = () => {
+            if (comingSoonPopup)
+                return comingSoonPopup;
+
+            comingSoonPopup = $("#coming-soon-popup").dxPopup({
+                title: "خبرتیا",
+                visible: false,
+                showTitle: true,
+                dragEnabled: false,
+                closeOnOutsideClick: true,
+                toolbarItems: [
+                    {
+                        widget: "dxButton",
+                        toolbar: "bottom",
+                        location: "after",
+                        options: {
+                            text: "OK",
+                            onClick: () => comingSoonPopup?.hide()
+                        }
+                    }
+                ],
+                contentTemplate: contentElement => {
+                    comingSoonMessageElement = $("<div class='text-center'></div>").appendTo(contentElement);
+                }
+            }).dxPopup("instance");
+
+            return comingSoonPopup;
+        };
+
+        const showComingSoonPopup = (message = "ډیر ژر...") => {
+            const popup = getComingSoonPopup();
+            if (comingSoonMessageElement)
+                comingSoonMessageElement.text(message);
+            popup.show();
+        };
+
+        window.showComingSoonPopup = showComingSoonPopup;
+
+        const onReady = function () {
+            document.removeEventListener("DOMContentLoaded", onReady);
+            accountsGridInstance = $("#accounts-grid").dxDataGrid("instance");
+            $("#contributors-report-action").dxButton({
+                text: "راپور",
+                icon: "fa-solid fa-print",
+                type: "default",
+                stylingMode: "contained",
+                onClick: () => openContributorsReportPopup()
+            });
+            initPopup();
+            initReportPopup();
+            initAccountBalancesPopup();
+        };
+
+        document.addEventListener("DOMContentLoaded", onReady);
+    })();
+</script>
