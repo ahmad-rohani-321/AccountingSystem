@@ -48,7 +48,7 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
                 AccountCode = x.Account != null ? x.Account.Code : string.Empty,
                 AccountTypeID = x.Account != null ? x.Account.AccountTypeID : 0,
                 AccountTypeName = x.Account != null && x.Account.AccountType != null ? x.Account.AccountType.Name : string.Empty,
-                CurrencyName = x.Currency != null ? x.Currency.CurrencySymbole : string.Empty,
+                CurrencyName = x.Currency != null ? x.Currency.CurrencyName : string.Empty,
                 TotalAmount = x.TotalAmount,
                 ReceivedAmount = x.ReceivedAmount,
                 RemainingAmount = x.RemainingAmount,
@@ -262,7 +262,7 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
         if (!referenceValidation.Success)
             return BadRequest(new { Message = referenceValidation.ErrorMessage });
 
-        PurchaseOrder? selectedOrder = null;
+        PurchaseOrder selectedOrder = null;
         if (request.OrderID is > 0)
         {
             selectedOrder = await _db.PurchaseOrders.FirstOrDefaultAsync(x => x.ID == request.OrderID.Value);
@@ -332,7 +332,7 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
         return string.Empty;
     }
 
-    private async Task<(bool Success, string ErrorMessage, Account? Account)> ValidatePurchaseReferencesAsync(PurchaseSaveRequest request)
+    private async Task<(bool Success, string ErrorMessage, Account Account)> ValidatePurchaseReferencesAsync(PurchaseSaveRequest request)
     {
         var account = await _db.Accounts
             .AsNoTracking()
@@ -354,7 +354,7 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
         return (true, string.Empty, account);
     }
 
-    private async Task<(bool Success, string ErrorMessage, List<PreparedPurchaseDetail>? PreparedDetails)> PreparePurchaseDetailsAsync(PurchaseSaveRequest request)
+    private async Task<(bool Success, string ErrorMessage, List<PreparedPurchaseDetail> PreparedDetails)> PreparePurchaseDetailsAsync(PurchaseSaveRequest request)
     {
         var itemIds = request.Details.Select(d => d.ItemID).Distinct().ToArray();
         var warehouseIds = request.Details.Select(d => d.WarehouseID).Distinct().ToArray();
@@ -392,7 +392,7 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
         return (true, string.Empty, preparedDetails);
     }
 
-    private async Task<(bool Success, string ErrorMessage, List<ExistingPurchaseStockEffect>? StockEffects, List<StockTransactions>? StockTransactions, List<JournalEntry>? JournalEntries)> LoadExistingPurchaseEffectsAsync(
+    private async Task<(bool Success, string ErrorMessage, List<ExistingPurchaseStockEffect> StockEffects, List<StockTransactions> StockTransactions, List<JournalEntry> JournalEntries)> LoadExistingPurchaseEffectsAsync(
         Purchase purchase,
         List<PurchaseDetails> purchaseDetails)
     {
@@ -586,7 +586,7 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
             CreationDate = effectiveDate
         });
 
-        AccountBalance? treasureAccountBalance = null;
+        AccountBalance treasureAccountBalance = null;
         if (request.ReceivedAmount > 0)
         {
             treasureAccountBalance = await _db.AccountBalances.FirstOrDefaultAsync(ab =>

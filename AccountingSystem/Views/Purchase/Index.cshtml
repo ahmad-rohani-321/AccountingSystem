@@ -105,6 +105,7 @@
 </div>
 
 <div id="purchaseFilterPopup"></div>
+<div id="purchaseReturnPopup"></div>
 
 <style>
     .purchase-filter-popup-compact .dx-overlay-content {
@@ -122,6 +123,128 @@
         margin-bottom: 4px;
         color: #334155;
     }
+
+    .purchase-return-popup .dx-overlay-content {
+        border-radius: 18px;
+        box-shadow: 0 20px 48px rgba(15, 23, 42, 0.16);
+        overflow: hidden;
+    }
+
+    .purchase-return-popup-body {
+        padding: 10px;
+        background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+    }
+
+    .purchase-return-card {
+        border: 1px solid #dbe4ee;
+        border-radius: 14px;
+        background: #ffffff;
+        box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
+        padding: 14px;
+        margin-bottom: 10px;
+    }
+
+    .purchase-return-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.5rem;
+        margin-bottom: 0.75rem;
+        padding-bottom: 0.7rem;
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    .purchase-return-section-title {
+        margin: 0 0 0.65rem;
+        font-size: 0.88rem;
+        font-weight: 700;
+        color: #0f172a;
+    }
+
+    .purchase-return-title {
+        margin: 0;
+        font-size: 1rem;
+        font-weight: 700;
+        color: #0f172a;
+        letter-spacing: -0.01em;
+    }
+
+    .purchase-return-subtitle {
+        margin: 0;
+        font-size: 0.79rem;
+        color: #475569;
+    }
+
+    .purchase-return-field {
+        background: #fbfdff;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 0.6rem 0.65rem 0.5rem;
+        min-height: 92px;
+    }
+
+    .purchase-return-field-wide {
+        min-height: auto;
+    }
+
+    .purchase-return-label {
+        display: inline-block;
+        margin-bottom: 0.35rem;
+        font-size: 0.78rem;
+        font-weight: 700;
+        color: #334155;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+    }
+
+    .purchase-return-balance-note {
+        display: block;
+        margin-top: 0.35rem;
+        font-size: 0.72rem;
+        color: #334155;
+    }
+
+    .purchase-return-loading {
+        min-height: 180px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #475569;
+        font-size: 0.88rem;
+        border: 1px dashed #cbd5e1;
+        border-radius: 12px;
+        background: #f8fafc;
+    }
+
+    .purchase-return-popup .dx-popup-bottom .dx-toolbar {
+        padding: 10px 14px 14px;
+        background: #f8fafc;
+        border-top: 1px solid #e2e8f0;
+    }
+
+    .purchase-return-popup .dx-toolbar-after {
+        gap: 8px;
+    }
+
+    .purchase-return-popup .dx-texteditor,
+    .purchase-return-popup .dx-datagrid {
+        border-radius: 10px;
+    }
+
+    .purchase-return-popup .dx-datagrid-headers {
+        background: #f8fafc;
+    }
+
+    .purchase-return-popup .dx-datagrid-headers .dx-header-row>td {
+        font-weight: 700;
+        color: #334155;
+    }
+
+    @@media (max-width: 991.98px) {
+        .purchase-return-field {
+            min-height: auto;
+        }
+    }
 </style>
 
 <script>
@@ -129,6 +252,17 @@
 
         var purchasesApiBaseUrl = "@Url.Content("~/api/Purchases/")";
         var filterPopupInstance = null;
+        var returnPopupInstance = null;
+        var returnPopupContentInitialized = false;
+        var pendingReturnPurchaseId = null;
+        var returnPopupDetailsData = [];
+        var returnPopupUnitOptionsByItemId = {};
+        var returnPopupActiveItemNameById = {};
+        var returnPopupActiveWarehouseNameById = {};
+        var currentReturnAccountId = 0;
+        var currentReturnCurrencyId = 0;
+        var currentReturnCurrencyName = "";
+        var currentReturnAccountName = "";
 
         var activeFilters = {
             accountId: null,
@@ -152,8 +286,41 @@
             }
         });
 
+        var returnTreasureDataSource = new DevExpress.data.DataSource({
+            store: DevExpress.data.AspNet.createStore({
+                key: "AccountID",
+                loadUrl: "@Url.Content("~/api/Accounts")",
+                loadParams: { types: "1,2" }
+            }),
+            paginate: true,
+            pageSize: 200
+        });
+
+        var returnItemLookupDataSource = new DevExpress.data.DataSource({
+            store: DevExpress.data.AspNet.createStore({
+                key: "ID",
+                loadUrl: "@Url.Content("~/api/Items")"
+            }),
+            filter: ["IsActive", "=", true],
+            paginate: true,
+            pageSize: 200
+        });
+
+        var returnWarehouseLookupDataSource = new DevExpress.data.DataSource({
+            store: DevExpress.data.AspNet.createStore({
+                key: "ID",
+                loadUrl: "@Url.Content("~/api/Warehouses/Active")"
+            }),
+            paginate: true,
+            pageSize: 200
+        });
+
         function getGrid() {
             return $("#today-purchases-grid").dxDataGrid("instance");
+        }
+
+        function getReturnDetailsGrid() {
+            return $("#purchaseReturnDetailsGrid").dxDataGrid("instance");
         }
 
         function normalizeDxLoadResult(result) {
@@ -166,6 +333,667 @@
             if (!item) return "";
             var code = item.Code ? (item.Code + " - ") : "";
             return code + (item.Name || "");
+        }
+
+        function formatNumeric(value) {
+            if (value === null || value === undefined || Number.isNaN(Number(value))) return "0";
+            return Number(value).toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+        }
+
+        function numberToWords(number) {
+            var numericValue = Number(number);
+            if (!Number.isFinite(numericValue)) return "";
+
+            number = Math.trunc(numericValue);
+            if (number === 0) return "صفر";
+            if (number < 0) return "منفي " + numberToWords(Math.abs(number));
+
+            var words = "";
+
+            if (Math.floor(number / 1000000000) > 0) {
+                if (Math.floor(number / 1000000000) >= 2) {
+                    words += numberToWords(Math.floor(number / 1000000000)) + " میلیارده ";
+                } else {
+                    words += " یو میلیارد ";
+                }
+                number %= 1000000000;
+            }
+
+            if (Math.floor(number / 1000000) > 0) {
+                if (Math.floor(number / 1000000) >= 2) {
+                    words += numberToWords(Math.floor(number / 1000000)) + " ملیونه ";
+                } else {
+                    words += " یو ملیون ";
+                }
+                number %= 1000000;
+            }
+
+            if (Math.floor(number / 1000) > 0) {
+                if (Math.floor(number / 1000) >= 2) {
+                    words += numberToWords(Math.floor(number / 1000)) + " زره ";
+                    number %= 1000;
+                } else {
+                    number %= 1000;
+                    words += number > 0 ? " یو زر " : " زر ";
+                }
+            }
+
+            if (Math.floor(number / 100) > 0) {
+                if (Math.floor(number / 100) >= 2) {
+                    words += numberToWords(Math.floor(number / 100)) + " سوه ";
+                    number %= 100;
+                } else {
+                    number %= 100;
+                    words += number > 0 ? " یو سل " : " سل ";
+                }
+            }
+
+            if (number > 0) {
+                if (words !== "") words += "او ";
+
+                var unitsMap = [
+                    "صفر", "یو", "دوه", "درې", "څلور", "پنځه", "شپږ", "اووه", "اته", "نه",
+                    "لس", "یوولس", "دولس", "دیارلس", "څوارلس", "پنځلس", "شپاړلس", "اوولس", "اتلس", "نولس",
+                    "شل", "یوویشت", "دوه ویشت", "درویشت", "څلورویشت", "پنځه ویشت", "شپږویشت", "اوه ویشت", "اته ویشت", "نه ویشت"
+                ];
+
+                var tensMap = ["صفر", "لس", "شل", "دیرش", "څلوېښت", "پنځوس", "شپیته", "اویا", "اتیا", "نوي"];
+
+                if (number < 30) {
+                    words += unitsMap[number];
+                } else {
+                    var lastWords = "";
+                    var lastTens = tensMap[Math.floor(number / 10)];
+                    if ((number % 10) > 0) lastWords += unitsMap[number % 10];
+                    lastWords += " " + lastTens;
+                    words += lastWords;
+                }
+            }
+
+            return words.replace(/\s+/g, " ").trim();
+        }
+
+        function humanizeNumberValue(value) {
+            var numericValue = Number(value);
+            if (!Number.isFinite(numericValue)) return "صفر";
+
+            var absoluteValue = Math.abs(numericValue);
+            var integerPart = Math.trunc(absoluteValue);
+            var fractionalPart = Math.round((absoluteValue - integerPart) * 100);
+            var words = numberToWords(integerPart);
+
+            if (fractionalPart > 0) {
+                words += " اعشاریه " + numberToWords(fractionalPart);
+            }
+
+            if (numericValue < 0) {
+                words = "منفي " + words;
+            }
+
+            return words.replace(/\s+/g, " ").trim();
+        }
+
+        function setBalanceLabel(labelSelector, currencyName, balanceValue) {
+            var label = $(labelSelector);
+            if (!label.length) return;
+
+            var numericText = formatNumeric(balanceValue);
+            var wordsText = humanizeNumberValue(balanceValue);
+            label.text("? ??? ???? ????? (" + currencyName + "): " + numericText + " (" + wordsText + ")");
+        }
+
+        function resetBalanceLabel(labelSelector) {
+            var label = $(labelSelector);
+            if (!label.length) return;
+            label.text("? ??? ???? ?????: 0 (???)");
+        }
+
+        function getReturnCurrencySelection() {
+            var currencyId = currentReturnCurrencyId;
+            var selectedItem = { CurrencyName: currentReturnCurrencyName || "اسعار" };
+            var currencyName = selectedItem && selectedItem.CurrencyName ? selectedItem.CurrencyName : "اسعار";
+
+            return {
+                currencyId: currencyId,
+                currencyName: currencyName
+            };
+        }
+
+        function refreshReturnBalanceLabel(accountSelector, labelSelector) {
+            var accountId = currentReturnAccountId;
+            var currencySelection = getReturnCurrencySelection();
+
+            if (!accountId || !currencySelection.currencyId) {
+                resetBalanceLabel(labelSelector);
+                return;
+            }
+
+            $.ajax({
+                url: "/api/Accounts/balance",
+                method: "GET",
+                data: {
+                    accountId: accountId,
+                    currencyId: currencySelection.currencyId
+                }
+            }).done(function (result) {
+                var balance = result && result.Balance !== undefined ? Number(result.Balance) : 0;
+                setBalanceLabel(labelSelector, currencySelection.currencyName, balance);
+            }).fail(function () {
+                resetBalanceLabel(labelSelector);
+            });
+        }
+
+        function refreshReturnBalanceLabels() {
+            refreshReturnBalanceLabel("#purchaseReturnAccount", "#purchaseReturnAccountBalance");
+        }
+
+        function refreshReturnItemCache() {
+            return returnItemLookupDataSource.load().then(function (result) {
+                var rows = normalizeDxLoadResult(result);
+                returnPopupActiveItemNameById = {};
+
+                for (var i = 0; i < rows.length; i++) {
+                    var item = rows[i];
+                    if (item && item.ID) {
+                        returnPopupActiveItemNameById[item.ID] = item.NativeName || "";
+                    }
+                }
+
+                return rows;
+            });
+        }
+
+        function refreshReturnWarehouseCache() {
+            return returnWarehouseLookupDataSource.load().then(function (result) {
+                var rows = normalizeDxLoadResult(result);
+                returnPopupActiveWarehouseNameById = {};
+
+                for (var i = 0; i < rows.length; i++) {
+                    var warehouse = rows[i];
+                    if (warehouse && warehouse.ID) {
+                        returnPopupActiveWarehouseNameById[warehouse.ID] = warehouse.Name || "";
+                    }
+                }
+
+                return rows;
+            });
+        }
+
+        function loadReturnUnitOptionsForItem(itemId) {
+            if (!itemId) return $.Deferred().resolve([]).promise();
+            if (returnPopupUnitOptionsByItemId[itemId]) {
+                return $.Deferred().resolve(returnPopupUnitOptionsByItemId[itemId]).promise();
+            }
+
+            return $.getJSON("/api/Items/" + itemId + "/InitialStock/UnitOptions")
+                .then(function (options) {
+                    var rows = Array.isArray(options) ? options : [];
+                    returnPopupUnitOptionsByItemId[itemId] = rows;
+                    return rows;
+                }, function () {
+                    return [];
+                });
+        }
+
+        function getReturnItemDisplayText(rowData) {
+            if (!rowData || !rowData.ItemID) return "";
+            return returnPopupActiveItemNameById[rowData.ItemID] || rowData.ItemID;
+        }
+
+        function getReturnUnitDisplayText(rowData) {
+            if (!rowData || rowData.UnitConversionID === null || rowData.UnitConversionID === undefined) return "";
+
+            var options = Array.isArray(rowData.UnitOptions) ? rowData.UnitOptions : [];
+            for (var i = 0; i < options.length; i++) {
+                var unit = options[i];
+                if (unit && unit.UnitConversionID === rowData.UnitConversionID) {
+                    return unit.UnitName || "";
+                }
+            }
+
+            return rowData.UnitConversionID;
+        }
+
+        function getReturnWarehouseDisplayText(rowData) {
+            if (!rowData || !rowData.WarehouseID) return "";
+            return returnPopupActiveWarehouseNameById[rowData.WarehouseID] || rowData.WarehouseID;
+        }
+
+        function setReturnPopupLoadingState(isLoading, message) {
+            var loadPanel = $("#purchaseReturnLoadPanel").dxLoadPanel("instance");
+            var placeholder = $("#purchaseReturnEmptyState");
+            var detailsGrid = $("#purchaseReturnDetailsGrid");
+
+            if (loadPanel) {
+                if (isLoading) {
+                    loadPanel.show();
+                } else {
+                    loadPanel.hide();
+                }
+            }
+
+            if (placeholder.length) {
+                placeholder.text(message || "د خرید معلومات دلته ښکاري.");
+                placeholder.toggle(!isLoading && returnPopupDetailsData.length === 0);
+            }
+
+            if (detailsGrid.length) {
+                detailsGrid.toggle(!isLoading);
+            }
+        }
+
+        function clearReturnPopupForm() {
+            var fieldConfigs = [
+                { selector: "#purchaseReturnNo", widget: "dxNumberBox", value: null },
+                { selector: "#purchaseReturnAccount", widget: "dxTextBox", value: "" },
+                { selector: "#purchaseReturnCurrency", widget: "dxTextBox", value: "" },
+                { selector: "#purchaseReturnDate", widget: "dxDateBox", value: null },
+                { selector: "#purchaseReturnTotal", widget: "dxNumberBox", value: 0 },
+                { selector: "#purchaseReturnReceived", widget: "dxNumberBox", value: 0 },
+                { selector: "#purchaseReturnRemaining", widget: "dxNumberBox", value: 0 },
+                { selector: "#purchaseReturnNotes", widget: "dxTextArea", value: "" },
+                { selector: "#purchaseReturnTreasure", widget: "dxSelectBox", value: null },
+                { selector: "#purchaseReturnQuantity", widget: "dxNumberBox", value: null }
+            ];
+
+            for (var i = 0; i < fieldConfigs.length; i++) {
+                var config = fieldConfigs[i];
+                var instance = $(config.selector)[config.widget]("instance");
+                if (instance) instance.option("value", config.value);
+            }
+
+            returnPopupDetailsData.length = 0;
+            currentReturnAccountId = 0;
+            currentReturnCurrencyId = 0;
+            currentReturnCurrencyName = "";
+            currentReturnAccountName = "";
+            resetBalanceLabel("#purchaseReturnAccountBalance");
+
+            var grid = getReturnDetailsGrid();
+            if (grid) {
+                grid.option("dataSource", returnPopupDetailsData);
+                grid.refresh();
+            }
+        }
+
+        function setReturnFieldValidationState(editor, message) {
+            if (!editor) return;
+
+            editor.option({
+                isValid: !message,
+                validationError: message ? { message: message } : null
+            });
+        }
+
+        function validateReturnForm() {
+            var treasureEditor = $("#purchaseReturnTreasure").dxSelectBox("instance");
+            var quantityEditor = $("#purchaseReturnQuantity").dxNumberBox("instance");
+            var treasureId = treasureEditor ? treasureEditor.option("value") : null;
+            var rawQuantity = quantityEditor ? quantityEditor.option("value") : null;
+            var hasQuantityInput = rawQuantity !== null && rawQuantity !== undefined && rawQuantity !== "";
+            var quantityValue = hasQuantityInput ? Number(rawQuantity) : 0;
+            var hasTreasure = !!treasureId;
+            var hasQuantity = hasQuantityInput && !Number.isNaN(quantityValue) && quantityValue > 0;
+
+            setReturnFieldValidationState(treasureEditor, null);
+            setReturnFieldValidationState(quantityEditor, null);
+
+            if (hasTreasure && !hasQuantity) {
+                var quantityMessage = "که تجري/بانک انتخاب وي، مقدار باید له صفر څخه زیات وي.";
+                setReturnFieldValidationState(quantityEditor, quantityMessage);
+                DevExpress.ui.notify(quantityMessage, "error", 3200);
+                return false;
+            }
+
+            if (hasQuantity && !hasTreasure) {
+                var treasureMessage = "که مقدار له صفر څخه زیات وي، تجري/بانک انتخاب کړئ.";
+                setReturnFieldValidationState(treasureEditor, treasureMessage);
+                DevExpress.ui.notify(treasureMessage, "error", 3200);
+                return false;
+            }
+
+            if (hasQuantityInput && (Number.isNaN(quantityValue) || quantityValue < 0)) {
+                var invalidQuantityMessage = "مقدار باید سم عددي ارزښت وي.";
+                setReturnFieldValidationState(quantityEditor, invalidQuantityMessage);
+                DevExpress.ui.notify(invalidQuantityMessage, "error", 3200);
+                return false;
+            }
+
+            return true;
+        }
+
+        function onReturnSaveClick() {
+            if (!validateReturnForm()) {
+                return;
+            }
+
+            DevExpress.ui.notify("معلومات سم دي.", "success", 1800);
+        }
+
+        function populateReturnPopup(response) {
+            var purchaseDate = response && response.PurchaseDate ? new Date(response.PurchaseDate) : null;
+            var notesValue = response && response.Remarks ? response.Remarks : "";
+            var accountId = response && response.AccountID ? response.AccountID : null;
+            var currencyId = response && response.CurrencyID ? response.CurrencyID : null;
+
+            currentReturnAccountId = accountId || 0;
+            currentReturnCurrencyId = currencyId || 0;
+
+            $("#purchaseReturnNo").dxNumberBox("instance").option("value", response && response.PurchaseNo ? response.PurchaseNo : null);
+            $("#purchaseReturnAccount").dxTextBox("instance").option("value", currentReturnAccountName || "");
+            $("#purchaseReturnCurrency").dxTextBox("instance").option("value", currentReturnCurrencyName || "");
+            $("#purchaseReturnDate").dxDateBox("instance").option("value", purchaseDate);
+            $("#purchaseReturnTotal").dxNumberBox("instance").option("value", response && response.TotalAmount ? response.TotalAmount : 0);
+            $("#purchaseReturnReceived").dxNumberBox("instance").option("value", response && response.ReceivedAmount ? response.ReceivedAmount : 0);
+            $("#purchaseReturnRemaining").dxNumberBox("instance").option("value", response && response.RemainingAmount ? response.RemainingAmount : 0);
+            $("#purchaseReturnNotes").dxTextArea("instance").option("value", notesValue);
+
+            refreshReturnBalanceLabels();
+
+            returnPopupDetailsData.length = 0;
+
+            var details = response && Array.isArray(response.Details) ? response.Details : [];
+            for (var i = 0; i < details.length; i++) {
+                var row = details[i] || {};
+                returnPopupDetailsData.push({
+                    RowID: i + 1,
+                    ItemID: row.ItemID || null,
+                    UnitConversionID: row.UnitConversionID || null,
+                    Quantity: row.Quantity || null,
+                    UnitPrice: row.UnitPrice || null,
+                    TotalPrice: row.TotalPrice || null,
+                    WarehouseID: row.WarehouseID || null,
+                    Remarks: row.Remarks || "",
+                    UnitOptions: []
+                });
+            }
+
+            var grid = getReturnDetailsGrid();
+            if (grid) {
+                grid.option("dataSource", returnPopupDetailsData);
+                grid.refresh();
+            }
+
+            var unitLoaders = [];
+            for (var j = 0; j < returnPopupDetailsData.length; j++) {
+                (function (targetRow) {
+                    if (!targetRow.ItemID) return;
+
+                    var loader = loadReturnUnitOptionsForItem(targetRow.ItemID).then(function (options) {
+                        targetRow.UnitOptions = options;
+                    });
+
+                    unitLoaders.push(loader);
+                })(returnPopupDetailsData[j]);
+            }
+
+            $.when.apply($, unitLoaders).always(function () {
+                var detailsGrid = getReturnDetailsGrid();
+                if (detailsGrid) detailsGrid.refresh();
+            });
+
+            setReturnPopupLoadingState(false, "د خرید معلومات دلته ښکاري.");
+        }
+
+        function ensureReturnPopup() {
+            if (returnPopupInstance) return returnPopupInstance;
+
+            returnPopupInstance = $("#purchaseReturnPopup").dxPopup({
+                title: "د خرید راستنولو معلومات",
+                showTitle: true,
+                visible: false,
+                width: 920,
+                maxWidth: "94vw",
+                height: "auto",
+                maxHeight: "88vh",
+                dragEnabled: true,
+                hideOnOutsideClick: true,
+                showCloseButton: true,
+                wrapperAttr: { class: "purchase-return-popup" },
+                contentTemplate: function (contentElement) {
+                    var html = "" +
+                        '<div class="purchase-return-popup-body">' +
+                        '  <div id="purchaseReturnLoadPanel"></div>' +
+                        '  <div class="purchase-return-card">' +
+                        '    <div class="purchase-return-header">' +
+                        '      <div>' +
+                        '        <h5 class="purchase-return-title">د خرید معلومات</h5>' +
+                        '        <p class="purchase-return-subtitle">د انتخاب شوي خرید ټول جزئیات او جنسونه</p>' +
+                        '      </div>' +
+                        '    </div>' +
+                        '    <div class="row g-2 align-items-stretch">' +
+                        '      <div class="col-12 col-lg-4"><div class="purchase-return-field"><label class="purchase-return-label">د خرید شمېره</label><div id="purchaseReturnNo"></div></div></div>' +
+                        '      <div class="col-12 col-lg-4"><div class="purchase-return-field"><label class="purchase-return-label">حساب</label><div id="purchaseReturnAccount"></div><small id="purchaseReturnAccountBalance" class="purchase-return-balance-note">بلانس: 0 (صفر)</small></div></div>' +
+                        '      <div class="col-12 col-lg-4"><div class="purchase-return-field"><label class="purchase-return-label">اسعار</label><div id="purchaseReturnCurrency"></div></div></div>' +
+                        '      <div class="col-12 col-lg-4"><div class="purchase-return-field"><label class="purchase-return-label">نېټه</label><div id="purchaseReturnDate"></div></div></div>' +
+                        '      <div class="col-12 col-lg-4"><div class="purchase-return-field"><label class="purchase-return-label">مجموعه</label><div id="purchaseReturnTotal"></div></div></div>' +
+                        '      <div class="col-12 col-lg-4"><div class="purchase-return-field"><label class="purchase-return-label">رسید</label><div id="purchaseReturnReceived"></div></div></div>' +
+                        '      <div class="col-12 col-lg-4"><div class="purchase-return-field"><label class="purchase-return-label">باقي</label><div id="purchaseReturnRemaining"></div></div></div>' +
+                        '      <div class="col-12 col-lg-8"><div class="purchase-return-field purchase-return-field-wide"><label class="purchase-return-label">ملاحظات</label><div id="purchaseReturnNotes"></div></div></div>' +
+                        '    </div>' +
+                        '  </div>' +
+                        '  <div class="purchase-return-card">' +
+                        '    <h6 class="purchase-return-section-title">د راستنولو معلومات</h6>' +
+                        '    <div class="row g-2 align-items-stretch">' +
+                        '      <div class="col-12 col-md-7"><div class="purchase-return-field"><label class="purchase-return-label">تجري/بانک</label><div id="purchaseReturnTreasure"></div></div></div>' +
+                        '      <div class="col-12 col-md-5"><div class="purchase-return-field"><label class="purchase-return-label">مقدار</label><div id="purchaseReturnQuantity"></div></div></div>' +
+                        '    </div>' +
+                        '  </div>' +
+                        '  <div class="purchase-return-card">' +
+                        '    <div id="purchaseReturnEmptyState" class="purchase-return-loading">د خرید معلومات دلته ښکاري.</div>' +
+                        '    <div id="purchaseReturnDetailsGrid"></div>' +
+                        '  </div>' +
+                        '</div>';
+
+                    contentElement.append(html);
+
+                    $("#purchaseReturnLoadPanel").dxLoadPanel({
+                        visible: false,
+                        showIndicator: true,
+                        showPane: false,
+                        shading: false,
+                        message: "معلومات ترلاسه کېږي..."
+                    });
+
+                    $("#purchaseReturnNo").dxNumberBox({
+                        readOnly: true,
+                        showSpinButtons: false
+                    });
+
+                    $("#purchaseReturnAccount").dxTextBox({
+                        readOnly: true
+                    });
+
+                    $("#purchaseReturnCurrency").dxTextBox({
+                        readOnly: true
+                    });
+
+                    $("#purchaseReturnDate").dxDateBox({
+                        type: "datetime",
+                        displayFormat: "yyyy-MM-dd",
+                        readOnly: true
+                    });
+
+                    $("#purchaseReturnTotal").dxNumberBox({
+                        readOnly: true,
+                        format: "#,##0.###"
+                    });
+
+                    $("#purchaseReturnReceived").dxNumberBox({
+                        readOnly: true,
+                        format: "#,##0.###"
+                    });
+
+                    $("#purchaseReturnRemaining").dxNumberBox({
+                        readOnly: true,
+                        format: "#,##0.###"
+                    });
+
+                    $("#purchaseReturnNotes").dxTextArea({
+                        readOnly: true,
+                        minHeight: 72
+                    });
+
+                    $("#purchaseReturnTreasure").dxSelectBox({
+                        dataSource: returnTreasureDataSource,
+                        valueExpr: "AccountID",
+                        displayExpr: accountDisplayExpr,
+                        searchEnabled: true,
+                        showClearButton: true,
+                        placeholder: "تجري/بانک انتخاب کړئ..."
+                    });
+
+                    $("#purchaseReturnQuantity").dxNumberBox({
+                        min: 0,
+                        format: "#,##0.###",
+                        showSpinButtons: true,
+                        placeholder: "مقدار وليکئ..."
+                    });
+
+                    $("#purchaseReturnDetailsGrid").dxDataGrid({
+                        dataSource: returnPopupDetailsData,
+                        keyExpr: "RowID",
+                        showBorders: true,
+                        rowAlternationEnabled: true,
+                        columnAutoWidth: true,
+                        height: 260,
+                        paging: { enabled: false },
+                        scrolling: {
+                            mode: "standard",
+                            showScrollbar: "always"
+                        },
+                        editing: {
+                            allowAdding: false,
+                            allowUpdating: false,
+                            allowDeleting: false
+                        },
+                        columns: [
+                            {
+                                dataField: "ItemID",
+                                caption: "جنس",
+                                calculateDisplayValue: getReturnItemDisplayText
+                            },
+                            {
+                                dataField: "UnitConversionID",
+                                caption: "واحد",
+                                calculateDisplayValue: getReturnUnitDisplayText
+                            },
+                            {
+                                dataField: "Quantity",
+                                caption: "مقدار",
+                                dataType: "number",
+                                format: "#,##0.###"
+                            },
+                            {
+                                dataField: "UnitPrice",
+                                caption: "في قیمت",
+                                dataType: "number",
+                                format: "#,##0.###"
+                            },
+                            {
+                                dataField: "TotalPrice",
+                                caption: "مجموعه قیمت",
+                                dataType: "number",
+                                format: "#,##0.###"
+                            },
+                            {
+                                dataField: "WarehouseID",
+                                caption: "ګدام",
+                                calculateDisplayValue: getReturnWarehouseDisplayText
+                            },
+                            {
+                                dataField: "Remarks",
+                                caption: "یادښت"
+                            }
+                        ],
+                        summary: {
+                            totalItems: [
+                                {
+                                    column: "ItemID",
+                                    summaryType: "count",
+                                    displayFormat: "ټول قطارونه: {0}"
+                                },
+                                {
+                                    column: "TotalPrice",
+                                    summaryType: "sum",
+                                    displayFormat: "مجموعه: {0}"
+                                }
+                            ]
+                        }
+                    });
+
+                    returnPopupContentInitialized = true;
+                    setReturnPopupLoadingState(false, "د خرید معلومات دلته ښکاري.");
+                },
+                toolbarItems: [
+                
+                    {
+                        widget: "dxButton",
+                        location: "after",
+                        toolbar: "bottom",
+                        options: {
+                            text: "ثبت",
+                            type: "success",
+                            onClick: onReturnSaveClick
+                        }
+                    },
+                    {
+                        widget: "dxButton",
+                        location: "after",
+                        toolbar: "bottom",
+                        options: {
+                            text: "بندول",
+                            type: "danger",
+                            onClick: function () {
+                                if (returnPopupInstance) {
+                                    returnPopupInstance.hide();
+                                }
+                            }
+                        }
+                    }
+                    
+                ],
+                onShown: function () {
+                    if (pendingReturnPurchaseId) {
+                        var purchaseId = pendingReturnPurchaseId;
+                        pendingReturnPurchaseId = null;
+                        loadPurchaseIntoReturnPopup(purchaseId);
+                    }
+                },
+                onHidden: function () {
+                    clearReturnPopupForm();
+                    setReturnPopupLoadingState(false, "د خرید معلومات دلته ښکاري.");
+                }
+            }).dxPopup("instance");
+
+            return returnPopupInstance;
+        }
+
+        function loadPurchaseIntoReturnPopup(purchaseId) {
+            if (!purchaseId) return;
+
+            ensureReturnPopup();
+
+            if (!returnPopupContentInitialized) {
+                pendingReturnPurchaseId = purchaseId;
+                return;
+            }
+
+            clearReturnPopupForm();
+            setReturnPopupLoadingState(true, "معلومات ترلاسه کېږي...");
+
+            $.when(refreshReturnItemCache(), refreshReturnWarehouseCache())
+                .always(function () {
+                    $.getJSON(purchasesApiBaseUrl + purchaseId)
+                        .done(function (response) {
+                            populateReturnPopup(response || {});
+                        })
+                        .fail(function (xhr) {
+                            clearReturnPopupForm();
+                            setReturnPopupLoadingState(false, "د خرید معلومات دلته ښکاري.");
+                            DevExpress.ui.notify((xhr && xhr.responseJSON && xhr.responseJSON.Message) ? xhr.responseJSON.Message : "د خرید معلومات ترلاسه نه شول.", "error", 3200);
+                        });
+                });
         }
 
         function clearActiveFilters() {
@@ -403,6 +1231,21 @@
         }
 
         function onReturnClick(e) {
+            var rowData = e && e.row ? e.row.data : null;
+            if (!rowData || !rowData.ID) return;
+
+            currentReturnAccountId = rowData.AccountID || 0;
+            currentReturnCurrencyId = rowData.CurrencyID || 0;
+            currentReturnAccountName = rowData.AccountName || "";
+            currentReturnCurrencyName = rowData.CurrencyName || "";
+            pendingReturnPurchaseId = rowData.ID;
+            ensureReturnPopup().show();
+
+            if (returnPopupContentInitialized) {
+                var purchaseId = pendingReturnPurchaseId;
+                pendingReturnPurchaseId = null;
+                loadPurchaseIntoReturnPopup(purchaseId);
+            }
         }
 
         function onRowPrintClick(e) {
@@ -420,3 +1263,5 @@
         };
     })();
 </script>
+
+
