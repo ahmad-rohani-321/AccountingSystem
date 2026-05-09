@@ -13,6 +13,7 @@ namespace AccountingSystem.Models.Purchase
         public decimal ReceivedAmount { get; set; }
         public decimal RemainingAmount { get; set; }
         public bool IsRefunded { get; set; } = false;
+        public bool IsHolded { get; set; } = false;
 
         [ForeignKey(nameof(AccountID))]
         public Accounts.Account Account { get; set; }

@@ -12,28 +12,28 @@
     <link href="~/css/bootstrap/bootstrap-grid.rtl.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="~/css/reporting.viewer.part.bundle.css" />
     <style>
-        .report-loading-indicator {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 160px;
-            padding: 1.5rem;
-        }
-
-        .report-loading-indicator__spinner {
-            width: 3rem;
-            height: 3rem;
-            border: 0.3rem solid rgba(15, 23, 42, 0.12);
-            border-top-color: #0f766e;
-            border-radius: 50%;
-            animation: report-loading-spin 0.85s linear infinite;
-        }
-
-        @@keyframes report-loading-spin {
-            to {
-                transform: rotate(360deg);
+            .report-loading-indicator {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                min-height: 160px;
+                padding: 1.5rem;
             }
-        }
+
+            .report-loading-indicator__spinner {
+                width: 3rem;
+                height: 3rem;
+                border: 0.3rem solid rgba(15, 23, 42, 0.12);
+                border-top-color: #0f766e;
+                border-radius: 50%;
+                animation: report-loading-spin 0.85s linear infinite;
+            }
+
+            @@keyframes report-loading-spin {
+                to {
+                    transform: rotate(360deg);
+                }
+            }
     </style>
     
     <script src="~/js/vendor.js"></script>
@@ -101,7 +101,7 @@
                 </div>
             </text>)
                 .Template(new TemplateName("navigation-menu"))
-                                                                                                                                                                                                                                                                                                                )
+                                                                                                                                                                                                                                                                                                                        )
         </div>
     </div>
 

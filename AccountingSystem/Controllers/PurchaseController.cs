@@ -10,6 +10,15 @@ namespace AccountingSystem.Controllers
             return View();
         }
 
+        [HttpGet]
+        public IActionResult PurchaseEdit(int id)
+        {
+            ViewData["title"] = "د خرید سمون";
+            ViewData["PurchaseId"] = id;
+
+            return View();
+        }
+
         public IActionResult NewPurchase()
         {
             ViewData["title"] = "نوی خرید";

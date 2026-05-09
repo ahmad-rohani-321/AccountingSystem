@@ -111,7 +111,6 @@
         margin-bottom: 4px;
         color: #334155;
     }
-
 </style>
 
 <div class="row">
@@ -129,6 +128,7 @@
                         .ShowBorders(true)
                         .ColumnAutoWidth(true)
                         .RowAlternationEnabled(true)
+                        .FilterRow(filterRow => filterRow.Visible(true).ApplyFilter(GridApplyFilterMode.Auto))
                         .Paging(pager => pager.PageSize(10))
                         .Pager(p => p.ShowPageSizeSelector(true).AllowedPageSizes(new[] { 10, 20, 50 }).ShowInfo(true))
                         .Toolbar(toolbar => toolbar.Items(items =>
@@ -239,7 +239,8 @@
         let activeSearchFilters = {
             accountIds: [],
             fromDate: null,
-            toDate: null
+            toDate: null,
+            currencyId: null
         };
         const creditAccountTypeMap = Object.freeze({
             1: [1, 2, 3, 4, 5, 7, 8, 9],
@@ -872,7 +873,8 @@
                     ? activeSearchFilters.accountIds.join(",")
                     : null,
                 fromDate: activeSearchFilters.fromDate,
-                toDate: activeSearchFilters.toDate
+                toDate: activeSearchFilters.toDate,
+                currencyId: activeSearchFilters.currencyId
             };
         }
 
@@ -889,8 +891,39 @@
             return {
                 account: $("#journalEntrySearchAccount").dxTagBox("instance"),
                 fromDate: $("#journalEntrySearchFromDate").dxDateBox("instance"),
-                toDate: $("#journalEntrySearchToDate").dxDateBox("instance")
+                toDate: $("#journalEntrySearchToDate").dxDateBox("instance"),
+                currency: $("#journalEntrySearchCurrency").dxSelectBox("instance")
             };
+        }
+
+        function getSearchAccountDataSource() {
+            return accountOptions.map(function (account) {
+                return {
+                    AccountID: account.ID,
+                    Name: account.Name,
+                    Code: account.Code,
+                    AccountTypeName: account.AccountTypeName
+                };
+            });
+        }
+
+        function syncSearchPopupEditors() {
+            const editors = getSearchEditors();
+
+            editors.account?.option({
+                dataSource: getSearchAccountDataSource(),
+                value: activeSearchFilters.accountIds
+            });
+
+            editors.fromDate?.option("value", activeSearchFilters.fromDate ? new Date(activeSearchFilters.fromDate) : null);
+            editors.toDate?.option("value", activeSearchFilters.toDate ? new Date(activeSearchFilters.toDate) : null);
+
+            editors.currency?.option({
+                dataSource: activeCurrencies,
+                valueExpr: currencyValueExpr,
+                displayExpr: currencyDisplayExpr,
+                value: activeSearchFilters.currencyId
+            });
         }
 
         function setEditorValidationState(editor, message) {
@@ -964,13 +997,15 @@
             activeSearchFilters.accountIds = filters.accountIds;
             activeSearchFilters.fromDate = filters.fromDate;
             activeSearchFilters.toDate = filters.toDate;
+            activeSearchFilters.currencyId = filters.currencyId;
         }
 
         function buildSearchFiltersFromEditors(editors) {
             return {
                 accountIds: (editors.account ? editors.account.option("value") : []).map(Number),
                 fromDate: normalizeDateParamValue(editors.fromDate ? editors.fromDate.option("value") : null),
-                toDate: normalizeDateParamValue(editors.toDate ? editors.toDate.option("value") : null)
+                toDate: normalizeDateParamValue(editors.toDate ? editors.toDate.option("value") : null),
+                currencyId: editors.currency ? Number(editors.currency.option("value")) || null : null
             };
         }
 
@@ -999,12 +1034,19 @@
                 hideOnOutsideClick: true,
                 showCloseButton: true,
                 wrapperAttr: { class: "journal-search-popup-compact" },
+                onShown: function () {
+                    syncSearchPopupEditors();
+                },
                 contentTemplate: function (contentElement) {
                     const html = "" +
                         '<div class="journal-search-popup-body">' +
                         '  <div class="mb-2">' +
                         '    <label class="form-label">حساب</label>' +
                         '    <div id="journalEntrySearchAccount"></div>' +
+                        '  </div>' +
+                        '  <div class="mb-2">' +
+                        '    <label class="form-label">اسعار</label>' +
+                        '    <div id="journalEntrySearchCurrency"></div>' +
                         '  </div>' +
                         '  <div class="mb-2">' +
                         '    <label class="form-label">د شروع نېټه</label>' +
@@ -1020,14 +1062,7 @@
                     contentElement.append(html);
 
                     $("#journalEntrySearchAccount").dxTagBox({
-                        dataSource: accountOptions.map(function (account) {
-                            return {
-                                AccountID: account.ID,
-                                Name: account.Name,
-                                Code: account.Code,
-                                AccountTypeName: account.AccountTypeName
-                            };
-                        }),
+                        dataSource: getSearchAccountDataSource(),
                         value: activeSearchFilters.accountIds,
                         valueExpr: "AccountID",
                         displayExpr: accountDisplayExpr,
@@ -1066,6 +1101,18 @@
                         width: "100%"
                     });
 
+                    $("#journalEntrySearchCurrency").dxSelectBox({
+                        dataSource: activeCurrencies,
+                        value: activeSearchFilters.currencyId,
+                        valueExpr: currencyValueExpr,
+                        displayExpr: currencyDisplayExpr,
+                        height: 36,
+                        searchEnabled: true,
+                        showClearButton: true,
+                        placeholder: "اسعار وټاکئ...",
+                        width: "100%"
+                    });
+
                     $("#journalEntrySearchButton").dxButton({
                         text: "پلټنه",
                         icon: "fa-solid fa-search",
@@ -1077,12 +1124,21 @@
             }).dxPopup("instance");
         }
 
-        window.openJournalEntrySearchPopup = function () {
-            if (!searchPopupInstance) {
-                initSearchPopup();
-            }
+        window.openJournalEntrySearchPopup = async function () {
+            try {
+                await ensurePageDataLoaded();
 
-            searchPopupInstance.show();
+                if (!searchPopupInstance) {
+                    initSearchPopup();
+                } else {
+                    syncSearchPopupEditors();
+                }
+
+                searchPopupInstance.show();
+                syncSearchPopupEditors();
+            } catch {
+                DevExpress.ui.notify("د پلټنې معلومات رانغلله نه.", "error", 3000);
+            }
         };
 
         function getVisibleJournalEntryRows() {

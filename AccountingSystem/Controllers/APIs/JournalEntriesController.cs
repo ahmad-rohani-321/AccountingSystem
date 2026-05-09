@@ -21,7 +21,7 @@ public class JournalEntriesController(ApplicationDbContext db) : ApiControllerBa
     private static readonly int[] AllowedAccountTypeIds = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
     [HttpGet]
-    public async Task<object> Get([FromQuery] string accountIds, [FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate)
+    public async Task<object> Get([FromQuery] string accountIds, [FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate, [FromQuery] int? currencyId)
     {
         var today = DateTime.Today;
         var effectiveFromDate = fromDate?.Date ?? today;
@@ -42,6 +42,11 @@ public class JournalEntriesController(ApplicationDbContext db) : ApiControllerBa
         if (selectedAccountIds.Length > 0)
         {
             query = query.Where(j => selectedAccountIds.Contains(j.AccountBalance.AccountID));
+        }
+
+        if (currencyId.HasValue && currencyId.Value > 0)
+        {
+            query = query.Where(j => j.AccountBalance.CurrencyID == currencyId.Value);
         }
 
         var rows = await query

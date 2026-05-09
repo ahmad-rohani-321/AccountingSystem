@@ -1,4 +1,4 @@
-﻿using DevExpress.Drawing;
+using DevExpress.Drawing;
 using DevExpress.XtraReports.UI;
 using System;
 using System.Collections;

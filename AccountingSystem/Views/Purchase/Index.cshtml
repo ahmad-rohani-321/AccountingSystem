@@ -88,13 +88,17 @@
                 columns.Add()
                     .Type(GridCommandColumnType.Buttons)
                     .Caption("عملیات")
-                    .Width(120)
+                    .Width(170)
                     .Buttons(buttons =>
                     {
                         buttons.Add()
                             .Hint("چاپ")
                             .Icon("fa-solid fa-print")
                             .OnClick("purchaseIndexPage.onRowPrintClick");
+                        buttons.Add()
+                            .Hint("سمون")
+                            .Icon("fa-solid fa-pen-to-square")
+                            .OnClick("purchaseIndexPage.onEditClick");
                         buttons.Add()
                             .Hint("واپسي")
                             .Icon("fa-solid fa-rotate-left")
@@ -1230,6 +1234,18 @@
             return activeFilters.accountId;
         }
 
+        function onEditClick(e) {
+            var rowData = e && e.row ? e.row.data : null;
+            if (!rowData || !rowData.ID) return;
+
+            if (!rowData.IsHolded) {
+                DevExpress.ui.notify("دا خرید هولډ سوی نه دی.", "warning", 2500);
+                return;
+            }
+
+            window.location.href = '@Url.Action("PurchaseEdit", "Purchase")?id=' + rowData.ID;
+        }
+
         function onReturnClick(e) {
             var rowData = e && e.row ? e.row.data : null;
             if (!rowData || !rowData.ID) return;
@@ -1255,6 +1271,7 @@
             onRefreshClick: onRefreshClick,
             onPrintClick: onPrintClick,
             onFilterClick: onFilterClick,
+            onEditClick: onEditClick,
             onReturnClick: onReturnClick,
             onRowPrintClick: onRowPrintClick,
             getFilterAccountIdParam: getFilterAccountIdParam,

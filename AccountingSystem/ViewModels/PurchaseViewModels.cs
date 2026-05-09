@@ -7,6 +7,7 @@ public class PurchaseGridRow
 {
     public int ID { get; set; }
     public int PurchaseNo { get; set; }
+    public bool IsHolded { get; set; }
     public string AccountName { get; set; } = string.Empty;
     public string AccountCode { get; set; } = string.Empty;
     public int AccountTypeID { get; set; }
