@@ -167,9 +167,6 @@ public class AccountsController(ApplicationDbContext db, IWebHostEnvironment env
     [HttpPost]
     public Task<IActionResult> Post([FromBody] AccountCreateRequest request) => SaveAccountAsync(request);
 
-    [HttpPost("create")]
-    public Task<IActionResult> Create([FromBody] AccountCreateRequest request) => SaveAccountAsync(request);
-
     [HttpPost("journal-entry")]
     [RequestSizeLimit(10_000_000)]
     public async Task<IActionResult> CreateJournalEntry([FromForm] JournalEntryCreateRequest request)

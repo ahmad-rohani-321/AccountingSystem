@@ -52,4 +52,22 @@ public sealed class FormValueSetter
                 assign(value.GetBoolean());
         });
     }
+
+    public static FormValueSetter Int32(string propertyName, Action<int> assign)
+    {
+        return new FormValueSetter(propertyName, value =>
+        {
+            if (value.ValueKind != JsonValueKind.Null && value.TryGetInt32(out var parsed))
+                assign(parsed);
+        });
+    }
+
+    public static FormValueSetter Decimal(string propertyName, Action<decimal> assign)
+    {
+        return new FormValueSetter(propertyName, value =>
+        {
+            if (value.ValueKind != JsonValueKind.Null && value.TryGetDecimal(out var parsed))
+                assign(parsed);
+        });
+    }
 }

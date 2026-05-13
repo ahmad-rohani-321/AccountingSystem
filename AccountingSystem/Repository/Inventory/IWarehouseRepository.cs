@@ -7,6 +7,4 @@ public interface IWarehouseRepository
     Task<WareHouse> GetByIdAsync(int id);
     Task AddAsync(WareHouse warehouse);
     Task UpdateAsync(WareHouse warehouse);
-    Task UpdateRangeAsync(List<WareHouse> list);
-    Task<bool> Exists(int id);
 }

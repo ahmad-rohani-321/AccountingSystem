@@ -130,10 +130,6 @@ Returns purchase order pages:
 
 The purchase order API workflow lives in `Controllers/APIs/PurchaseOrdersController.cs`.
 
-### `PurchaseReturnController`
-
-Reserved for purchase return pages. Current implementation is view-navigation focused.
-
 ### `WarehouseController`
 
 Returns inventory/warehouse pages:
@@ -183,7 +179,6 @@ Key endpoints:
 - `GET /api/Accounts/next-code`
 - `GET /api/Accounts/balance`
 - `POST /api/Accounts`
-- `POST /api/Accounts/create`
 - `POST /api/Accounts/journal-entry`
 - `PUT /api/Accounts`
 
@@ -401,7 +396,6 @@ Responsibilities:
 - Load categories with creator info.
 - Load category by id.
 - Add/update category.
-- Check existence.
 
 ### `IUnitRepository` / `UnitRepository`
 
@@ -409,7 +403,6 @@ Responsibilities:
 - Load units with creator info.
 - Load unit by id.
 - Add/update unit.
-- Check existence.
 
 ### `IWarehouseRepository` / `WarehouseRepository`
 
@@ -417,16 +410,12 @@ Responsibilities:
 - Load warehouses with creator info.
 - Load warehouse by id.
 - Add/update warehouse.
-- Add/update a mixed range through `UpdateRangeAsync`.
-- Check existence.
 
 ### `IItemsRepository` / `ItemsRepository`
 
 Responsibilities:
 - Add item.
-- Load item by id with category, unit, and creator info.
 - Update item.
-- Load all items with category, unit, and creator info.
 
 Refactor notes:
 - Some controllers still query `ApplicationDbContext` directly for inventory data. If repository usage continues, keep repository boundaries consistent. If services are introduced, prefer services for business workflows and keep repositories focused on persistence.

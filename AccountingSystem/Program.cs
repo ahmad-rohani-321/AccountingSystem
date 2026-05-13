@@ -3,11 +3,9 @@ using AccountingSystem.Models.Identity;
 using AccountingSystem.Repository.Inventory;
 using DevExpress.AspNetCore;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Localization;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
-using System.Globalization;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -42,22 +40,6 @@ builder.Services.ConfigureApplicationCookie(p =>
 }
     );
 
-// Localization (server-side)
-// var supportedCultures = new[] { new CultureInfo("ps-AF") };
-// CultureInfo.DefaultThreadCurrentCulture = supportedCultures[0];
-// CultureInfo.DefaultThreadCurrentUICulture = supportedCultures[0];
-// var requestLocalizationOptions = new RequestLocalizationOptions
-// {
-//     DefaultRequestCulture = new RequestCulture("ps-AF"),
-//     SupportedCultures = supportedCultures,
-//     SupportedUICultures = supportedCultures
-// };
-// requestLocalizationOptions.RequestCultureProviders = new IRequestCultureProvider[]
-// {
-//     new CookieRequestCultureProvider(),
-//     new AcceptLanguageHeaderRequestCultureProvider()
-// };
-
 #region Injections
 builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 builder.Services.AddScoped<IUnitRepository, UnitRepository>();
@@ -73,8 +55,6 @@ if (!app.Environment.IsDevelopment())
     app.UseExceptionHandler("/Home/Error");
 }
 app.UseStaticFiles();
-
-//app.UseRequestLocalization(requestLocalizationOptions);
 
 app.UseRouting();
 

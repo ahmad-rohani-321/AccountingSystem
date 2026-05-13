@@ -209,7 +209,7 @@
 
             const payload = { ...formPayload, Balances: balances };
 
-            fetch("/api/Accounts/create", {
+            fetch("/api/Accounts", {
                 method: "POST",
                 credentials: "same-origin",
                 headers: { "Content-Type": "application/json" },

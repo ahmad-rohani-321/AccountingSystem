@@ -31,20 +31,5 @@ namespace AccountingSystem.Repository.Inventory
             _context.WareHouses.Update(warehouse);
             await _context.SaveChangesAsync();
         }
-
-        public async Task UpdateRangeAsync(List<WareHouse> list)
-        {
-            var forUpdate = list.Where(x => x.ID != 0);
-            var forAdd = list.Where(x => x.ID == 0);
-            _context.UpdateRange(forUpdate);
-            _context.AddRange(forAdd);
-
-            await _context.SaveChangesAsync();
-        }
-
-        public async Task<bool> Exists(int id)
-        {
-            return await _context.WareHouses.AnyAsync(w => w.ID == id);
-        }
     }
 }

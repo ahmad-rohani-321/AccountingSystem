@@ -29,10 +29,5 @@ namespace AccountingSystem.Repository.Inventory
             _context.Units.Update(unit);
             await _context.SaveChangesAsync();
         }
-
-        public async Task<bool> Exists(int id)
-        {
-            return await _context.Units.AnyAsync(u => u.ID == id);
-        }
     }
 }

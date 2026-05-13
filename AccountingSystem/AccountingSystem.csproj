@@ -46,15 +46,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Models\Accounting\" />
-    <Folder Include="Views\Account\" />
-    <Folder Include="Views\Actions\" />
-    <Folder Include="Views\PurchaseOrder\" />
-    <Folder Include="wwwroot\images\itemsfolder\" />
-    <Folder Include="wwwroot\images\journalentry\" />
-  </ItemGroup>
-
-  <ItemGroup>
     <Compile Update="Reports\Account\NormalAccounts.cs">
       <SubType>XtraReport</SubType>
     </Compile>

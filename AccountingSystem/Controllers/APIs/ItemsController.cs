@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text.Json;
 using System.Threading.Tasks;
 using AccountingSystem.Data;
 using AccountingSystem.Models.Inventory;
@@ -667,48 +666,17 @@ namespace AccountingSystem.Controllers.APIs
 
         private static void ApplyValues(Item entity, string values)
         {
-            if (string.IsNullOrWhiteSpace(values))
-                return;
-
-            var dict = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(values);
-            if (dict is null || dict.Count == 0)
-                return;
-
-            if (dict.TryGetValue(nameof(Item.NativeName), out var nativeEl) && nativeEl.ValueKind != JsonValueKind.Null)
-                entity.NativeName = nativeEl.GetString() ?? string.Empty;
-
-            if (dict.TryGetValue(nameof(Item.AliasName), out var aliasEl) && aliasEl.ValueKind != JsonValueKind.Null)
-                entity.AliasName = aliasEl.GetString() ?? string.Empty;
-
-            if (dict.TryGetValue(nameof(Item.SKU), out var skuEl) && skuEl.ValueKind != JsonValueKind.Null)
-                entity.SKU = skuEl.GetString() ?? string.Empty;
-
-            if (dict.TryGetValue(nameof(Item.SerialNumber), out var serialEl) && serialEl.ValueKind != JsonValueKind.Null)
-                entity.SerialNumber = serialEl.GetString() ?? string.Empty;
-
-            if (dict.TryGetValue(nameof(Item.Description), out var descEl) && descEl.ValueKind != JsonValueKind.Null)
-                entity.Description = descEl.GetString() ?? string.Empty;
-
-            if (dict.TryGetValue(nameof(Item.MinimumQuantity), out var minEl) && minEl.ValueKind != JsonValueKind.Null)
-            {
-                if (minEl.TryGetDecimal(out var min))
-                    entity.MinimumQuantity = min;
-            }
-
-            if (dict.TryGetValue(nameof(Item.IsActive), out var activeEl) && activeEl.ValueKind is JsonValueKind.True or JsonValueKind.False)
-                entity.IsActive = activeEl.GetBoolean();
-
-            if (dict.TryGetValue(nameof(Item.CategoryId), out var catEl) && catEl.ValueKind != JsonValueKind.Null)
-            {
-                if (catEl.TryGetInt32(out var cat))
-                    entity.CategoryId = cat;
-            }
-
-            if (dict.TryGetValue(nameof(Item.UnitId), out var unitEl) && unitEl.ValueKind != JsonValueKind.Null)
-            {
-                if (unitEl.TryGetInt32(out var unit))
-                    entity.UnitId = unit;
-            }
+            DevExtremeFormValueMapper.Apply(
+                values,
+                FormValueSetter.String(nameof(Item.NativeName), value => entity.NativeName = value),
+                FormValueSetter.String(nameof(Item.AliasName), value => entity.AliasName = value),
+                FormValueSetter.String(nameof(Item.SKU), value => entity.SKU = value),
+                FormValueSetter.String(nameof(Item.SerialNumber), value => entity.SerialNumber = value),
+                FormValueSetter.String(nameof(Item.Description), value => entity.Description = value),
+                FormValueSetter.Decimal(nameof(Item.MinimumQuantity), value => entity.MinimumQuantity = value),
+                FormValueSetter.Boolean(nameof(Item.IsActive), value => entity.IsActive = value),
+                FormValueSetter.Int32(nameof(Item.CategoryId), value => entity.CategoryId = value),
+                FormValueSetter.Int32(nameof(Item.UnitId), value => entity.UnitId = value));
         }
     }
 
