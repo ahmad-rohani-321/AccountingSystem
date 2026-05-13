@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace AccountingSystem.Migrations
 {
     /// <inheritdoc />
-    public partial class InitializationMigration : Migration
+    public partial class InitialMigration : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -447,6 +447,8 @@ namespace AccountingSystem.Migrations
                     TotalAmount = table.Column<decimal>(type: "TEXT", nullable: false),
                     ReceivedAmount = table.Column<decimal>(type: "TEXT", nullable: false),
                     RemainingAmount = table.Column<decimal>(type: "TEXT", nullable: false),
+                    IsRefunded = table.Column<bool>(type: "INTEGER", nullable: false),
+                    IsHolded = table.Column<bool>(type: "INTEGER", nullable: false),
                     CreationDate = table.Column<DateTime>(type: "TEXT", nullable: false),
                     CreatedByUserId = table.Column<string>(type: "TEXT", nullable: true)
                 },
@@ -835,31 +837,31 @@ namespace AccountingSystem.Migrations
             migrationBuilder.InsertData(
                 table: "User",
                 columns: new[] { "Id", "AccessFailedCount", "ConcurrencyStamp", "Email", "EmailConfirmed", "FirstName", "LastName", "LockoutEnabled", "LockoutEnd", "NormalizedEmail", "NormalizedUserName", "PasswordHash", "PhoneNumber", "PhoneNumberConfirmed", "ProfilePhoto", "SecurityStamp", "TwoFactorEnabled", "UserName" },
-                values: new object[] { "f5b9b7e7-2d3a-4b4d-a1b5-1b3f2a7a9e01", 0, "7a3c2e1d-9b8a-4f6e-8c2b-5d4f3a2b1c9e", "admin", true, "admin", "admin", false, null, "ADMIN", "ADMIN", "AQAAAAIAAYagAAAAEGNOGk1eKC+3XEUPXtZLyc3arBLv60AvyriACi8RgfRGDjpGp0JfTjcPhprnrmYmKw==", null, false, "", "2c9a4d9b-4f5a-4b8b-9a7c-2b1c3d4e5f61", false, "admin" });
+                values: new object[] { "f5b9b7e7-2d3a-4b4d-a1b5-1b3f2a7a9e01", 0, "7a3c2e1d-9b8a-4f6e-8c2b-5d4f3a2b1c9e", "admin", true, "admin", "admin", false, null, "ADMIN", "ADMIN", "AQAAAAIAAYagAAAAEO+iTv8+9wkOgSceOoTQ0u0A8O7b7MUEruZF5/9iEwY5J2uzr1qr9u9yD3KsgciAmw==", null, false, "", "2c9a4d9b-4f5a-4b8b-9a7c-2b1c3d4e5f61", false, "admin" });
 
             migrationBuilder.InsertData(
                 table: "Accounts",
                 columns: new[] { "ID", "AccountTypeID", "Code", "CreatedByUserId", "CreationDate", "IsActive", "Name" },
-                values: new object[] { 1, 10, "Walkin", "f5b9b7e7-2d3a-4b4d-a1b5-1b3f2a7a9e01", new DateTime(2026, 5, 2, 18, 42, 56, 356, DateTimeKind.Local).AddTicks(5837), true, "عادي" });
+                values: new object[] { 1, 10, "Walkin", "f5b9b7e7-2d3a-4b4d-a1b5-1b3f2a7a9e01", new DateTime(2026, 5, 11, 12, 48, 54, 227, DateTimeKind.Local).AddTicks(1408), true, "عادي" });
 
             migrationBuilder.InsertData(
                 table: "Currencies",
                 columns: new[] { "ID", "CreatedByUserId", "CreationDate", "CurrencyName", "CurrencySymbole", "IsActive", "IsMainCurrency" },
                 values: new object[,]
                 {
-                    { 1, "f5b9b7e7-2d3a-4b4d-a1b5-1b3f2a7a9e01", new DateTime(2026, 5, 2, 18, 42, 56, 357, DateTimeKind.Local).AddTicks(3246), "افغانۍ", "AFN", true, true },
-                    { 2, "f5b9b7e7-2d3a-4b4d-a1b5-1b3f2a7a9e01", new DateTime(2026, 5, 2, 18, 42, 56, 357, DateTimeKind.Local).AddTicks(3257), "ډالر", "USD", true, false }
+                    { 1, "f5b9b7e7-2d3a-4b4d-a1b5-1b3f2a7a9e01", new DateTime(2026, 5, 11, 12, 48, 54, 227, DateTimeKind.Local).AddTicks(6010), "افغانۍ", "AFN", true, true },
+                    { 2, "f5b9b7e7-2d3a-4b4d-a1b5-1b3f2a7a9e01", new DateTime(2026, 5, 11, 12, 48, 54, 227, DateTimeKind.Local).AddTicks(6016), "ډالر", "USD", true, false }
                 });
 
             migrationBuilder.InsertData(
                 table: "WareHouses",
                 columns: new[] { "ID", "CreatedByUserId", "CreationDate", "Description", "IsActive", "Name" },
-                values: new object[] { 1, "f5b9b7e7-2d3a-4b4d-a1b5-1b3f2a7a9e01", new DateTime(2026, 5, 2, 18, 42, 56, 354, DateTimeKind.Local).AddTicks(7226), "اصلي ګدام د ټولو موادو لپاره دی.", true, "عمومي ګدام" });
+                values: new object[] { 1, "f5b9b7e7-2d3a-4b4d-a1b5-1b3f2a7a9e01", new DateTime(2026, 5, 11, 12, 48, 54, 225, DateTimeKind.Local).AddTicks(8472), "اصلي ګدام د ټولو موادو لپاره دی.", true, "عمومي ګدام" });
 
             migrationBuilder.InsertData(
                 table: "AccountContacts",
                 columns: new[] { "ID", "AccountID", "Address", "CreatedByUserId", "CreationDate", "Email", "FirstPhone", "NIC", "SecondPhone" },
-                values: new object[] { 1, 1, "", "f5b9b7e7-2d3a-4b4d-a1b5-1b3f2a7a9e01", new DateTime(2026, 5, 2, 18, 42, 56, 356, DateTimeKind.Local).AddTicks(7807), "", "", "", "" });
+                values: new object[] { 1, 1, "", "f5b9b7e7-2d3a-4b4d-a1b5-1b3f2a7a9e01", new DateTime(2026, 5, 11, 12, 48, 54, 227, DateTimeKind.Local).AddTicks(2579), "", "", "", "" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_AccountBalances_AccountID",

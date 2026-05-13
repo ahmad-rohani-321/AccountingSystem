@@ -41,7 +41,25 @@
         </div>
 
     </div>
-    
+
+    <div class="row mt-3">
+        <div class="col-12">
+            <div id="purchase-hold-toggle-card" class="purchase-hold-toggle-card">
+                <div class="purchase-hold-toggle-main">
+                    @(
+                        Html.DevExtreme().CheckBox()
+                        .ID("is-holded")
+                        .Text("که چک وي، خرید ساتل کېږي")
+                        .Value(false)
+                        .OnValueChanged("purchasePage.onIsHoldedChanged")
+                    )
+                </div>
+                <small id="purchase-hold-summary" class="purchase-hold-summary">
+                    خرید نه ساتل کیږي. د ثبت پر مهال به حسابونه او اړوند مالي اغېزې تطبیق سي.
+                </small>
+            </div>
+        </div>
+    </div>
 </div>
 
 <div class="dx-card px-4 py-3 mb-3 purchase-form-card">
@@ -197,13 +215,25 @@
             </div>
         </div>
 
-        <div class="col-8">
-            <div class="purchase-field purchase-field-wide">
+        <div class="col-12 col-lg-4">
+            <div class="purchase-field">
                 <label class="purchase-label">ملاحظات</label>
                 @(
                     Html.DevExtreme().TextArea()
                     .ID("purchase-notes")
                     .Placeholder("ملاحظات...")
+                )
+            </div>
+        </div>
+
+        <div class="col-12 col-lg-4">
+            <div class="purchase-field purchase-field-readonly">
+                <label class="purchase-label">د حساب بلانس په تورو</label>
+                @(
+                    Html.DevExtreme().TextArea()
+                    .ID("account-balance-words")
+                    .ReadOnly(true)
+                    .Height(78)
                 )
             </div>
         </div>
@@ -525,9 +555,35 @@
             return getSelectedAccountTypeId() === strictFullPaymentAccountTypeId;
         }
 
+        function isHoldedSelected() {
+            var holdedInstance = $("#is-holded").dxCheckBox("instance");
+            return holdedInstance ? !!holdedInstance.option("value") : false;
+        }
+
+        function syncHoldStatePresentation() {
+            var isHolded = isHoldedSelected();
+            var summary = $("#purchase-hold-summary");
+            var card = $("#purchase-hold-toggle-card");
+
+            if (card.length) {
+                card.toggleClass("purchase-hold-toggle-card-active", !isHolded);
+            }
+
+            if (summary.length) {
+                summary.text(isHolded
+                    ? "خرید ساتل کیږي. تر څو چې چک لرې نه سي، حسابونه او مالي اغېزې نه تطبیقېږي."
+                    : "خرید نه ساتل کیږي. د ثبت پر مهال به حسابونه او اړوند مالي اغېزې تطبیق سي.");
+            }
+        }
+
         function syncSpecialAccountPaymentRule() {
             var receivedInstance = $("#purchase-received").dxNumberBox("instance");
             if (!receivedInstance) return;
+
+            if (isHoldedSelected()) {
+                receivedInstance.option("readOnly", false);
+                return;
+            }
 
             var shouldForceFullPayment = isStrictFullPaymentAccountSelected();
             receivedInstance.option("readOnly", shouldForceFullPayment);
@@ -690,99 +746,6 @@
             return Number(value).toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
         }
 
-        function numberToWords(number) {
-            var numericValue = Number(number);
-            if (!Number.isFinite(numericValue)) return "";
-
-            number = Math.trunc(numericValue);
-            if (number === 0) return "صفر";
-            if (number < 0) return "منفي " + numberToWords(Math.abs(number));
-
-            var words = "";
-
-            if (Math.floor(number / 1000000000) > 0) {
-                if (Math.floor(number / 1000000000) >= 2) {
-                    words += numberToWords(Math.floor(number / 1000000000)) + " میلیارده ";
-                } else {
-                    words += " یو میلیارد ";
-                }
-                number %= 1000000000;
-            }
-
-            if (Math.floor(number / 1000000) > 0) {
-                if (Math.floor(number / 1000000) >= 2) {
-                    words += numberToWords(Math.floor(number / 1000000)) + " ملیونه ";
-                } else {
-                    words += " یو ملیون ";
-                }
-                number %= 1000000;
-            }
-
-            if (Math.floor(number / 1000) > 0) {
-                if (Math.floor(number / 1000) >= 2) {
-                    words += numberToWords(Math.floor(number / 1000)) + " زره ";
-                    number %= 1000;
-                } else {
-                    number %= 1000;
-                    words += number > 0 ? " یو زر " : " زر ";
-                }
-            }
-
-            if (Math.floor(number / 100) > 0) {
-                if (Math.floor(number / 100) >= 2) {
-                    words += numberToWords(Math.floor(number / 100)) + " سوه ";
-                    number %= 100;
-                } else {
-                    number %= 100;
-                    words += number > 0 ? " یو سل " : " سل ";
-                }
-            }
-
-            if (number > 0) {
-                if (words !== "") words += "او ";
-
-                var unitsMap = [
-                    "صفر", "یو", "دوه", "درې", "څلور", "پنځه", "شپږ", "اووه", "اته", "نه",
-                    "لس", "یوولس", "دولس", "دیارلس", "څوارلس", "پنځلس", "شپاړلس", "اوولس", "اتلس", "نولس",
-                    "شل", "یوویشت", "دوه ویشت", "درویشت", "څلورویشت", "پنځه ویشت", "شپږویشت", "اوه ویشت", "اته ویشت", "نه ویشت"
-                ];
-
-                var tensMap = ["صفر", "لس", "شل", "دیرش", "څلوېښت", "پنځوس", "شپیته", "اویا", "اتیا", "نوي"];
-
-                if (number < 30) {
-                    words += unitsMap[number];
-                } else {
-                    var lastWords = "";
-                    var lastTens = tensMap[Math.floor(number / 10)];
-                    if ((number % 10) > 0) lastWords += unitsMap[number % 10];
-                    lastWords += " " + lastTens;
-                    words += lastWords;
-                }
-            }
-
-            return words.replace(/\s+/g, " ").trim();
-        }
-
-        function humanizeNumberValue(value) {
-            var numericValue = Number(value);
-            if (!Number.isFinite(numericValue)) return "صفر";
-
-            var absoluteValue = Math.abs(numericValue);
-            var integerPart = Math.trunc(absoluteValue);
-            var fractionalPart = Math.round((absoluteValue - integerPart) * 100);
-            var words = numberToWords(integerPart);
-
-            if (fractionalPart > 0) {
-                words += " اعشاریه " + numberToWords(fractionalPart);
-            }
-
-            if (numericValue < 0) {
-                words = "منفي " + words;
-            }
-
-            return words.replace(/\s+/g, " ").trim();
-        }
-
         function getCurrencySelection() {
             var currencyInstance = $("#currency-selector").dxSelectBox("instance");
             var currencyId = currencyInstance ? Number(currencyInstance.option("value")) : 0;
@@ -804,10 +767,24 @@
             label.text("بلانس (" + currencyName + "): " + numericText + " (" + wordsText + ")");
         }
 
+        function setAccountBalanceWords(balanceValue) {
+            var wordsInstance = $("#account-balance-words").dxTextArea("instance");
+            if (!wordsInstance) return;
+
+            wordsInstance.option("value", humanizeNumberValue(balanceValue));
+        }
+
         function resetBalanceLabel(labelSelector) {
             var label = $(labelSelector);
             if (!label.length) return;
             label.text("بلانس: 0 (صفر)");
+        }
+
+        function resetAccountBalanceWords() {
+            var wordsInstance = $("#account-balance-words").dxTextArea("instance");
+            if (!wordsInstance) return;
+
+            wordsInstance.option("value", "صفر");
         }
 
         function refreshBalanceLabel(accountSelector, labelSelector) {
@@ -817,6 +794,7 @@
 
             if (!accountId || !currencySelection.currencyId) {
                 resetBalanceLabel(labelSelector);
+                if (labelSelector === "#account-balance-note") resetAccountBalanceWords();
                 return;
             }
 
@@ -830,8 +808,10 @@
             }).done(function (result) {
                 var balance = result && result.Balance !== undefined ? Number(result.Balance) : 0;
                 setBalanceLabel(labelSelector, currencySelection.currencyName, balance);
+                if (labelSelector === "#account-balance-note") setAccountBalanceWords(balance);
             }).fail(function () {
                 resetBalanceLabel(labelSelector);
+                if (labelSelector === "#account-balance-note") resetAccountBalanceWords();
             });
         }
 
@@ -887,6 +867,12 @@
 
         function onTreasureSelectionChanged() {
             refreshBalanceLabel("#treasure-selector", "#treasure-balance-note");
+            refreshPaymentValidators();
+        }
+
+        function onIsHoldedChanged() {
+            syncHoldStatePresentation();
+            syncSpecialAccountPaymentRule();
             refreshPaymentValidators();
         }
 
@@ -1049,6 +1035,7 @@
                 PurchaseNo: purchaseNo,
                 AccountID: accountId,
                 TreasureAccountID: getSelectBoxValue("#treasure-selector") || null,
+                IsHolded: isHoldedSelected(),
                 CurrencyID: currencyId,
                 PurchaseDate: dateInstance ? dateInstance.option("value") : null,
                 TotalAmount: getNumberBoxValue("#purchase-total"),
@@ -1302,6 +1289,7 @@
             var notesInstance = $("#purchase-notes").dxTextArea("instance");
             var receivedInstance = $("#purchase-received").dxNumberBox("instance");
             var remainingInstance = $("#purchase-remaining").dxNumberBox("instance");
+            var isHoldedInstance = $("#is-holded").dxCheckBox("instance");
             var purchaseGrid = $("#purchase-details").dxDataGrid("instance");
 
             if (purchaseNoInstance) purchaseNoInstance.option("value", null);
@@ -1312,6 +1300,7 @@
             if (notesInstance) notesInstance.option("value", "");
             if (receivedInstance) receivedInstance.option("value", null);
             if (remainingInstance) remainingInstance.option("value", 0);
+            if (isHoldedInstance) isHoldedInstance.option("value", false);
             selectedPurchaseOrderId = null;
 
             setAccountContactFields(null);
@@ -1330,6 +1319,7 @@
 
             updatePurchaseTotal();
 
+            syncHoldStatePresentation();
             setDefaultCurrencyToFirst();
             refreshAllBalanceLabels();
             loadNextPurchaseNo();
@@ -1375,6 +1365,7 @@
                         reevaluate: true,
                         message: "کله چې رسید داخل وي، تجري/بانک انتخاب کړئ.",
                         validationCallback: function () {
+                            if (isHoldedSelected()) return true;
                             var receivedAmount = getNumberBoxValue("#purchase-received");
                             var treasureAccountId = getSelectBoxValue("#treasure-selector");
                             return receivedAmount <= 0 || treasureAccountId > 0;
@@ -1390,6 +1381,7 @@
                         reevaluate: true,
                         message: "کله چې تجري/بانک انتخاب وي، رسید باید له صفر څخه زیات وي.",
                         validationCallback: function () {
+                            if (isHoldedSelected()) return true;
                             var treasureAccountId = getSelectBoxValue("#treasure-selector");
                             var receivedAmount = getNumberBoxValue("#purchase-received");
                             return !treasureAccountId || receivedAmount > 0;
@@ -1408,6 +1400,7 @@
                         reevaluate: true,
                         message: "د حساب ټایپ 10 لپاره رسید باید له مجموعې سره مساوي وي.",
                         validationCallback: function () {
+                            if (isHoldedSelected()) return true;
                             if (!isStrictFullPaymentAccountSelected()) return true;
                             return getNumberBoxValue("#purchase-received") === getNumberBoxValue("#purchase-total");
                         }
@@ -1417,6 +1410,10 @@
                         reevaluate: true,
                         message: "رسید مبلغ په دخل/بانک کې نه دی.",
                         validationCallback: function () {
+                            if (isHoldedSelected()) {
+                                return $.Deferred().resolve(true).promise();
+                            }
+
                             var treasureAccountId = getSelectBoxValue("#treasure-selector");
                             var currencyId = getSelectBoxValue("#currency-selector");
                             var receivedAmount = getNumberBoxValue("#purchase-received");
@@ -1437,6 +1434,7 @@
             });
 
             useVisibleEditorValidationMessages();
+            syncHoldStatePresentation();
             syncSpecialAccountPaymentRule();
 
             $.when(refreshActiveItemsCache(), refreshActiveWarehousesCache()).always(function () {
@@ -1465,6 +1463,7 @@
             onAccountSelectionChanged: onAccountSelectionChanged,
             onAccountValueChanged: onAccountValueChanged,
             onTreasureSelectionChanged: onTreasureSelectionChanged,
+            onIsHoldedChanged: onIsHoldedChanged,
             onCurrencyChanged: onCurrencyChanged,
             onReceivedAmountChanged: onReceivedAmountChanged,
             onSaveFormClick: onSaveFormClick,
@@ -1474,6 +1473,31 @@
     })();
 </script>
 <style>
+    .purchase-hold-toggle-card {
+        border: 1px solid #d6dee8;
+        border-radius: 14px;
+        background: linear-gradient(180deg, #fff7ed 0%, #fffbeb 100%);
+        padding: 0.9rem 1rem;
+        box-shadow: 0 8px 20px rgba(148, 64, 14, 0.08);
+    }
+
+    .purchase-hold-toggle-card.purchase-hold-toggle-card-active {
+        background: linear-gradient(180deg, #ecfdf5 0%, #f0fdf4 100%);
+        box-shadow: 0 8px 20px rgba(21, 128, 61, 0.08);
+    }
+
+    .purchase-hold-toggle-main .dx-checkbox-text {
+        font-weight: 700;
+        color: #0f172a;
+    }
+
+    .purchase-hold-summary {
+        display: block;
+        margin-top: 0.45rem;
+        color: #475569;
+        font-size: 0.86rem;
+    }
+
     .purchase-form-card {
         border: 1px solid #e2e8f0;
         border-radius: 14px;

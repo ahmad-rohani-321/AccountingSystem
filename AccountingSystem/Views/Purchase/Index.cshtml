@@ -6,16 +6,7 @@
     @(
         Html.DevExtreme().DataGrid()
             .ID("today-purchases-grid")
-            .DataSource(ds => ds.WebApi()
-                .Controller("Purchases")
-                .LoadAction("GetToday")
-                .LoadParams(new
-                {
-                    fromDate = new JS("purchaseIndexPage.getFilterFromDateParam"),
-                    toDate = new JS("purchaseIndexPage.getFilterToDateParam"),
-                    accountId = new JS("purchaseIndexPage.getFilterAccountIdParam")
-                })
-                .Key("ID"))
+            .DataSource(new JS("purchaseIndexPage.todayPurchasesDataSource"))
             .RemoteOperations(true)
             .ShowBorders(true)
             .RowAlternationEnabled(true)
@@ -259,6 +250,8 @@
         var returnPopupInstance = null;
         var returnPopupContentInitialized = false;
         var pendingReturnPurchaseId = null;
+        var currentReturnPurchaseId = null;
+        var hasForcedInitialTodayLoad = false;
         var returnPopupDetailsData = [];
         var returnPopupUnitOptionsByItemId = {};
         var returnPopupActiveItemNameById = {};
@@ -344,98 +337,6 @@
             return Number(value).toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
         }
 
-        function numberToWords(number) {
-            var numericValue = Number(number);
-            if (!Number.isFinite(numericValue)) return "";
-
-            number = Math.trunc(numericValue);
-            if (number === 0) return "صفر";
-            if (number < 0) return "منفي " + numberToWords(Math.abs(number));
-
-            var words = "";
-
-            if (Math.floor(number / 1000000000) > 0) {
-                if (Math.floor(number / 1000000000) >= 2) {
-                    words += numberToWords(Math.floor(number / 1000000000)) + " میلیارده ";
-                } else {
-                    words += " یو میلیارد ";
-                }
-                number %= 1000000000;
-            }
-
-            if (Math.floor(number / 1000000) > 0) {
-                if (Math.floor(number / 1000000) >= 2) {
-                    words += numberToWords(Math.floor(number / 1000000)) + " ملیونه ";
-                } else {
-                    words += " یو ملیون ";
-                }
-                number %= 1000000;
-            }
-
-            if (Math.floor(number / 1000) > 0) {
-                if (Math.floor(number / 1000) >= 2) {
-                    words += numberToWords(Math.floor(number / 1000)) + " زره ";
-                    number %= 1000;
-                } else {
-                    number %= 1000;
-                    words += number > 0 ? " یو زر " : " زر ";
-                }
-            }
-
-            if (Math.floor(number / 100) > 0) {
-                if (Math.floor(number / 100) >= 2) {
-                    words += numberToWords(Math.floor(number / 100)) + " سوه ";
-                    number %= 100;
-                } else {
-                    number %= 100;
-                    words += number > 0 ? " یو سل " : " سل ";
-                }
-            }
-
-            if (number > 0) {
-                if (words !== "") words += "او ";
-
-                var unitsMap = [
-                    "صفر", "یو", "دوه", "درې", "څلور", "پنځه", "شپږ", "اووه", "اته", "نه",
-                    "لس", "یوولس", "دولس", "دیارلس", "څوارلس", "پنځلس", "شپاړلس", "اوولس", "اتلس", "نولس",
-                    "شل", "یوویشت", "دوه ویشت", "درویشت", "څلورویشت", "پنځه ویشت", "شپږویشت", "اوه ویشت", "اته ویشت", "نه ویشت"
-                ];
-
-                var tensMap = ["صفر", "لس", "شل", "دیرش", "څلوېښت", "پنځوس", "شپیته", "اویا", "اتیا", "نوي"];
-
-                if (number < 30) {
-                    words += unitsMap[number];
-                } else {
-                    var lastWords = "";
-                    var lastTens = tensMap[Math.floor(number / 10)];
-                    if ((number % 10) > 0) lastWords += unitsMap[number % 10];
-                    lastWords += " " + lastTens;
-                    words += lastWords;
-                }
-            }
-
-            return words.replace(/\s+/g, " ").trim();
-        }
-
-        function humanizeNumberValue(value) {
-            var numericValue = Number(value);
-            if (!Number.isFinite(numericValue)) return "صفر";
-
-            var absoluteValue = Math.abs(numericValue);
-            var integerPart = Math.trunc(absoluteValue);
-            var fractionalPart = Math.round((absoluteValue - integerPart) * 100);
-            var words = numberToWords(integerPart);
-
-            if (fractionalPart > 0) {
-                words += " اعشاریه " + numberToWords(fractionalPart);
-            }
-
-            if (numericValue < 0) {
-                words = "منفي " + words;
-            }
-
-            return words.replace(/\s+/g, " ").trim();
-        }
 
         function setBalanceLabel(labelSelector, currencyName, balanceValue) {
             var label = $(labelSelector);
@@ -607,6 +508,7 @@
             }
 
             returnPopupDetailsData.length = 0;
+            currentReturnPurchaseId = null;
             currentReturnAccountId = 0;
             currentReturnCurrencyId = 0;
             currentReturnCurrencyName = "";
@@ -632,10 +534,12 @@
         function validateReturnForm() {
             var treasureEditor = $("#purchaseReturnTreasure").dxSelectBox("instance");
             var quantityEditor = $("#purchaseReturnQuantity").dxNumberBox("instance");
+            var receivedEditor = $("#purchaseReturnReceived").dxNumberBox("instance");
             var treasureId = treasureEditor ? treasureEditor.option("value") : null;
             var rawQuantity = quantityEditor ? quantityEditor.option("value") : null;
             var hasQuantityInput = rawQuantity !== null && rawQuantity !== undefined && rawQuantity !== "";
             var quantityValue = hasQuantityInput ? Number(rawQuantity) : 0;
+            var receivedAmount = receivedEditor ? Number(receivedEditor.option("value") || 0) : 0;
             var hasTreasure = !!treasureId;
             var hasQuantity = hasQuantityInput && !Number.isNaN(quantityValue) && quantityValue > 0;
 
@@ -663,13 +567,59 @@
                 return false;
             }
 
+            if (hasQuantity && quantityValue > receivedAmount) {
+                var refundAmountMessage = "Refund amount cannot be greater than the purchase received amount.";
+                setReturnFieldValidationState(quantityEditor, refundAmountMessage);
+                DevExpress.ui.notify(refundAmountMessage, "error", 3200);
+                return false;
+            }
+
             return true;
+        }
+
+        function buildReturnPayload() {
+            var treasureEditor = $("#purchaseReturnTreasure").dxSelectBox("instance");
+            var quantityEditor = $("#purchaseReturnQuantity").dxNumberBox("instance");
+
+            return {
+                TreasureAccountID: treasureEditor ? (treasureEditor.option("value") || null) : null,
+                RefundAmount: quantityEditor ? Number(quantityEditor.option("value") || 0) : 0
+            };
         }
 
         function onReturnSaveClick() {
             if (!validateReturnForm()) {
                 return;
             }
+            if (!currentReturnPurchaseId) {
+                DevExpress.ui.notify("Purchase was not found.", "error", 2500);
+                return;
+            }
+
+            setReturnPopupLoadingState(true, "Saving refund...");
+
+            $.ajax({
+                url: purchasesApiBaseUrl + currentReturnPurchaseId + "/refund",
+                method: "POST",
+                contentType: "application/json; charset=utf-8",
+                data: JSON.stringify(buildReturnPayload())
+            }).done(function (response) {
+                setReturnPopupLoadingState(false, "Refund saved successfully.");
+                DevExpress.ui.notify(response && response.Message ? response.Message : "Purchase refund completed successfully.", "success", 2500);
+
+                if (returnPopupInstance) {
+                    returnPopupInstance.hide();
+                }
+
+                var grid = getGrid();
+                if (grid) {
+                    grid.refresh();
+                }
+            }).fail(function (xhr) {
+                setReturnPopupLoadingState(false, "Purchase details will appear here.");
+                DevExpress.ui.notify((xhr && xhr.responseJSON && xhr.responseJSON.Message) ? xhr.responseJSON.Message : "Refund could not be saved.", "error", 3600);
+            });
+            return;
 
             DevExpress.ui.notify("معلومات سم دي.", "success", 1800);
         }
@@ -682,6 +632,7 @@
 
             currentReturnAccountId = accountId || 0;
             currentReturnCurrencyId = currencyId || 0;
+            currentReturnPurchaseId = response && response.PurchaseID ? response.PurchaseID : null;
 
             $("#purchaseReturnNo").dxNumberBox("instance").option("value", response && response.PurchaseNo ? response.PurchaseNo : null);
             $("#purchaseReturnAccount").dxTextBox("instance").option("value", currentReturnAccountName || "");
@@ -1021,7 +972,7 @@
         }
 
         function createPurchasesDataSource(loadAction) {
-            return {
+            return new DevExpress.data.DataSource({
                 store: new DevExpress.data.CustomStore({
                     key: "ID",
                     load: function () {
@@ -1034,8 +985,10 @@
                                 };
                             });
                     }
-                })
-            };
+                }),
+                paginate: true,
+                pageSize: 15
+            });
         }
 
         function reloadGridWithAction(loadAction) {
@@ -1043,6 +996,32 @@
             if (!grid) return;
 
             grid.option("dataSource", createPurchasesDataSource(loadAction));
+        }
+
+        function forceInitialTodayLoad(attempt) {
+            if (hasForcedInitialTodayLoad) return;
+
+            var grid = getGrid();
+            if (!grid) {
+                if ((attempt || 0) < 20) {
+                    window.setTimeout(function () {
+                        forceInitialTodayLoad((attempt || 0) + 1);
+                    }, 150);
+                }
+                return;
+            }
+
+            hasForcedInitialTodayLoad = true;
+            clearActiveFilters();
+            reloadGridWithAction("GetCreatedToday");
+
+            var dataSource = grid.getDataSource();
+            if (dataSource) {
+                dataSource.reload();
+                return;
+            }
+
+            grid.refresh();
         }
 
         function onRefreshClick() {
@@ -1250,10 +1229,16 @@
             var rowData = e && e.row ? e.row.data : null;
             if (!rowData || !rowData.ID) return;
 
+            if (rowData.IsRefunded) {
+                DevExpress.ui.notify("This purchase is already refunded.", "warning", 2500);
+                return;
+            }
+
             currentReturnAccountId = rowData.AccountID || 0;
             currentReturnCurrencyId = rowData.CurrencyID || 0;
             currentReturnAccountName = rowData.AccountName || "";
             currentReturnCurrencyName = rowData.CurrencyName || "";
+            currentReturnPurchaseId = rowData.ID;
             pendingReturnPurchaseId = rowData.ID;
             ensureReturnPopup().show();
 
@@ -1267,7 +1252,12 @@
         function onRowPrintClick(e) {
         }
 
+        $(function () {
+            forceInitialTodayLoad(0);
+        });
+
         return {
+            todayPurchasesDataSource: createPurchasesDataSource("GetCreatedToday"),
             onRefreshClick: onRefreshClick,
             onPrintClick: onPrintClick,
             onFilterClick: onFilterClick,

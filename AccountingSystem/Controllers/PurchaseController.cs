@@ -1,9 +1,12 @@
+using AccountingSystem.Data;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace AccountingSystem.Controllers
 {
-    public class PurchaseController : Controller
+    public class PurchaseController(ApplicationDbContext db) : Controller
     {
+        private readonly ApplicationDbContext _db = db;
 
         public IActionResult Index()
         {
@@ -11,8 +14,15 @@ namespace AccountingSystem.Controllers
         }
 
         [HttpGet]
-        public IActionResult PurchaseEdit(int id)
+        public async Task<IActionResult> PurchaseEdit(int id)
         {
+            var purchase = await _db.Purchases
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.ID == id);
+
+            if (purchase is null || !purchase.IsHolded)
+                return RedirectToAction(nameof(Index));
+
             ViewData["title"] = "د خرید سمون";
             ViewData["PurchaseId"] = id;
 
@@ -25,6 +35,5 @@ namespace AccountingSystem.Controllers
 
             return View();
         }
-
     }
 }

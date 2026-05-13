@@ -170,7 +170,7 @@ namespace AccountingSystem.Migrations
                             AccountTypeID = 10,
                             Code = "Walkin",
                             CreatedByUserId = "f5b9b7e7-2d3a-4b4d-a1b5-1b3f2a7a9e01",
-                            CreationDate = new DateTime(2026, 5, 6, 19, 52, 39, 174, DateTimeKind.Local).AddTicks(5844),
+                            CreationDate = new DateTime(2026, 5, 11, 12, 48, 54, 227, DateTimeKind.Local).AddTicks(1408),
                             IsActive = true,
                             Name = "عادي"
                         });
@@ -253,7 +253,7 @@ namespace AccountingSystem.Migrations
                             AccountID = 1,
                             Address = "",
                             CreatedByUserId = "f5b9b7e7-2d3a-4b4d-a1b5-1b3f2a7a9e01",
-                            CreationDate = new DateTime(2026, 5, 6, 19, 52, 39, 174, DateTimeKind.Local).AddTicks(7822),
+                            CreationDate = new DateTime(2026, 5, 11, 12, 48, 54, 227, DateTimeKind.Local).AddTicks(2579),
                             Email = "",
                             FirstPhone = "",
                             NIC = "",
@@ -412,7 +412,7 @@ namespace AccountingSystem.Migrations
                             LockoutEnabled = false,
                             NormalizedEmail = "ADMIN",
                             NormalizedUserName = "ADMIN",
-                            PasswordHash = "AQAAAAIAAYagAAAAEOyCWpK7nVAIbon+okcI3l/02e3liiHSIQViIoyyBgRW87Le3SbVtNSoBzknruQdyg==",
+                            PasswordHash = "AQAAAAIAAYagAAAAEO+iTv8+9wkOgSceOoTQ0u0A8O7b7MUEruZF5/9iEwY5J2uzr1qr9u9yD3KsgciAmw==",
                             PhoneNumberConfirmed = false,
                             ProfilePhoto = "",
                             SecurityStamp = "2c9a4d9b-4f5a-4b8b-9a7c-2b1c3d4e5f61",
@@ -783,7 +783,7 @@ namespace AccountingSystem.Migrations
                         {
                             ID = 1,
                             CreatedByUserId = "f5b9b7e7-2d3a-4b4d-a1b5-1b3f2a7a9e01",
-                            CreationDate = new DateTime(2026, 5, 6, 19, 52, 39, 172, DateTimeKind.Local).AddTicks(7056),
+                            CreationDate = new DateTime(2026, 5, 11, 12, 48, 54, 225, DateTimeKind.Local).AddTicks(8472),
                             Description = "اصلي ګدام د ټولو موادو لپاره دی.",
                             IsActive = true,
                             Name = "عمومي ګدام"
@@ -989,7 +989,7 @@ namespace AccountingSystem.Migrations
                         {
                             ID = 1,
                             CreatedByUserId = "f5b9b7e7-2d3a-4b4d-a1b5-1b3f2a7a9e01",
-                            CreationDate = new DateTime(2026, 5, 6, 19, 52, 39, 175, DateTimeKind.Local).AddTicks(3458),
+                            CreationDate = new DateTime(2026, 5, 11, 12, 48, 54, 227, DateTimeKind.Local).AddTicks(6010),
                             CurrencyName = "افغانۍ",
                             CurrencySymbole = "AFN",
                             IsActive = true,
@@ -999,7 +999,7 @@ namespace AccountingSystem.Migrations
                         {
                             ID = 2,
                             CreatedByUserId = "f5b9b7e7-2d3a-4b4d-a1b5-1b3f2a7a9e01",
-                            CreationDate = new DateTime(2026, 5, 6, 19, 52, 39, 175, DateTimeKind.Local).AddTicks(3472),
+                            CreationDate = new DateTime(2026, 5, 11, 12, 48, 54, 227, DateTimeKind.Local).AddTicks(6016),
                             CurrencyName = "ډالر",
                             CurrencySymbole = "USD",
                             IsActive = true,

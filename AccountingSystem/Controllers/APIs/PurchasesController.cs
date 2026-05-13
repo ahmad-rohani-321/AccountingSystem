@@ -18,6 +18,8 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
     private readonly ApplicationDbContext _db = db;
     private const int PurchaseTransactionTypeId = 6;
     private const int PurchaseStockTransactionTypeId = 5;
+    private const int PurchaseRefundTransactionTypeId = 10;
+    private const int PurchaseRefundStockTransactionTypeId = 6;
     private const int StrictFullPaymentAccountTypeId = 10;
     private const string DefaultChequePhotoPath = "/images/journalentry/default.png";
 
@@ -45,6 +47,9 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
                 ID = x.ID,
                 PurchaseNo = x.PurchaseNo,
                 IsHolded = x.IsHolded,
+                IsRefunded = x.IsRefunded,
+                AccountID = x.AccountID,
+                CurrencyID = x.CurrencyID,
                 AccountName = x.Account != null ? x.Account.Name : string.Empty,
                 AccountCode = x.Account != null ? x.Account.Code : string.Empty,
                 AccountTypeID = x.Account != null ? x.Account.AccountTypeID : 0,
@@ -62,6 +67,11 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
     private static string BuildPurchaseJournalRemarks(int purchaseNo, string remarks)
     {
         return ("خرید نمبر " + purchaseNo + (remarks ?? string.Empty)).Trim();
+    }
+
+    private static string BuildPurchaseRefundJournalRemarks(int purchaseNo, string remarks)
+    {
+        return ("Ø®Ø±ÛŒØ¯ ÙˆØ§Ù¾Ø³ÙŠ Ù†Ù…Ø¨Ø± " + purchaseNo + (remarks ?? string.Empty)).Trim();
     }
 
     private async Task<int?> ResolveTreasureAccountIdAsync(Purchase purchase)
@@ -221,6 +231,7 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
             PurchaseNo = purchase.PurchaseNo,
             AccountID = purchase.AccountID,
             TreasureAccountID = treasureAccountId,
+            IsHolded = purchase.IsHolded,
             CurrencyID = purchase.CurrencyID,
             PurchaseDate = purchase.CreationDate,
             TotalAmount = purchase.TotalAmount,
@@ -248,7 +259,7 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
         if (string.IsNullOrWhiteSpace(userId))
             return Unauthorized(new { Message = "سیسټم ته ننوزئ" });
 
-        var validationMessage = ValidateRequest(request, requireTreasureRules: true);
+        var validationMessage = ValidateRequest(request, requireTreasureRules: !request.IsHolded);
         if (!string.IsNullOrWhiteSpace(validationMessage))
             return BadRequest(new { Message = validationMessage });
 
@@ -282,6 +293,7 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
             PurchaseNo = request.PurchaseNo,
             AccountID = request.AccountID,
             CurrencyID = request.CurrencyID,
+            IsHolded = request.IsHolded,
             Remarks = request.Remarks?.Trim() ?? string.Empty,
             TotalAmount = request.TotalAmount,
             ReceivedAmount = request.ReceivedAmount,
@@ -298,7 +310,8 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
             request,
             userId,
             referenceValidation.Account!,
-            preparedDetailsResult.PreparedDetails!);
+            preparedDetailsResult.PreparedDetails!,
+            applyFinancialEffects: !request.IsHolded);
 
         if (!applyResult.Success)
         {
@@ -329,7 +342,7 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
         if (string.IsNullOrWhiteSpace(userId))
             return Unauthorized(new { Message = "سیسټم ته ننوزئ." });
 
-        var validationMessage = ValidateRequest(request, requireTreasureRules: false);
+        var validationMessage = ValidateRequest(request, requireTreasureRules: !request.IsHolded);
         if (!string.IsNullOrWhiteSpace(validationMessage))
             return BadRequest(new { Message = validationMessage });
 
@@ -354,7 +367,7 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
         if (!referenceValidation.Success)
             return BadRequest(new { Message = referenceValidation.ErrorMessage });
 
-        if (request.ReceivedAmount > 0 && request.TreasureAccountID is not > 0)
+        if (!request.IsHolded && request.ReceivedAmount > 0 && request.TreasureAccountID is not > 0)
             return BadRequest(new { Message = "که رسید له صفر څخه زیات وي، تجري/بانک حساب لا هم ضروري دی." });
 
         var preparedDetailsResult = await PreparePurchaseDetailsAsync(request);
@@ -369,7 +382,10 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
         if (purchaseDetails.Count == 0)
             return BadRequest(new { Message = "د خرید تفصیلات ونه موندل شول." });
 
-        var existingEffectsResult = await LoadExistingPurchaseEffectsAsync(purchase, purchaseDetails);
+        var existingEffectsResult = await LoadExistingPurchaseEffectsAsync(
+            purchase,
+            purchaseDetails,
+            includeJournalEntries: !purchase.IsHolded);
         if (!existingEffectsResult.Success)
             return BadRequest(new { Message = existingEffectsResult.ErrorMessage });
 
@@ -377,7 +393,8 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
 
         var reverseResult = await ReversePurchaseEffectsAsync(
             existingEffectsResult.StockEffects!,
-            existingEffectsResult.JournalEntries!);
+            existingEffectsResult.JournalEntries!,
+            reverseFinancialEffects: !purchase.IsHolded);
 
         if (!reverseResult.Success)
         {
@@ -387,11 +404,13 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
 
         _db.PurchaseDetails.RemoveRange(purchaseDetails);
         _db.StockTransactions.RemoveRange(existingEffectsResult.StockTransactions!);
-        _db.JournalEntries.RemoveRange(existingEffectsResult.JournalEntries!);
+        if (existingEffectsResult.JournalEntries!.Count > 0)
+            _db.JournalEntries.RemoveRange(existingEffectsResult.JournalEntries!);
 
         purchase.PurchaseNo = request.PurchaseNo;
         purchase.AccountID = request.AccountID;
         purchase.CurrencyID = request.CurrencyID;
+        purchase.IsHolded = request.IsHolded;
         purchase.Remarks = request.Remarks?.Trim() ?? string.Empty;
         purchase.TotalAmount = request.TotalAmount;
         purchase.ReceivedAmount = request.ReceivedAmount;
@@ -403,7 +422,8 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
             request,
             userId,
             referenceValidation.Account!,
-            preparedDetailsResult.PreparedDetails!);
+            preparedDetailsResult.PreparedDetails!,
+            applyFinancialEffects: !request.IsHolded);
 
         if (!applyResult.Success)
         {
@@ -424,6 +444,166 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
         });
     }
 
+    [HttpPost("{id:int}/refund")]
+    public async Task<IActionResult> Refund(int id, [FromBody] PurchaseRefundRequest request)
+    {
+        var userId = CurrentUserId;
+        if (string.IsNullOrWhiteSpace(userId))
+            return Unauthorized(new { Message = "Please sign in again." });
+
+        if (request is null)
+            return BadRequest(new { Message = "Refund request is required." });
+
+        if (request.RefundAmount < 0)
+            return BadRequest(new { Message = "Refund amount cannot be negative." });
+
+        if (request.RefundAmount > 0 && request.TreasureAccountID is not > 0)
+            return BadRequest(new { Message = "Treasure/Bank account is required when refund amount is greater than zero." });
+
+        if (request.RefundAmount <= 0 && request.TreasureAccountID is > 0)
+            return BadRequest(new { Message = "Refund amount must be greater than zero when a Treasure/Bank account is selected." });
+
+        var configurationMessage = await ValidatePurchaseRefundConfigurationAsync();
+        if (!string.IsNullOrWhiteSpace(configurationMessage))
+            return BadRequest(new { Message = configurationMessage });
+
+        var purchase = await _db.Purchases.FirstOrDefaultAsync(x => x.ID == id);
+        if (purchase is null)
+            return NotFound(new { Message = "Purchase was not found." });
+
+        if (purchase.IsRefunded)
+            return BadRequest(new { Message = "This purchase is already refunded." });
+
+        if (purchase.IsHolded && request.RefundAmount > 0)
+            return BadRequest(new { Message = "A holded purchase cannot post refund cash entries." });
+
+        if (!purchase.IsHolded && request.RefundAmount > purchase.ReceivedAmount)
+            return BadRequest(new { Message = "Refund amount cannot be greater than the purchase received amount." });
+
+        if (request.TreasureAccountID is > 0 &&
+            !await _db.Accounts.AnyAsync(a => a.ID == request.TreasureAccountID.Value))
+            return BadRequest(new { Message = "Treasure/Bank account was not found." });
+
+        var purchaseDetails = await _db.PurchaseDetails
+            .Where(x => x.PurchaseID == purchase.ID)
+            .OrderBy(x => x.ID)
+            .ToListAsync();
+
+        if (purchaseDetails.Count == 0)
+            return BadRequest(new { Message = "Purchase details were not found." });
+
+        var existingEffectsResult = await LoadExistingPurchaseEffectsAsync(
+            purchase,
+            purchaseDetails,
+            includeJournalEntries: false);
+
+        if (!existingEffectsResult.Success)
+            return BadRequest(new { Message = existingEffectsResult.ErrorMessage });
+
+        await using var tx = await _db.Database.BeginTransactionAsync();
+
+        foreach (var stockEffect in existingEffectsResult.StockEffects!)
+        {
+            if (stockEffect.StockBalance.Quantity < stockEffect.MainStockQuantity)
+            {
+                await tx.RollbackAsync();
+                return BadRequest(new { Message = "Refund cannot be completed because enough stock is not available for one or more items." });
+            }
+
+            stockEffect.StockBalance.Quantity -= stockEffect.MainStockQuantity;
+
+            _db.StockTransactions.Add(new StockTransactions
+            {
+                StockBalanceID = stockEffect.StockBalance.ID,
+                Quantity = stockEffect.StockTransaction.Quantity,
+                Remarks = stockEffect.StockTransaction.Remarks ?? string.Empty,
+                UnitID = stockEffect.StockTransaction.UnitID,
+                TransactionID = PurchaseRefundStockTransactionTypeId,
+                CreatedByUserId = userId,
+                CreationDate = DateTime.Now
+            });
+        }
+
+        decimal? accountBalanceValue = null;
+        decimal? treasureBalanceValue = null;
+
+        if (!purchase.IsHolded)
+        {
+            var refundDate = DateTime.Now;
+            var accountBalance = await GetOrCreateAccountBalanceAsync(purchase.AccountID, purchase.CurrencyID, userId, refundDate);
+            var refundRemarks = BuildPurchaseRefundJournalRemarks(purchase.PurchaseNo, purchase.Remarks);
+
+            accountBalance.Balance += purchase.TotalAmount;
+            _db.JournalEntries.Add(new JournalEntry
+            {
+                AccountBalanceID = accountBalance.ID,
+                Debit = 0,
+                Credit = purchase.TotalAmount,
+                Balance = accountBalance.Balance,
+                Remarks = refundRemarks,
+                ChequePhoto = DefaultChequePhotoPath,
+                TransactionTypeID = PurchaseRefundTransactionTypeId,
+                CreatedByUserId = userId,
+                CreationDate = refundDate
+            });
+
+            if (request.RefundAmount > 0)
+            {
+                accountBalance.Balance -= request.RefundAmount;
+                _db.JournalEntries.Add(new JournalEntry
+                {
+                    AccountBalanceID = accountBalance.ID,
+                    Debit = request.RefundAmount,
+                    Credit = 0,
+                    Balance = accountBalance.Balance,
+                    Remarks = refundRemarks,
+                    ChequePhoto = DefaultChequePhotoPath,
+                    TransactionTypeID = PurchaseRefundTransactionTypeId,
+                    CreatedByUserId = userId,
+                    CreationDate = refundDate
+                });
+
+                var treasureBalance = await GetOrCreateAccountBalanceAsync(
+                    request.TreasureAccountID!.Value,
+                    purchase.CurrencyID,
+                    userId,
+                    refundDate);
+
+                treasureBalance.Balance += request.RefundAmount;
+                _db.JournalEntries.Add(new JournalEntry
+                {
+                    AccountBalanceID = treasureBalance.ID,
+                    Debit = 0,
+                    Credit = request.RefundAmount,
+                    Balance = treasureBalance.Balance,
+                    Remarks = refundRemarks,
+                    ChequePhoto = DefaultChequePhotoPath,
+                    TransactionTypeID = PurchaseRefundTransactionTypeId,
+                    CreatedByUserId = userId,
+                    CreationDate = refundDate
+                });
+
+                treasureBalanceValue = treasureBalance.Balance;
+            }
+
+            accountBalanceValue = accountBalance.Balance;
+        }
+
+        purchase.IsRefunded = true;
+
+        await _db.SaveChangesAsync();
+        await tx.CommitAsync();
+
+        return Ok(new
+        {
+            Message = "Purchase refund completed successfully.",
+            PurchaseID = purchase.ID,
+            purchase.PurchaseNo,
+            AccountBalance = accountBalanceValue,
+            TreasureAccountBalance = treasureBalanceValue
+        });
+    }
+
     private async Task<string> ValidatePurchaseConfigurationAsync()
     {
         if (!await _db.JournalEntryTransactionTypes.AnyAsync(x => x.ID == PurchaseTransactionTypeId))
@@ -431,6 +611,17 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
 
         if (!await _db.StockTransactionTypes.AnyAsync(x => x.ID == PurchaseStockTransactionTypeId))
             return $"Required stock transaction type {PurchaseStockTransactionTypeId} was not found.";
+
+        return string.Empty;
+    }
+
+    private async Task<string> ValidatePurchaseRefundConfigurationAsync()
+    {
+        if (!await _db.JournalEntryTransactionTypes.AnyAsync(x => x.ID == PurchaseRefundTransactionTypeId))
+            return $"Required journal transaction type {PurchaseRefundTransactionTypeId} was not found.";
+
+        if (!await _db.StockTransactionTypes.AnyAsync(x => x.ID == PurchaseRefundStockTransactionTypeId))
+            return $"Required stock transaction type {PurchaseRefundStockTransactionTypeId} was not found.";
 
         return string.Empty;
     }
@@ -451,7 +642,9 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
             !await _db.Accounts.AnyAsync(a => a.ID == request.TreasureAccountID.Value))
             return (false, "تجرئ/بانک ونه موندل سو.", null);
 
-        if (account.AccountTypeID == StrictFullPaymentAccountTypeId && request.ReceivedAmount != request.TotalAmount)
+        if (!request.IsHolded &&
+            account.AccountTypeID == StrictFullPaymentAccountTypeId &&
+            request.ReceivedAmount != request.TotalAmount)
             return (false, "For account type 10, received amount must be equal to total amount.", null);
 
         return (true, string.Empty, account);
@@ -497,7 +690,8 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
 
     private async Task<(bool Success, string ErrorMessage, List<ExistingPurchaseStockEffect> StockEffects, List<StockTransactions> StockTransactions, List<JournalEntry> JournalEntries)> LoadExistingPurchaseEffectsAsync(
         Purchase purchase,
-        List<PurchaseDetails> purchaseDetails)
+        List<PurchaseDetails> purchaseDetails,
+        bool includeJournalEntries)
     {
         var itemIds = purchaseDetails.Select(x => x.ItemID).Distinct().ToArray();
         var itemsById = await _db.Items
@@ -567,8 +761,11 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
             });
         }
 
-        var oldJournalRemarks = BuildPurchaseJournalRemarks(purchase.PurchaseNo, purchase.Remarks);
-        var journalEntries = await _db.JournalEntries
+        var journalEntries = new List<JournalEntry>();
+        if (includeJournalEntries)
+        {
+            var oldJournalRemarks = BuildPurchaseJournalRemarks(purchase.PurchaseNo, purchase.Remarks);
+            journalEntries = await _db.JournalEntries
             .Include(x => x.AccountBalance)
             .Where(x =>
                 x.TransactionTypeID == PurchaseTransactionTypeId &&
@@ -582,12 +779,15 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
         if (journalEntries.Count == 0)
             return (false, "د زوړ خرید جرنل قیدونه ونه موندل شو.", null, null, null);
 
+        }
+
         return (true, string.Empty, stockEffects, stockEffects.Select(x => x.StockTransaction).ToList(), journalEntries);
     }
 
     private async Task<(bool Success, string ErrorMessage)> ReversePurchaseEffectsAsync(
         List<ExistingPurchaseStockEffect> stockEffects,
-        List<JournalEntry> journalEntries)
+        List<JournalEntry> journalEntries,
+        bool reverseFinancialEffects)
     {
         foreach (var stockEffect in stockEffects)
         {
@@ -596,6 +796,9 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
 
             stockEffect.StockBalance.Quantity -= stockEffect.MainStockQuantity;
         }
+
+        if (!reverseFinancialEffects)
+            return (true, string.Empty);
 
         foreach (var journalEntry in journalEntries)
         {
@@ -613,11 +816,10 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
         PurchaseSaveRequest request,
         string userId,
         Account account,
-        List<PreparedPurchaseDetail> preparedDetails)
+        List<PreparedPurchaseDetail> preparedDetails,
+        bool applyFinancialEffects)
     {
-        var skipsAccountBalanceMovement = account.AccountTypeID == StrictFullPaymentAccountTypeId;
         var effectiveDate = request.PurchaseDate;
-        var accountBalance = await GetOrCreateAccountBalanceAsync(request.AccountID, request.CurrencyID, userId, effectiveDate);
 
         foreach (var preparedDetail in preparedDetails)
         {
@@ -671,10 +873,16 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
             });
         }
 
+        if (!applyFinancialEffects)
+            return (true, string.Empty, null, null);
+
+        var accountBalance = await GetOrCreateAccountBalanceAsync(request.AccountID, request.CurrencyID, userId, effectiveDate);
         var journalRemarks = BuildPurchaseJournalRemarks(request.PurchaseNo, request.Remarks);
 
-        if (!skipsAccountBalanceMovement)
-            accountBalance.Balance -= request.TotalAmount;
+        // An active purchase should always write the full debit/credit trail so
+        // JournalEntry balances and AccountBalances stay in sync even when the
+        // selected account type requires full payment.
+        accountBalance.Balance -= request.TotalAmount;
 
         _db.JournalEntries.Add(new JournalEntry
         {
@@ -699,8 +907,7 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
             if (treasureAccountBalance is null || request.ReceivedAmount > treasureAccountBalance.Balance)
                 return (false, "رسید مبلغ په دخل/بانک نه دی.", null, null);
 
-            if (!skipsAccountBalanceMovement)
-                accountBalance.Balance += request.ReceivedAmount;
+            accountBalance.Balance += request.ReceivedAmount;
 
             _db.JournalEntries.Add(new JournalEntry
             {

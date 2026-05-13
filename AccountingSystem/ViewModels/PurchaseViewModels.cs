@@ -8,6 +8,9 @@ public class PurchaseGridRow
     public int ID { get; set; }
     public int PurchaseNo { get; set; }
     public bool IsHolded { get; set; }
+    public bool IsRefunded { get; set; }
+    public int AccountID { get; set; }
+    public int CurrencyID { get; set; }
     public string AccountName { get; set; } = string.Empty;
     public string AccountCode { get; set; } = string.Empty;
     public int AccountTypeID { get; set; }
@@ -25,6 +28,7 @@ public class PurchaseSaveRequest
 {
     public int? OrderID { get; set; }
     public int PurchaseNo { get; set; }
+    public bool IsHolded { get; set; }
     public int AccountID { get; set; }
     public int? TreasureAccountID { get; set; }
     public int CurrencyID { get; set; }
@@ -52,6 +56,7 @@ public class PurchaseResponse
     public int PurchaseID { get; set; }
     public int? OrderID { get; set; }
     public int PurchaseNo { get; set; }
+    public bool IsHolded { get; set; }
     public int AccountID { get; set; }
     public int? TreasureAccountID { get; set; }
     public int CurrencyID { get; set; }
@@ -72,4 +77,10 @@ public class PurchaseDetailResponse
     public decimal TotalPrice { get; set; }
     public int WarehouseID { get; set; }
     public string Remarks { get; set; } = string.Empty;
+}
+
+public class PurchaseRefundRequest
+{
+    public int? TreasureAccountID { get; set; }
+    public decimal RefundAmount { get; set; }
 }
