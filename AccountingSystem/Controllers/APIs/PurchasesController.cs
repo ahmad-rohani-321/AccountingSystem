@@ -1,12 +1,15 @@
-using AccountingSystem.Data;
+﻿using AccountingSystem.Data;
 using AccountingSystem.Models.Accounting;
 using AccountingSystem.Models.Accounts;
 using AccountingSystem.Models.Inventory;
 using AccountingSystem.Models.Purchase;
 using AccountingSystem.ViewModels;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Reflection.Metadata;
+using System.Runtime.Intrinsics.Arm;
 
 namespace AccountingSystem.Controllers.APIs;
 
@@ -17,6 +20,7 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
 {
     private readonly ApplicationDbContext _db = db;
     private const int PurchaseTransactionTypeId = 6;
+    private const int PurchaseChangeTransactionTypeId = 7;
     private const int PurchaseStockTransactionTypeId = 5;
     private const int PurchaseRefundTransactionTypeId = 10;
     private const int PurchaseRefundStockTransactionTypeId = 6;
@@ -66,12 +70,17 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
 
     private static string BuildPurchaseJournalRemarks(int purchaseNo, string remarks)
     {
-        return ("خرید نمبر " + purchaseNo + (remarks ?? string.Empty)).Trim();
+        return ("Ø®Ø±ÛŒØ¯ Ù†Ù…Ø¨Ø± " + purchaseNo + (remarks ?? string.Empty)).Trim();
     }
 
     private static string BuildPurchaseRefundJournalRemarks(int purchaseNo, string remarks)
     {
-        return ("Ø®Ø±ÛŒØ¯ ÙˆØ§Ù¾Ø³ÙŠ Ù†Ù…Ø¨Ø± " + purchaseNo + (remarks ?? string.Empty)).Trim();
+        return ("Ø¯ Ø®Ø±ÛŒØ¯ ÙˆØ§Ù¾Ø³ÙŠ Ù†Ù…Ø¨Ø± " + purchaseNo + (remarks ?? string.Empty)).Trim();
+    }
+
+    private static string BuildPurchaseReceiveJournalRemarks(int purchaseNo, string remarks)
+    {
+        return ("Ø¯ Ø®Ø±ÛŒØ¯ Ø±Ø³ÛŒØ¯ Ù†Ù…Ø¨Ø± " + purchaseNo + " " + (remarks ?? string.Empty)).Trim();
     }
 
     private async Task<int?> ResolveTreasureAccountIdAsync(Purchase purchase)
@@ -79,18 +88,20 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
         if (purchase.ReceivedAmount <= 0)
             return null;
 
-        var journalRemarks = BuildPurchaseJournalRemarks(purchase.PurchaseNo, purchase.Remarks);
+        var purchaseJournalRemarks = BuildPurchaseJournalRemarks(purchase.PurchaseNo, purchase.Remarks);
+        var receiveJournalRemarks = BuildPurchaseReceiveJournalRemarks(purchase.PurchaseNo, purchase.Remarks);
 
         return await _db.JournalEntries
             .AsNoTracking()
             .Where(x =>
-                x.TransactionTypeID == PurchaseTransactionTypeId &&
-                x.Remarks == journalRemarks &&
-                x.Debit == purchase.ReceivedAmount &&
+                (x.TransactionTypeID == PurchaseTransactionTypeId ||
+                 x.TransactionTypeID == PurchaseChangeTransactionTypeId) &&
+                (x.Remarks == purchaseJournalRemarks || x.Remarks == receiveJournalRemarks) &&
+                x.Debit > 0 &&
                 x.Credit == 0 &&
                 x.AccountBalance.AccountID != purchase.AccountID &&
                 x.AccountBalance.CurrencyID == purchase.CurrencyID)
-            .OrderBy(x => x.ID)
+            .OrderByDescending(x => x.ID)
             .Select(x => (int?)x.AccountBalance.AccountID)
             .FirstOrDefaultAsync();
     }
@@ -103,11 +114,24 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
             .OrderBy(x => x.ID)
             .ToListAsync();
 
+        if (details.Count == 0)
+            return [];
+
         var itemIds = details.Select(x => x.ItemID).Distinct().ToArray();
+        var itemsById = await _db.Items
+            .AsNoTracking()
+            .Where(x => itemIds.Contains(x.ID))
+            .ToDictionaryAsync(x => x.ID);
+
+        var storedUnitConversionIds = details
+            .Where(x => x.UnitConversionID > 0)
+            .Select(x => x.UnitConversionID)
+            .Distinct()
+            .ToArray();
 
         var unitConversions = await _db.UnitConversion
             .AsNoTracking()
-            .Where(x => itemIds.Contains(x.ItemID))
+            .Where(x => itemIds.Contains(x.ItemID) || storedUnitConversionIds.Contains(x.ID))
             .OrderBy(x => x.ID)
             .ToListAsync();
 
@@ -157,12 +181,26 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
             if (matchedStockTransaction is not null)
                 usedStockTransactionIds.Add(matchedStockTransaction.ID);
 
-            var unitConversionId = matchedStockTransaction is null
-                ? null
-                : unitConversions
+            int? unitConversionId = null;
+            if (detail.UnitConversionID > 0 &&
+                unitConversions.Any(x => x.ID == detail.UnitConversionID && x.ItemID == detail.ItemID))
+            {
+                unitConversionId = detail.UnitConversionID;
+            }
+            else if (matchedStockTransaction is not null)
+            {
+                unitConversionId = unitConversions
                     .Where(x => x.ItemID == detail.ItemID && x.SubUnitID == matchedStockTransaction.UnitID)
                     .Select(x => (int?)x.ID)
                     .FirstOrDefault();
+
+                if (unitConversionId is null &&
+                    itemsById.TryGetValue(detail.ItemID, out var item) &&
+                    matchedStockTransaction.UnitID == item.UnitId)
+                {
+                    unitConversionId = 0;
+                }
+            }
 
             responses.Add(new PurchaseDetailResponse
             {
@@ -220,7 +258,19 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
             .FirstOrDefaultAsync(x => x.ID == id);
 
         if (purchase is null)
-            return NotFound(new { Message = "خرید ونه موندل شو." });
+            return NotFound(new { Message = "Ø®Ø±ÛŒØ¯ ÙˆÙ†Ù‡ Ù…ÙˆÙ†Ø¯Ù„ Ø´Ùˆ." });
+
+        var accountInfo = await _db.Accounts
+            .AsNoTracking()
+            .Where(x => x.ID == purchase.AccountID)
+            .Select(x => new { x.Name, x.Code })
+            .FirstOrDefaultAsync();
+
+        var currencyInfo = await _db.Currencies
+            .AsNoTracking()
+            .Where(x => x.ID == purchase.CurrencyID)
+            .Select(x => x.CurrencyName)
+            .FirstOrDefaultAsync();
 
         var details = await BuildPurchaseDetailResponsesAsync(purchase);
         var treasureAccountId = await ResolveTreasureAccountIdAsync(purchase);
@@ -230,9 +280,15 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
             PurchaseID = purchase.ID,
             PurchaseNo = purchase.PurchaseNo,
             AccountID = purchase.AccountID,
+            AccountName = accountInfo is null
+                ? string.Empty
+                : string.IsNullOrWhiteSpace(accountInfo.Code)
+                    ? accountInfo.Name ?? string.Empty
+                    : (accountInfo.Name ?? string.Empty) + " - " + accountInfo.Code,
             TreasureAccountID = treasureAccountId,
             IsHolded = purchase.IsHolded,
             CurrencyID = purchase.CurrencyID,
+            CurrencyName = currencyInfo ?? string.Empty,
             PurchaseDate = purchase.CreationDate,
             TotalAmount = purchase.TotalAmount,
             ReceivedAmount = purchase.ReceivedAmount,
@@ -257,7 +313,7 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
     {
         var userId = CurrentUserId;
         if (string.IsNullOrWhiteSpace(userId))
-            return Unauthorized(new { Message = "سیسټم ته ننوزئ" });
+            return Unauthorized(new { Message = "Ø³ÛŒØ³Ù¼Ù… ØªÙ‡ Ù†Ù†ÙˆØ²Ø¦" });
 
         var validationMessage = ValidateRequest(request, requireTreasureRules: !request.IsHolded);
         if (!string.IsNullOrWhiteSpace(validationMessage))
@@ -268,7 +324,7 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
             return BadRequest(new { Message = configurationMessage });
 
         if (await _db.Purchases.AnyAsync(p => p.PurchaseNo == request.PurchaseNo))
-            return BadRequest(new { Message = "د خرید شمېره مخکې ثبت سوې ده." });
+            return BadRequest(new { Message = "Ø¯ Ø®Ø±ÛŒØ¯ Ø´Ù…ÛØ±Ù‡ Ù…Ø®Ú©Û Ø«Ø¨Øª Ø³ÙˆÛ Ø¯Ù‡." });
 
         var referenceValidation = await ValidatePurchaseReferencesAsync(request);
         if (!referenceValidation.Success)
@@ -279,14 +335,13 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
         {
             selectedOrder = await _db.PurchaseOrders.FirstOrDefaultAsync(x => x.ID == request.OrderID.Value);
             if (selectedOrder is null)
-                return BadRequest(new { Message = "Purchase order was not found." });
+                return BadRequest(new { Message = "Ø®Ø±ÛŒØ¯ Ø¢Ø±Ú‰Ø± ÙˆÙ†Ù‡ Ù…ÙˆÙ†Ø¯Ù„ Ø´Ùˆ." });
         }
 
-        var preparedDetailsResult = await PreparePurchaseDetailsAsync(request);
+        await using var tx = await _db.Database.BeginTransactionAsync();
+        var preparedDetailsResult = await PreparePurchaseDetailsAsync(request, userId);
         if (!preparedDetailsResult.Success)
             return BadRequest(new { Message = preparedDetailsResult.ErrorMessage });
-
-        await using var tx = await _db.Database.BeginTransactionAsync();
 
         var purchase = new Purchase
         {
@@ -327,7 +382,7 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
 
         return Ok(new
         {
-            Message = "خرید په بریالیتوب ثبت شو.",
+            Message = "Ø®Ø±ÛŒØ¯ Ù¾Ù‡ Ø¨Ø±ÛŒØ§Ù„ÛŒØªÙˆØ¨ Ø«Ø¨Øª Ø´Ùˆ.",
             PurchaseID = purchase.ID,
             purchase.PurchaseNo,
             AccountBalance = applyResult.AccountBalance,
@@ -340,7 +395,7 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
     {
         var userId = CurrentUserId;
         if (string.IsNullOrWhiteSpace(userId))
-            return Unauthorized(new { Message = "سیسټم ته ننوزئ." });
+            return Unauthorized(new { Message = "Ø³ÛŒØ³Ù¼Ù… ØªÙ‡ Ù†Ù†ÙˆØ²Ø¦." });
 
         var validationMessage = ValidateRequest(request, requireTreasureRules: !request.IsHolded);
         if (!string.IsNullOrWhiteSpace(validationMessage))
@@ -352,27 +407,23 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
 
         var purchase = await _db.Purchases.FirstOrDefaultAsync(x => x.ID == id);
         if (purchase is null)
-            return NotFound(new { Message = "خرید ونه موندل شو." });
+            return NotFound(new { Message = "Ø®Ø±ÛŒØ¯ ÙˆÙ†Ù‡ Ù…ÙˆÙ†Ø¯Ù„ Ø´Ùˆ." });
 
         if (!purchase.IsHolded)
-            return BadRequest(new { Message = "دا خرید هولډ سوی نه دی." });
+            return BadRequest(new { Message = "Ø¯Ø§ Ø®Ø±ÛŒØ¯ Ù‡ÙˆÙ„Ú‰ Ø³ÙˆÛŒ Ù†Ù‡ Ø¯ÛŒ." });
 
         if (purchase.IsRefunded)
-            return BadRequest(new { Message = "واپسي سوی خرید سمېدای نه سي." });
+            return BadRequest(new { Message = "ÙˆØ§Ù¾Ø³ÙŠ Ø³ÙˆÛŒ Ø®Ø±ÛŒØ¯ Ø³Ù…ÛØ¯Ø§ÛŒ Ù†Ù‡ Ø³ÙŠ." });
 
         if (await _db.Purchases.AnyAsync(p => p.ID != id && p.PurchaseNo == request.PurchaseNo))
-            return BadRequest(new { Message = "د خرید شمېره مخکې ثبت سوې ده." });
+            return BadRequest(new { Message = "Ø¯ Ø®Ø±ÛŒØ¯ Ø´Ù…ÛØ±Ù‡ Ù…Ø®Ú©Û Ø«Ø¨Øª Ø³ÙˆÛ Ø¯Ù‡." });
 
         var referenceValidation = await ValidatePurchaseReferencesAsync(request);
         if (!referenceValidation.Success)
             return BadRequest(new { Message = referenceValidation.ErrorMessage });
 
         if (!request.IsHolded && request.ReceivedAmount > 0 && request.TreasureAccountID is not > 0)
-            return BadRequest(new { Message = "که رسید له صفر څخه زیات وي، تجري/بانک حساب لا هم ضروري دی." });
-
-        var preparedDetailsResult = await PreparePurchaseDetailsAsync(request);
-        if (!preparedDetailsResult.Success)
-            return BadRequest(new { Message = preparedDetailsResult.ErrorMessage });
+            return BadRequest(new { Message = "Ú©Ù‡ Ø±Ø³ÛŒØ¯ Ù„Ù‡ ØµÙØ± Ú…Ø®Ù‡ Ø²ÛŒØ§Øª ÙˆÙŠØŒ ØªØ¬Ø±ÙŠ/Ø¨Ø§Ù†Ú© Ø­Ø³Ø§Ø¨ Ù„Ø§ Ù‡Ù… Ø¶Ø±ÙˆØ±ÙŠ Ø¯ÛŒ." });
 
         var purchaseDetails = await _db.PurchaseDetails
             .Where(x => x.PurchaseID == purchase.ID)
@@ -380,7 +431,7 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
             .ToListAsync();
 
         if (purchaseDetails.Count == 0)
-            return BadRequest(new { Message = "د خرید تفصیلات ونه موندل شول." });
+            return BadRequest(new { Message = "Ø¯ Ø®Ø±ÛŒØ¯ ØªÙØµÛŒÙ„Ø§Øª ÙˆÙ†Ù‡ Ù…ÙˆÙ†Ø¯Ù„ Ø´ÙˆÙ„." });
 
         var existingEffectsResult = await LoadExistingPurchaseEffectsAsync(
             purchase,
@@ -390,6 +441,9 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
             return BadRequest(new { Message = existingEffectsResult.ErrorMessage });
 
         await using var tx = await _db.Database.BeginTransactionAsync();
+        var preparedDetailsResult = await PreparePurchaseDetailsAsync(request, userId);
+        if (!preparedDetailsResult.Success)
+            return BadRequest(new { Message = preparedDetailsResult.ErrorMessage });
 
         var reverseResult = await ReversePurchaseEffectsAsync(
             existingEffectsResult.StockEffects!,
@@ -436,7 +490,7 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
 
         return Ok(new
         {
-            Message = "خرید په بریالیتوب سم شو.",
+            Message = "Ø®Ø±ÛŒØ¯ Ù¾Ù‡ Ø¨Ø±ÛŒØ§Ù„ÛŒØªÙˆØ¨ Ø³Ù… Ø´Ùˆ.",
             PurchaseID = purchase.ID,
             purchase.PurchaseNo,
             AccountBalance = applyResult.AccountBalance,
@@ -449,19 +503,19 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
     {
         var userId = CurrentUserId;
         if (string.IsNullOrWhiteSpace(userId))
-            return Unauthorized(new { Message = "Please sign in again." });
+            return Unauthorized(new { Message = "Ù…Ù‡Ø±Ø¨Ø§Ù†ÙŠ ÙˆÚ©Ú“Ø¦ Ø¨ÛŒØ§ Ø³ÛŒØ³Ù¼Ù… ØªÙ‡ Ù†Ù†ÙˆØ²Ø¦." });
 
         if (request is null)
-            return BadRequest(new { Message = "Refund request is required." });
+            return BadRequest(new { Message = "Ø¯ ÙˆØ§Ù¾Ø³ÙŠ ØºÙˆÚšØªÙ†Ù‡ Ø¶Ø±ÙˆØ±ÙŠ Ø¯Ù‡." });
 
         if (request.RefundAmount < 0)
-            return BadRequest(new { Message = "Refund amount cannot be negative." });
+            return BadRequest(new { Message = "Ø¯ ÙˆØ§Ù¾Ø³ÙŠ Ù…Ø¨Ù„Øº Ù…Ù†ÙÙŠ Ú©ÛØ¯Ø§ÛŒ Ù†Ù‡ Ø´ÙŠ." });
 
         if (request.RefundAmount > 0 && request.TreasureAccountID is not > 0)
-            return BadRequest(new { Message = "Treasure/Bank account is required when refund amount is greater than zero." });
+            return BadRequest(new { Message = "Ú©Ù„Ù‡ Ú†Û Ø¯ ÙˆØ§Ù¾Ø³ÙŠ Ù…Ø¨Ù„Øº Ù„Ù‡ ØµÙØ± Ú…Ø®Ù‡ Ø²ÛŒØ§Øª ÙˆÙŠØŒ ØªØ¬Ø±ÙŠ/Ø¨Ø§Ù†Ú© Ø­Ø³Ø§Ø¨ Ø¶Ø±ÙˆØ±ÙŠ Ø¯ÛŒ." });
 
         if (request.RefundAmount <= 0 && request.TreasureAccountID is > 0)
-            return BadRequest(new { Message = "Refund amount must be greater than zero when a Treasure/Bank account is selected." });
+            return BadRequest(new { Message = "Ú©Ù„Ù‡ Ú†Û ØªØ¬Ø±ÙŠ/Ø¨Ø§Ù†Ú© Ø­Ø³Ø§Ø¨ Ø§Ù†ØªØ®Ø§Ø¨ ÙˆÙŠØŒ Ø¯ ÙˆØ§Ù¾Ø³ÙŠ Ù…Ø¨Ù„Øº Ø¨Ø§ÛŒØ¯ Ù„Ù‡ ØµÙØ± Ú…Ø®Ù‡ Ø²ÛŒØ§Øª ÙˆÙŠ." });
 
         var configurationMessage = await ValidatePurchaseRefundConfigurationAsync();
         if (!string.IsNullOrWhiteSpace(configurationMessage))
@@ -469,20 +523,20 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
 
         var purchase = await _db.Purchases.FirstOrDefaultAsync(x => x.ID == id);
         if (purchase is null)
-            return NotFound(new { Message = "Purchase was not found." });
+            return NotFound(new { Message = "Ø®Ø±ÛŒØ¯ ÙˆÙ†Ù‡ Ù…ÙˆÙ†Ø¯Ù„ Ø´Ùˆ." });
 
         if (purchase.IsRefunded)
-            return BadRequest(new { Message = "This purchase is already refunded." });
+            return BadRequest(new { Message = "Ø¯ Ø¯Û Ø®Ø±ÛŒØ¯ ÙˆØ§Ù¾Ø³ÙŠ Ù…Ø®Ú©Û Ù„Ø§ Ø´ÙˆÛ Ø¯Ù‡." });
 
         if (purchase.IsHolded && request.RefundAmount > 0)
-            return BadRequest(new { Message = "A holded purchase cannot post refund cash entries." });
+            return BadRequest(new { Message = "Ø¯ Ù‡ÙˆÙ„Ú‰ Ø´ÙˆÙŠ Ø®Ø±ÛŒØ¯ Ù„Ù¾Ø§Ø±Ù‡ Ø¯ ÙˆØ§Ù¾Ø³ÙŠ Ù†ØºØ¯ÙŠ Ù‚ÛŒØ¯ÙˆÙ†Ù‡ Ù†Ù‡ Ø´ÙŠ Ø«Ø¨ØªÛØ¯Ø§ÛŒ." });
 
         if (!purchase.IsHolded && request.RefundAmount > purchase.ReceivedAmount)
-            return BadRequest(new { Message = "Refund amount cannot be greater than the purchase received amount." });
+            return BadRequest(new { Message = "Ø¯ ÙˆØ§Ù¾Ø³ÙŠ Ù…Ø¨Ù„Øº Ø¯ Ø®Ø±ÛŒØ¯ Ù„Ù‡ Ø±Ø³ÛŒØ¯ Ø´ÙˆÛ Ø§Ù†Ø¯Ø§Ø²Û Ú…Ø®Ù‡ Ø²ÛŒØ§Øª Ú©ÛØ¯Ø§ÛŒ Ù†Ù‡ Ø´ÙŠ." });
 
         if (request.TreasureAccountID is > 0 &&
             !await _db.Accounts.AnyAsync(a => a.ID == request.TreasureAccountID.Value))
-            return BadRequest(new { Message = "Treasure/Bank account was not found." });
+            return BadRequest(new { Message = "ØªØ¬Ø±ÙŠ/Ø¨Ø§Ù†Ú© Ø­Ø³Ø§Ø¨ ÙˆÙ†Ù‡ Ù…ÙˆÙ†Ø¯Ù„ Ø´Ùˆ." });
 
         var purchaseDetails = await _db.PurchaseDetails
             .Where(x => x.PurchaseID == purchase.ID)
@@ -490,7 +544,7 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
             .ToListAsync();
 
         if (purchaseDetails.Count == 0)
-            return BadRequest(new { Message = "Purchase details were not found." });
+            return BadRequest(new { Message = "Ø¯ Ø®Ø±ÛŒØ¯ ØªÙØµÛŒÙ„Ø§Øª ÙˆÙ†Ù‡ Ù…ÙˆÙ†Ø¯Ù„ Ø´ÙˆÙ„." });
 
         var existingEffectsResult = await LoadExistingPurchaseEffectsAsync(
             purchase,
@@ -507,7 +561,7 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
             if (stockEffect.StockBalance.Quantity < stockEffect.MainStockQuantity)
             {
                 await tx.RollbackAsync();
-                return BadRequest(new { Message = "Refund cannot be completed because enough stock is not available for one or more items." });
+                return BadRequest(new { Message = "ÙˆØ§Ù¾Ø³ÙŠ Ù†Ù‡ Ø´ÙŠ Ø¨Ø´Ù¾Ú“ÛØ¯Ø§ÛŒØŒ ÚÚ©Ù‡ Ø¯ ÛŒÙˆ ÛŒØ§ Ú…Ùˆ Ø¬Ù†Ø³ÙˆÙ†Ùˆ Ù„Ù¾Ø§Ø±Ù‡ Ú©Ø§ÙÙŠ Ù…ÙˆØ¬ÙˆØ¯ÙŠ Ù†Ø´ØªÙ‡." });
             }
 
             stockEffect.StockBalance.Quantity -= stockEffect.MainStockQuantity;
@@ -596,7 +650,7 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
 
         return Ok(new
         {
-            Message = "Purchase refund completed successfully.",
+            Message = "Ø®Ø±ÛŒØ¯ ÙˆØ§Ù¾Ø³ Ú©Ú“Ù„ Ø³Ùˆ.",
             PurchaseID = purchase.ID,
             purchase.PurchaseNo,
             AccountBalance = accountBalanceValue,
@@ -604,10 +658,116 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
         });
     }
 
+    [HttpPost("{id:int}/receive")]
+    public async Task<IActionResult> Receive(int id, [FromBody] PurchaseReceiveRequest request)
+    {
+        var userId = CurrentUserId;
+        if (string.IsNullOrWhiteSpace(userId))
+            return Unauthorized(new { Message = "Ã™â€¦Ã™â€¡Ã˜Â±Ã˜Â¨Ã˜Â§Ã™â€ Ã™Å  Ã™Ë†ÃšÂ©Ãšâ€œÃ˜Â¦ Ã˜Â¨Ã›Å’Ã˜Â§ Ã˜Â³Ã›Å’Ã˜Â³Ã™Â¼Ã™â€¦ Ã˜ÂªÃ™â€¡ Ã™â€ Ã™â€ Ã™Ë†Ã˜Â²Ã˜Â¦." });
+
+        if (request is null)
+            return BadRequest(new { Message = "Ã˜Â¯ Ã˜Â±Ã˜Â³Ã›Å’Ã˜Â¯ Ã˜ÂºÃ™Ë†ÃšÅ¡Ã˜ÂªÃ™â€ Ã™â€¡ Ã˜Â¶Ã˜Â±Ã™Ë†Ã˜Â±Ã™Å  Ã˜Â¯Ã™â€¡." });
+
+        if (request.ReceiveAmount <= 0)
+            return BadRequest(new { Message = "Ã˜Â¯ Ã˜Â±Ã˜Â³Ã›Å’Ã˜Â¯ Ã™â€¦Ã˜Â¨Ã™â€žÃ˜Âº Ã˜Â¨Ã˜Â§Ã›Å’Ã˜Â¯ Ã™â€žÃ™â€¡ Ã˜ÂµÃ™ÂÃ˜Â± Ãšâ€¦Ã˜Â®Ã™â€¡ Ã˜Â²Ã›Å’Ã˜Â§Ã˜Âª Ã™Ë†Ã™Å ." });
+
+        if (request.TreasureAccountID is not > 0)
+            return BadRequest(new { Message = "Ã˜ÂªÃ˜Â¬Ã˜Â±Ã™Å /Ã˜Â¨Ã˜Â§Ã™â€ ÃšÂ© Ã˜Â­Ã˜Â³Ã˜Â§Ã˜Â¨ Ã˜Â¶Ã˜Â±Ã™Ë†Ã˜Â±Ã™Å  Ã˜Â¯Ã›Å’." });
+
+        var purchase = await _db.Purchases.FirstOrDefaultAsync(x => x.ID == id);
+        if (purchase is null)
+            return NotFound(new { Message = "Ã˜Â®Ã˜Â±Ã›Å’Ã˜Â¯ Ã™Ë†Ã™â€ Ã™â€¡ Ã™â€¦Ã™Ë†Ã™â€ Ã˜Â¯Ã™â€ž Ã˜Â´Ã™Ë†." });
+
+        if (purchase.IsRefunded)
+            return BadRequest(new { Message = "Ã˜Â¯ Ã™Ë†Ã˜Â§Ã™Â¾Ã˜Â³ Ã˜Â´Ã™Ë†Ã™Å  Ã˜Â®Ã˜Â±Ã›Å’Ã˜Â¯ Ã™â€žÃ™Â¾Ã˜Â§Ã˜Â±Ã™â€¡ Ã˜Â±Ã˜Â³Ã›Å’Ã˜Â¯ Ã™â€ Ã™â€¡ Ã˜Â´Ã™Å  Ã˜Â«Ã˜Â¨Ã˜ÂªÃ›ÂÃ˜Â¯Ã˜Â§Ã›Å’." });
+
+        if (purchase.IsHolded)
+            return BadRequest(new { Message = "Ã˜Â¯ Ã™â€¡Ã™Ë†Ã™â€žÃšâ€° Ã˜Â´Ã™Ë†Ã™Å  Ã˜Â®Ã˜Â±Ã›Å’Ã˜Â¯ Ã™â€žÃ™Â¾Ã˜Â§Ã˜Â±Ã™â€¡ Ã˜Â±Ã˜Â³Ã›Å’Ã˜Â¯ Ã™â€ Ã™â€¡ Ã˜Â´Ã™Å  Ã˜Â«Ã˜Â¨Ã˜ÂªÃ›ÂÃ˜Â¯Ã˜Â§Ã›Å’." });
+
+        if (purchase.ReceivedAmount >= purchase.TotalAmount && purchase.TotalAmount > 0)
+            return BadRequest(new { Message = "Ø¯ Ø¯Û Ø®Ø±ÛŒØ¯ Ù¼ÙˆÙ„ Ù…Ø¨Ù„Øº Ù„Ø§ Ù…Ø®Ú©Û Ø¨Ø´Ù¾Ú“ Ø±Ø³ÛŒØ¯ Ø´ÙˆÛŒ Ø¯ÛŒ." });
+
+        if (purchase.RemainingAmount <= 0)
+            return BadRequest(new { Message = "Ã˜Â¯ Ã˜Â¯Ã›Â Ã˜Â®Ã˜Â±Ã›Å’Ã˜Â¯ Ã˜Â¨Ã˜Â§Ã™â€šÃ™Å  Ã™â€¦Ã˜Â¨Ã™â€žÃ˜Âº Ã˜ÂµÃ™ÂÃ˜Â± Ã˜Â¯Ã›Å’." });
+
+        if (request.ReceiveAmount > purchase.RemainingAmount)
+            return BadRequest(new { Message = "Ã˜Â¯ Ã˜Â±Ã˜Â³Ã›Å’Ã˜Â¯ Ã™â€¦Ã˜Â¨Ã™â€žÃ˜Âº Ã˜Â¯ Ã˜Â®Ã˜Â±Ã›Å’Ã˜Â¯ Ã™â€žÃ™â€¡ Ã˜Â¨Ã˜Â§Ã™â€šÃ™Å  Ã˜Â§Ã™â€ Ã˜Â¯Ã˜Â§Ã˜Â²Ã›Â Ãšâ€¦Ã˜Â®Ã™â€¡ Ã˜Â²Ã›Å’Ã˜Â§Ã˜Âª ÃšÂ©Ã›ÂÃ˜Â¯Ã˜Â§Ã›Å’ Ã™â€ Ã™â€¡ Ã˜Â´Ã™Å ." });
+
+        if (!await _db.Accounts.AnyAsync(a => a.ID == request.TreasureAccountID.Value))
+            return BadRequest(new { Message = "Ã˜ÂªÃ˜Â¬Ã˜Â±Ã™Å /Ã˜Â¨Ã˜Â§Ã™â€ ÃšÂ© Ã˜Â­Ã˜Â³Ã˜Â§Ã˜Â¨ Ã™Ë†Ã™â€ Ã™â€¡ Ã™â€¦Ã™Ë†Ã™â€ Ã˜Â¯Ã™â€ž Ã˜Â´Ã™Ë†." });
+
+        var configurationMessage = await ValidatePurchaseConfigurationAsync();
+        if (!string.IsNullOrWhiteSpace(configurationMessage))
+            return BadRequest(new { Message = configurationMessage });
+
+        var effectiveDate = DateTime.Now;
+        var accountBalance = await GetOrCreateAccountBalanceAsync(purchase.AccountID, purchase.CurrencyID, userId, effectiveDate);
+        var treasureBalance = await GetOrCreateAccountBalanceAsync(
+            request.TreasureAccountID.Value,
+            purchase.CurrencyID,
+            userId,
+            effectiveDate);
+
+        if (request.ReceiveAmount > treasureBalance.Balance)
+            return BadRequest(new { Message = "Ã˜Â±Ã˜Â³Ã›Å’Ã˜Â¯ Ã™â€¦Ã˜Â¨Ã™â€žÃ˜Âº Ã™Â¾Ã™â€¡ Ã˜Â¯Ã˜Â®Ã™â€ž/Ã˜Â¨Ã˜Â§Ã™â€ ÃšÂ© Ã™â€ Ã™â€¡ Ã˜Â¯Ã›Å’." });
+
+        var journalRemarks = BuildPurchaseReceiveJournalRemarks(purchase.PurchaseNo, purchase.Remarks);
+        await using var tx = await _db.Database.BeginTransactionAsync();
+
+        accountBalance.Balance += request.ReceiveAmount;
+        treasureBalance.Balance -= request.ReceiveAmount;
+
+        _db.JournalEntries.Add(new JournalEntry
+        {
+            AccountBalanceID = accountBalance.ID,
+            Debit = 0,
+            Credit = request.ReceiveAmount,
+            Balance = accountBalance.Balance,
+            Remarks = journalRemarks,
+            ChequePhoto = DefaultChequePhotoPath,
+            TransactionTypeID = PurchaseChangeTransactionTypeId,
+            CreatedByUserId = userId,
+            CreationDate = effectiveDate
+        });
+
+        _db.JournalEntries.Add(new JournalEntry
+        {
+            AccountBalanceID = treasureBalance.ID,
+            Debit = request.ReceiveAmount,
+            Credit = 0,
+            Balance = treasureBalance.Balance,
+            Remarks = journalRemarks,
+            ChequePhoto = DefaultChequePhotoPath,
+            TransactionTypeID = PurchaseChangeTransactionTypeId,
+            CreatedByUserId = userId,
+            CreationDate = effectiveDate
+        });
+
+        purchase.ReceivedAmount += request.ReceiveAmount;
+        purchase.RemainingAmount -= request.ReceiveAmount;
+
+        await _db.SaveChangesAsync();
+        await tx.CommitAsync();
+
+        return Ok(new
+        {
+            Message = "Ã˜Â¯ Ã˜Â®Ã˜Â±Ã›Å’Ã˜Â¯ Ã˜Â±Ã˜Â³Ã›Å’Ã˜Â¯ Ã˜Â«Ã˜Â¨Ã˜Âª Ã˜Â´Ã™Ë†.",
+            PurchaseID = purchase.ID,
+            purchase.PurchaseNo,
+            purchase.ReceivedAmount,
+            purchase.RemainingAmount,
+            AccountBalance = accountBalance.Balance,
+            TreasureAccountBalance = treasureBalance.Balance
+        });
+    }
+
     private async Task<string> ValidatePurchaseConfigurationAsync()
     {
         if (!await _db.JournalEntryTransactionTypes.AnyAsync(x => x.ID == PurchaseTransactionTypeId))
             return $"Required journal transaction type {PurchaseTransactionTypeId} was not found.";
+
+        if (!await _db.JournalEntryTransactionTypes.AnyAsync(x => x.ID == PurchaseChangeTransactionTypeId))
+            return $"Required journal transaction type {PurchaseChangeTransactionTypeId} was not found.";
 
         if (!await _db.StockTransactionTypes.AnyAsync(x => x.ID == PurchaseStockTransactionTypeId))
             return $"Required stock transaction type {PurchaseStockTransactionTypeId} was not found.";
@@ -633,36 +793,35 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
             .Include(a => a.AccountType)
             .FirstOrDefaultAsync(a => a.ID == request.AccountID);
         if (account is null)
-            return (false, "حساب ونه موندل سو.", null);
+            return (false, "Ø­Ø³Ø§Ø¨ ÙˆÙ†Ù‡ Ù…ÙˆÙ†Ø¯Ù„ Ø³Ùˆ.", null);
 
         if (!await _db.Currencies.AnyAsync(c => c.ID == request.CurrencyID))
-            return (false, "اسعار ونه موندل سو.", null);
+            return (false, "Ø§Ø³Ø¹Ø§Ø± ÙˆÙ†Ù‡ Ù…ÙˆÙ†Ø¯Ù„ Ø³Ùˆ.", null);
 
         if (request.TreasureAccountID is > 0 &&
             !await _db.Accounts.AnyAsync(a => a.ID == request.TreasureAccountID.Value))
-            return (false, "تجرئ/بانک ونه موندل سو.", null);
+            return (false, "ØªØ¬Ø±Ø¦/Ø¨Ø§Ù†Ú© ÙˆÙ†Ù‡ Ù…ÙˆÙ†Ø¯Ù„ Ø³Ùˆ.", null);
 
         if (!request.IsHolded &&
             account.AccountTypeID == StrictFullPaymentAccountTypeId &&
             request.ReceivedAmount != request.TotalAmount)
-            return (false, "For account type 10, received amount must be equal to total amount.", null);
+            return (false, "Ø¯ Ø­Ø³Ø§Ø¨ Ú‰ÙˆÙ„ 10 Ù„Ù¾Ø§Ø±Ù‡ Ø±Ø³ÛŒØ¯ Ù…Ø¨Ù„Øº Ø¨Ø§ÛŒØ¯ Ù„Ù‡ Ù…Ø¬Ù…ÙˆØ¹Û Ø³Ø±Ù‡ Ù…Ø³Ø§ÙˆÙŠ ÙˆÙŠ.", null);
 
         return (true, string.Empty, account);
     }
 
-    private async Task<(bool Success, string ErrorMessage, List<PreparedPurchaseDetail> PreparedDetails)> PreparePurchaseDetailsAsync(PurchaseSaveRequest request)
+    private async Task<(bool Success, string ErrorMessage, List<PreparedPurchaseDetail> PreparedDetails)> PreparePurchaseDetailsAsync(PurchaseSaveRequest request, string userId)
     {
         var itemIds = request.Details.Select(d => d.ItemID).Distinct().ToArray();
         var warehouseIds = request.Details.Select(d => d.WarehouseID).Distinct().ToArray();
 
         if (await _db.Items.CountAsync(i => itemIds.Contains(i.ID)) != itemIds.Length)
-            return (false, "په جنسونو کې ناسم انتخاب شته.", null);
+            return (false, "Ù¾Ù‡ Ø¬Ù†Ø³ÙˆÙ†Ùˆ Ú©Û Ù†Ø§Ø³Ù… Ø§Ù†ØªØ®Ø§Ø¨ Ø´ØªÙ‡.", null);
 
         if (await _db.WareHouses.CountAsync(w => warehouseIds.Contains(w.ID)) != warehouseIds.Length)
-            return (false, "په ګدامونو کې ناسم انتخاب شته.", null);
+            return (false, "Ù¾Ù‡ Ú«Ø¯Ø§Ù…ÙˆÙ†Ùˆ Ú©Û Ù†Ø§Ø³Ù… Ø§Ù†ØªØ®Ø§Ø¨ Ø´ØªÙ‡.", null);
 
         var itemsById = await _db.Items
-            .AsNoTracking()
             .Where(i => itemIds.Contains(i.ID))
             .ToDictionaryAsync(i => i.ID);
 
@@ -670,9 +829,10 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
         foreach (var detail in request.Details)
         {
             if (!itemsById.TryGetValue(detail.ItemID, out var item))
-                return (false, "په جنسونو کې ناسم انتخاب شته.", null);
+                return (false, "Ù¾Ù‡ Ø¬Ù†Ø³ÙˆÙ†Ùˆ Ú©Û Ù†Ø§Ø³Ù… Ø§Ù†ØªØ®Ø§Ø¨ Ø´ØªÙ‡.", null);
 
-            var (mainStockQuantity, unitId, unitError) = await ResolvePurchaseUnitAsync(detail.UnitConversionID!.Value, detail.Quantity, item);
+            var (mainStockQuantity, unitId, unitConversion, unitError) =
+                await ResolvePurchaseUnitAsync(detail.UnitConversionID!.Value, detail.Quantity, item, userId);
             if (!string.IsNullOrWhiteSpace(unitError))
                 return (false, unitError, null);
 
@@ -681,6 +841,7 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
                 Detail = detail,
                 MainStockQuantity = mainStockQuantity,
                 UnitId = unitId,
+                UnitConversion = unitConversion,
                 Remarks = (detail.Remarks ?? string.Empty).Trim()
             });
         }
@@ -710,6 +871,16 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
                 itemIds.Contains(x.StockBalance.ItemID))
             .OrderBy(x => x.ID)
             .ToListAsync();
+        var unitConversionIds = purchaseDetails
+            .Where(x => x.UnitConversionID > 0)
+            .Select(x => x.UnitConversionID)
+            .Distinct()
+            .ToArray();
+        var unitSubUnitByConversionId = await _db.UnitConversion
+            .AsNoTracking()
+            .Where(x => unitConversionIds.Contains(x.ID))
+            .ToDictionaryAsync(x => x.ID, x => x.SubUnitID);
+
 
         var usedStockTransactionIds = new HashSet<int>();
         var stockEffects = new List<ExistingPurchaseStockEffect>(purchaseDetails.Count);
@@ -717,7 +888,14 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
         foreach (var detail in purchaseDetails)
         {
             if (!itemsById.TryGetValue(detail.ItemID, out var item))
-                return (false, "په جنسونو کې ناسم انتخاب شته.", null, null, null);
+                return (false, "Ù¾Ù‡ Ø¬Ù†Ø³ÙˆÙ†Ùˆ Ú©Û Ù†Ø§Ø³Ù… Ø§Ù†ØªØ®Ø§Ø¨ Ø´ØªÙ‡.", null, null, null);
+
+            var expectedUnitId = item.UnitId;
+            if (detail.UnitConversionID > 0)
+            {
+                if (!unitSubUnitByConversionId.TryGetValue(detail.UnitConversionID, out expectedUnitId))
+                    return (false, "Ø¯ Ø²ÙˆÚ“ Ø®Ø±ÛŒØ¯ Ø¯ ÙˆØ§Ø­Ø¯ ØªØ¨Ø§Ø¯Ù„Ù‡ ÙˆÙ†Ù‡ Ù…ÙˆÙ†Ø¯Ù„ Ø´Ùˆ.", null, null, null);
+            }
 
             var matchedStockTransaction = stockTransactions
                 .Where(x =>
@@ -725,6 +903,7 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
                     x.StockBalance != null &&
                     x.StockBalance.ItemID == detail.ItemID &&
                     x.StockBalance.WarehouseID == detail.WarehouseID &&
+                    x.UnitID == expectedUnitId &&
                     x.Quantity == detail.Quantity &&
                     (x.Remarks ?? string.Empty) == (detail.Remarks ?? string.Empty))
                 .OrderBy(x => Math.Abs((x.CreationDate - detail.CreationDate).Ticks))
@@ -738,14 +917,15 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
                         !usedStockTransactionIds.Contains(x.ID) &&
                         x.StockBalance != null &&
                         x.StockBalance.ItemID == detail.ItemID &&
-                        x.StockBalance.WarehouseID == detail.WarehouseID)
+                        x.StockBalance.WarehouseID == detail.WarehouseID &&
+                        x.UnitID == expectedUnitId)
                     .OrderBy(x => Math.Abs((x.CreationDate - detail.CreationDate).Ticks))
                     .ThenBy(x => x.ID)
                     .FirstOrDefault();
             }
 
             if (matchedStockTransaction is null || matchedStockTransaction.StockBalance is null)
-                return (false, "د زوړ خرید د سټاک بدلونونه ونه موندل شو.", null, null, null);
+                return (false, "Ø¯ Ø²ÙˆÚ“ Ø®Ø±ÛŒØ¯ Ø¯ Ø³Ù¼Ø§Ú© Ø¨Ø¯Ù„ÙˆÙ†ÙˆÙ†Ù‡ ÙˆÙ†Ù‡ Ù…ÙˆÙ†Ø¯Ù„ Ø´Ùˆ.", null, null, null);
 
             usedStockTransactionIds.Add(matchedStockTransaction.ID);
 
@@ -777,7 +957,7 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
             .ToListAsync();
 
         if (journalEntries.Count == 0)
-            return (false, "د زوړ خرید جرنل قیدونه ونه موندل شو.", null, null, null);
+            return (false, "Ø¯ Ø²ÙˆÚ“ Ø®Ø±ÛŒØ¯ Ø¬Ø±Ù†Ù„ Ù‚ÛŒØ¯ÙˆÙ†Ù‡ ÙˆÙ†Ù‡ Ù…ÙˆÙ†Ø¯Ù„ Ø´Ùˆ.", null, null, null);
 
         }
 
@@ -792,7 +972,7 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
         foreach (var stockEffect in stockEffects)
         {
             if (stockEffect.StockBalance.Quantity < stockEffect.MainStockQuantity)
-                return (false, "د زوړ خرید سمون نه شي، ځکه اوسنی سټاک کم دی.");
+                return (false, "Ø¯ Ø²ÙˆÚ“ Ø®Ø±ÛŒØ¯ Ø³Ù…ÙˆÙ† Ù†Ù‡ Ø´ÙŠØŒ ÚÚ©Ù‡ Ø§ÙˆØ³Ù†ÛŒ Ø³Ù¼Ø§Ú© Ú©Ù… Ø¯ÛŒ.");
 
             stockEffect.StockBalance.Quantity -= stockEffect.MainStockQuantity;
         }
@@ -803,7 +983,7 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
         foreach (var journalEntry in journalEntries)
         {
             if (journalEntry.AccountBalance is null)
-                return (false, "د زوړ خرید د حساب بلانس قید ونه موندل شو.");
+                return (false, "Ø¯ Ø²ÙˆÚ“ Ø®Ø±ÛŒØ¯ Ø¯ Ø­Ø³Ø§Ø¨ Ø¨Ù„Ø§Ù†Ø³ Ù‚ÛŒØ¯ ÙˆÙ†Ù‡ Ù…ÙˆÙ†Ø¯Ù„ Ø´Ùˆ.");
 
             journalEntry.AccountBalance.Balance += journalEntry.Debit - journalEntry.Credit;
         }
@@ -852,6 +1032,7 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
             {
                 PurchaseID = purchase.ID,
                 ItemID = preparedDetail.Detail.ItemID,
+                UnitConversion = preparedDetail.UnitConversion,
                 Quantity = preparedDetail.Detail.Quantity,
                 PerPrice = preparedDetail.Detail.UnitPrice,
                 TotalPrice = preparedDetail.Detail.TotalPrice,
@@ -905,7 +1086,7 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
                 ab.CurrencyID == request.CurrencyID);
 
             if (treasureAccountBalance is null || request.ReceivedAmount > treasureAccountBalance.Balance)
-                return (false, "رسید مبلغ په دخل/بانک نه دی.", null, null);
+                return (false, "Ø±Ø³ÛŒØ¯ Ù…Ø¨Ù„Øº Ù¾Ù‡ Ø¯Ø®Ù„/Ø¨Ø§Ù†Ú© Ù†Ù‡ Ø¯ÛŒ.", null, null);
 
             accountBalance.Balance += request.ReceivedAmount;
 
@@ -973,40 +1154,40 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
             .FirstOrDefaultAsync(u => u.ItemID == item.ID && u.SubUnitID == unitId);
 
         if (unitConversion is null)
-            return (false, "د زوړ خرید د واحد تبادله ونه موندل شو.", 0);
+            return (false, "Ø¯ Ø²ÙˆÚ“ Ø®Ø±ÛŒØ¯ Ø¯ ÙˆØ§Ø­Ø¯ ØªØ¨Ø§Ø¯Ù„Ù‡ ÙˆÙ†Ù‡ Ù…ÙˆÙ†Ø¯Ù„ Ø´Ùˆ.", 0);
 
         var exchangedAmount = unitConversion.ExchangedAmount;
         if (exchangedAmount <= 0 && unitConversion.MainAmount > 0 && unitConversion.SubAmount > 0)
             exchangedAmount = unitConversion.SubAmount / unitConversion.MainAmount;
 
         if (exchangedAmount <= 0)
-            return (false, "د زوړ خرید د واحد تبادله ناسمه ده.", 0);
+            return (false, "Ø¯ Ø²ÙˆÚ“ Ø®Ø±ÛŒØ¯ Ø¯ ÙˆØ§Ø­Ø¯ ØªØ¨Ø§Ø¯Ù„Ù‡ Ù†Ø§Ø³Ù…Ù‡ Ø¯Ù‡.", 0);
 
         return (true, string.Empty, quantity / exchangedAmount);
     }
 
     private static string ValidateRequest(PurchaseSaveRequest request, bool requireTreasureRules)
     {
-        if (request is null) return "معلومات ندي رسېدلي.";
-        if (request.PurchaseNo <= 0) return "د خرید شمېره ضروری ده.";
-        if (request.AccountID <= 0) return "حساب انتخاب کړئ.";
-        if (request.CurrencyID <= 0) return "اسعار انتخاب کړئ.";
-        if (request.PurchaseDate == default) return "نېټه انتخاب کړئ.";
-        if (request.Details is null || request.Details.Count == 0) return "لږ تر لږه یو قطار اضافه کړئ.";
-        if (request.TotalAmount <= 0) return "مجموعه باید له صفر څخه زیاته وي.";
-        if (request.ReceivedAmount < 0) return "رسید باید منفي نه وي.";
-        if (request.ReceivedAmount > request.TotalAmount) return "رسید باید له مجموعې څخه زیات نه وي.";
-        if (requireTreasureRules && request.TreasureAccountID is > 0 && request.ReceivedAmount <= 0) return "کله چې تجرئ/بانک انتخاب وي، رسید باید له صفر څخه زیات وي.";
-        if (requireTreasureRules && (request.TreasureAccountID is null or <= 0) && request.ReceivedAmount > 0) return "کله چې رسید داخل وي، تجرئ/بانک انتخاب کړئ.";
+        if (request is null) return "Ù…Ø¹Ù„ÙˆÙ…Ø§Øª Ù†Ø¯ÙŠ Ø±Ø³ÛØ¯Ù„ÙŠ.";
+        if (request.PurchaseNo <= 0) return "Ø¯ Ø®Ø±ÛŒØ¯ Ø´Ù…ÛØ±Ù‡ Ø¶Ø±ÙˆØ±ÛŒ Ø¯Ù‡.";
+        if (request.AccountID <= 0) return "Ø­Ø³Ø§Ø¨ Ø§Ù†ØªØ®Ø§Ø¨ Ú©Ú“Ø¦.";
+        if (request.CurrencyID <= 0) return "Ø§Ø³Ø¹Ø§Ø± Ø§Ù†ØªØ®Ø§Ø¨ Ú©Ú“Ø¦.";
+        if (request.PurchaseDate == default) return "Ù†ÛÙ¼Ù‡ Ø§Ù†ØªØ®Ø§Ø¨ Ú©Ú“Ø¦.";
+        if (request.Details is null || request.Details.Count == 0) return "Ù„Ú– ØªØ± Ù„Ú–Ù‡ ÛŒÙˆ Ù‚Ø·Ø§Ø± Ø§Ø¶Ø§ÙÙ‡ Ú©Ú“Ø¦.";
+        if (request.TotalAmount <= 0) return "Ù…Ø¬Ù…ÙˆØ¹Ù‡ Ø¨Ø§ÛŒØ¯ Ù„Ù‡ ØµÙØ± Ú…Ø®Ù‡ Ø²ÛŒØ§ØªÙ‡ ÙˆÙŠ.";
+        if (request.ReceivedAmount < 0) return "Ø±Ø³ÛŒØ¯ Ø¨Ø§ÛŒØ¯ Ù…Ù†ÙÙŠ Ù†Ù‡ ÙˆÙŠ.";
+        if (request.ReceivedAmount > request.TotalAmount) return "Ø±Ø³ÛŒØ¯ Ø¨Ø§ÛŒØ¯ Ù„Ù‡ Ù…Ø¬Ù…ÙˆØ¹Û Ú…Ø®Ù‡ Ø²ÛŒØ§Øª Ù†Ù‡ ÙˆÙŠ.";
+        if (requireTreasureRules && request.TreasureAccountID is > 0 && request.ReceivedAmount <= 0) return "Ú©Ù„Ù‡ Ú†Û ØªØ¬Ø±Ø¦/Ø¨Ø§Ù†Ú© Ø§Ù†ØªØ®Ø§Ø¨ ÙˆÙŠØŒ Ø±Ø³ÛŒØ¯ Ø¨Ø§ÛŒØ¯ Ù„Ù‡ ØµÙØ± Ú…Ø®Ù‡ Ø²ÛŒØ§Øª ÙˆÙŠ.";
+        if (requireTreasureRules && (request.TreasureAccountID is null or <= 0) && request.ReceivedAmount > 0) return "Ú©Ù„Ù‡ Ú†Û Ø±Ø³ÛŒØ¯ Ø¯Ø§Ø®Ù„ ÙˆÙŠØŒ ØªØ¬Ø±Ø¦/Ø¨Ø§Ù†Ú© Ø§Ù†ØªØ®Ø§Ø¨ Ú©Ú“Ø¦.";
 
         var calculatedTotal = 0m;
         foreach (var row in request.Details)
         {
-            if (row.ItemID <= 0) return "په ټولو قطارونو کې جنس ضروری دی.";
-            if (row.UnitConversionID is null or <= 0) return "په ټولو قطارونو کې واحد ضروری دی.";
-            if (row.Quantity <= 0) return "په ټولو قطارونو کې مقدار باید له صفر څخه زیات وي.";
-            if (row.UnitPrice < 0) return "په ټولو قطارونو کې قیمت ضروری دی.";
-            if (row.WarehouseID <= 0) return "په ټولو قطارونو کې ګدام ضروری دی.";
+            if (row.ItemID <= 0) return "Ù¾Ù‡ Ù¼ÙˆÙ„Ùˆ Ù‚Ø·Ø§Ø±ÙˆÙ†Ùˆ Ú©Û Ø¬Ù†Ø³ Ø¶Ø±ÙˆØ±ÛŒ Ø¯ÛŒ.";
+            if (row.UnitConversionID is null || row.UnitConversionID < 0) return "Ù¾Ù‡ Ù¼ÙˆÙ„Ùˆ Ù‚Ø·Ø§Ø±ÙˆÙ†Ùˆ Ú©Û ÙˆØ§Ø­Ø¯ Ø¶Ø±ÙˆØ±ÛŒ Ø¯ÛŒ.";
+            if (row.Quantity <= 0) return "Ù¾Ù‡ Ù¼ÙˆÙ„Ùˆ Ù‚Ø·Ø§Ø±ÙˆÙ†Ùˆ Ú©Û Ù…Ù‚Ø¯Ø§Ø± Ø¨Ø§ÛŒØ¯ Ù„Ù‡ ØµÙØ± Ú…Ø®Ù‡ Ø²ÛŒØ§Øª ÙˆÙŠ.";
+            if (row.UnitPrice < 0) return "Ù¾Ù‡ Ù¼ÙˆÙ„Ùˆ Ù‚Ø·Ø§Ø±ÙˆÙ†Ùˆ Ú©Û Ù‚ÛŒÙ…Øª Ø¶Ø±ÙˆØ±ÛŒ Ø¯ÛŒ.";
+            if (row.WarehouseID <= 0) return "Ù¾Ù‡ Ù¼ÙˆÙ„Ùˆ Ù‚Ø·Ø§Ø±ÙˆÙ†Ùˆ Ú©Û Ú«Ø¯Ø§Ù… Ø¶Ø±ÙˆØ±ÛŒ Ø¯ÛŒ.";
 
             var expectedRowTotal = row.Quantity * row.UnitPrice;
             if (row.TotalPrice != expectedRowTotal) row.TotalPrice = expectedRowTotal;
@@ -1019,19 +1200,46 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
         return string.Empty;
     }
 
-    private async Task<(decimal mainStockQuantity, int unitId, string error)> ResolvePurchaseUnitAsync(
+    private async Task<(decimal mainStockQuantity, int unitId, UnitConversion unitConversion, string error)> ResolvePurchaseUnitAsync(
         int unitConversionId,
         decimal quantity,
-        Item item)
+        Item item,
+        string userId)
     {
-        if (unitConversionId <= 0)
-            return (0, 0, "په ټولو قطارونو کې واحد ضروری دی.");
+        UnitConversion unitConversion;
+        if (unitConversionId == 0)
+        {
+            unitConversion = await _db.UnitConversion
+                .FirstOrDefaultAsync(u => u.ItemID == item.ID && u.SubUnitID == item.UnitId);
 
-        var unitConversion = await _db.UnitConversion
-            .FirstOrDefaultAsync(u => u.ID == unitConversionId && u.ItemID == item.ID);
+            if (unitConversion is null)
+            {
+                unitConversion = new UnitConversion
+                {
+                    ItemID = item.ID,
+                    MainUnitId = item.UnitId,
+                    SubUnitID = item.UnitId,
+                    MainAmount = 1,
+                    SubAmount = 1,
+                    ExchangedAmount = 1,
+                    Remarks = string.Empty,
+                    CreationDate = DateTime.UtcNow,
+                    CreatedByUserId = userId
+                };
+                _db.UnitConversion.Add(unitConversion);
+            }
+        }
+        else
+        {
+            if (unitConversionId < 0)
+                return (0, 0, null, "Ù¾Ù‡ Ù¼ÙˆÙ„Ùˆ Ù‚Ø·Ø§Ø±ÙˆÙ†Ùˆ Ú©Û ÙˆØ§Ø­Ø¯ Ø¶Ø±ÙˆØ±ÛŒ Ø¯ÛŒ.");
+
+            unitConversion = await _db.UnitConversion
+                .FirstOrDefaultAsync(u => u.ID == unitConversionId && u.ItemID == item.ID);
+        }
 
         if (unitConversion is null)
-            return (0, 0, "د دې جنس لپاره واحد ناسم دی.");
+            return (0, 0, null, "Ø¯ Ø¯Û Ø¬Ù†Ø³ Ù„Ù¾Ø§Ø±Ù‡ ÙˆØ§Ø­Ø¯ Ù†Ø§Ø³Ù… Ø¯ÛŒ.");
 
         var exchangedAmount = unitConversion.ExchangedAmount;
         if (exchangedAmount <= 0 && unitConversion.MainAmount > 0 && unitConversion.SubAmount > 0)
@@ -1042,9 +1250,9 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
         }
 
         if (exchangedAmount <= 0)
-            return (0, 0, "د واحد تبادله ناسمه ده.");
+            return (0, 0, null, "Ø¯ ÙˆØ§Ø­Ø¯ ØªØ¨Ø§Ø¯Ù„Ù‡ Ù†Ø§Ø³Ù…Ù‡ Ø¯Ù‡.");
 
-        return (quantity / exchangedAmount, unitConversion.SubUnitID, string.Empty);
+        return (quantity / exchangedAmount, unitConversion.SubUnitID, unitConversion, string.Empty);
     }
 
     private sealed class PreparedPurchaseDetail
@@ -1052,6 +1260,7 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
         public required PurchaseSaveDetailRequest Detail { get; init; }
         public required decimal MainStockQuantity { get; init; }
         public required int UnitId { get; init; }
+        public required UnitConversion UnitConversion { get; init; }
         public required string Remarks { get; init; }
     }
 

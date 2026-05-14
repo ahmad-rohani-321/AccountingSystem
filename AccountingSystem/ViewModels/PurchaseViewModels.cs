@@ -58,8 +58,10 @@ public class PurchaseResponse
     public int PurchaseNo { get; set; }
     public bool IsHolded { get; set; }
     public int AccountID { get; set; }
+    public string AccountName { get; set; } = string.Empty;
     public int? TreasureAccountID { get; set; }
     public int CurrencyID { get; set; }
+    public string CurrencyName { get; set; } = string.Empty;
     public DateTime PurchaseDate { get; set; }
     public decimal TotalAmount { get; set; }
     public decimal ReceivedAmount { get; set; }
@@ -83,4 +85,10 @@ public class PurchaseRefundRequest
 {
     public int? TreasureAccountID { get; set; }
     public decimal RefundAmount { get; set; }
+}
+
+public class PurchaseReceiveRequest
+{
+    public int? TreasureAccountID { get; set; }
+    public decimal ReceiveAmount { get; set; }
 }

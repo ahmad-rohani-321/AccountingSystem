@@ -106,7 +106,7 @@ public class AccountsController(ApplicationDbContext db, IWebHostEnvironment env
     public async Task<IActionResult> GetBalance([FromQuery] int accountId, [FromQuery] int currencyId)
     {
         if (accountId <= 0 || currencyId <= 0)
-            return BadRequest(new { Message = "Account and currency are required." });
+            return BadRequest(new { Message = "حساب او اسعار ضروري دي." });
 
         var balance = await _db.AccountBalances
             .Where(ab => ab.AccountID == accountId && ab.CurrencyID == currencyId)
@@ -125,7 +125,7 @@ public class AccountsController(ApplicationDbContext db, IWebHostEnvironment env
     public async Task<IActionResult> GetBalances(int accountId)
     {
         if (accountId <= 0)
-            return BadRequest(new { Message = "Account is required." });
+            return BadRequest(new { Message = "حساب ضروري دی." });
 
         var account = await _db.Accounts
             .AsNoTracking()
@@ -140,7 +140,7 @@ public class AccountsController(ApplicationDbContext db, IWebHostEnvironment env
             .FirstOrDefaultAsync();
 
         if (account is null)
-            return NotFound(new { Message = "Account was not found." });
+            return NotFound(new { Message = "حساب ونه موندل شو." });
 
         var balances = await _db.Currencies
             .AsNoTracking()
@@ -178,32 +178,32 @@ public class AccountsController(ApplicationDbContext db, IWebHostEnvironment env
         request.Remarks = request.Remarks?.Trim() ?? string.Empty;
 
         if (!TryParseDecimalValue(request.Amount, out var amount))
-            return BadRequest(new { Message = "Amount is not valid." });
+            return BadRequest(new { Message = "مبلغ سم نه دی." });
 
         if (!TryParseDecimalValue(request.ExchangeRate, out var requestExchangeRate))
             requestExchangeRate = 0;
 
         if (request.DebitCurrencyId <= 0 || request.CreditCurrencyId <= 0)
-            return BadRequest(new { Message = "Debit and credit currencies are required." });
+            return BadRequest(new { Message = "د ډیبیټ او کریډیټ اسعار ضروري دي." });
 
         if (request.DebitAccountId <= 0 || request.CreditAccountId <= 0)
-            return BadRequest(new { Message = "Debit and credit accounts are required." });
+            return BadRequest(new { Message = "د ډیبیټ او کریډیټ حسابونه ضروري دي." });
 
         if (amount <= 0)
-            return BadRequest(new { Message = "Amount must be greater than zero." });
+            return BadRequest(new { Message = "مبلغ باید له صفر څخه زیات وي." });
 
         if (string.IsNullOrWhiteSpace(request.Remarks))
-            return BadRequest(new { Message = "Remarks are required." });
+            return BadRequest(new { Message = "ملاحظات ضروري دي." });
 
         if (request.ChequePhoto is not null &&
             !string.Equals(Path.GetExtension(request.ChequePhoto.FileName), ".jpg", StringComparison.OrdinalIgnoreCase))
         {
-            return BadRequest(new { Message = "Only .jpg files are allowed." });
+            return BadRequest(new { Message = "یوازې د .jpg فایل اجازه شته." });
         }
 
         var exchangeRate = request.DebitCurrencyId == request.CreditCurrencyId ? 1m : requestExchangeRate;
         if (exchangeRate <= 0)
-            return BadRequest(new { Message = "A valid exchange rate is required." });
+            return BadRequest(new { Message = "سم د تبادلې نرخ ضروري دی." });
 
         var creditAmount = request.DebitCurrencyId == request.CreditCurrencyId
             ? amount
@@ -217,7 +217,7 @@ public class AccountsController(ApplicationDbContext db, IWebHostEnvironment env
         var creditAccount = selectedAccounts.FirstOrDefault(a => a.ID == request.CreditAccountId);
 
         if (debitAccount is null || creditAccount is null)
-            return BadRequest(new { Message = "Selected accounts were not found." });
+            return BadRequest(new { Message = "ټاکل شوي حسابونه ونه موندل شول." });
 
         var selectedBalances = await _db.AccountBalances
             .Include(ab => ab.Account)
@@ -285,7 +285,7 @@ public class AccountsController(ApplicationDbContext db, IWebHostEnvironment env
 
         var missingTransactionTypeId = requiredTransactionTypeIds.FirstOrDefault(id => !availableTransactionTypeIds.Contains(id));
         if (missingTransactionTypeId > 0)
-            return BadRequest(new { Message = $"Required journal transaction type {missingTransactionTypeId} was not found." });
+            return BadRequest(new { Message = $"د جرنل اړین د معاملې ډول {missingTransactionTypeId} ونه موندل شو." });
 
         var previousDebitBalance = debitAccountBalance.Balance;
         var previousCreditBalance = creditAccountBalance.Balance;
@@ -424,7 +424,7 @@ public class AccountsController(ApplicationDbContext db, IWebHostEnvironment env
         var requiresContact = !AccountsAllowedTypes.Contains(request.AccountTypeID);
 
         if (requiresContact && string.IsNullOrWhiteSpace(request.FirstPhone))
-            return BadRequest(new { Message = "First phone is required." });
+            return BadRequest(new { Message = "لومړی موبایل ضروري دی." });
 
         if (string.IsNullOrWhiteSpace(request.Code))
             request.Code = await GenerateNextCode();
@@ -584,7 +584,7 @@ public class AccountsController(ApplicationDbContext db, IWebHostEnvironment env
             if (TryGetString(dict, nameof(AccountListItem.FirstPhone), out var firstPhone))
             {
                 if (string.IsNullOrWhiteSpace(firstPhone))
-                    return BadRequest(new { Message = "First phone is required." });
+            return BadRequest(new { Message = "لومړی موبایل ضروري دی." });
 
                 contact.FirstPhone = firstPhone;
             }

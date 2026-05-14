@@ -8,7 +8,7 @@
             @(
                 Html.DevExtreme().Button()
                 .ID("save-form")
-                .Text("سمون ثبت")
+                .Text("ثبت")
                 .Icon("fa-solid fa-floppy-disk")
                 .StylingMode(ButtonStylingMode.Contained)
                 .Type(ButtonType.Success)
@@ -216,7 +216,7 @@
 
         <div class="col-12 col-lg-4">
             <div class="purchase-field purchase-field-readonly">
-                <label class="purchase-label">د حساب بلانس په تورو</label>
+                <label class="purchase-label">مجموعه، رسید او باقي په تورو</label>
                 @(
                     Html.DevExtreme().TextArea()
                     .ID("account-balance-words")
@@ -360,6 +360,8 @@
         var activeWarehousesCache = [];
         var activeWarehouseNameById = {};
         var pendingOrdersPopup = null;
+        var currentAccountBalanceValue = null;
+        var currentTreasureBalanceValue = null;
 
         var accountDataSource = new DevExpress.data.DataSource({
             store: DevExpress.data.AspNet.createStore({
@@ -409,9 +411,39 @@
         });
 
         function unitLookupDataSource(options) {
-            if (!options || !options.data) return [];
-            var rowData = options.data;
-            return Array.isArray(rowData.UnitOptions) ? rowData.UnitOptions : [];
+            var rowData = options && options.data ? options.data : null;
+            var itemId = rowData && rowData.ItemID ? rowData.ItemID : 0;
+
+            return {
+                store: new DevExpress.data.CustomStore({
+                    key: "UnitConversionID",
+                    loadMode: "raw",
+                    load: function () {
+                        if (!itemId) return [];
+
+                        return loadUnitOptionsForItem(itemId).then(function (options) {
+                            if (rowData) rowData.UnitOptions = Array.isArray(options) ? options : [];
+                            return rowData && Array.isArray(rowData.UnitOptions) ? rowData.UnitOptions : [];
+                        });
+                    },
+                    byKey: function (key) {
+                        if (!itemId || key === null || key === undefined || key === "") return null;
+
+                        return loadUnitOptionsForItem(itemId).then(function (options) {
+                            var rows = Array.isArray(options) ? options : [];
+                            if (rowData) rowData.UnitOptions = rows;
+
+                            for (var i = 0; i < rows.length; i++) {
+                                if (rows[i] && rows[i].UnitConversionID === key) {
+                                    return rows[i];
+                                }
+                            }
+
+                            return null;
+                        });
+                    }
+                })
+            };
         }
 
         function normalizeDxLoadResult(result) {
@@ -462,6 +494,61 @@
                 }, function () {
                     return [];
                 });
+        }
+
+        function findMatchingUnitConversionId(options, unitConversionId) {
+            if (!Array.isArray(options) || unitConversionId === null || unitConversionId === undefined || unitConversionId === "") {
+                return null;
+            }
+
+            for (var i = 0; i < options.length; i++) {
+                var option = options[i];
+                if (option && option.UnitConversionID === unitConversionId) {
+                    return option.UnitConversionID;
+                }
+            }
+
+            return null;
+        }
+
+        function getPreferredUnitConversionId(options, preferredUnitConversionId) {
+            var matchingId = findMatchingUnitConversionId(options, preferredUnitConversionId);
+            if (matchingId !== null) return matchingId;
+
+            if (!Array.isArray(options) || options.length === 0) return null;
+
+            var firstOption = options[0];
+            return firstOption ? firstOption.UnitConversionID : null;
+        }
+
+        function syncRowUnitOptions(grid, rowIndex, rowData, options, preferredUnitConversionId) {
+            var normalizedOptions = Array.isArray(options) ? options : [];
+            var nextUnitConversionId = getPreferredUnitConversionId(normalizedOptions, preferredUnitConversionId);
+
+            if (rowData) {
+                rowData.UnitOptions = normalizedOptions;
+                rowData.UnitConversionID = nextUnitConversionId;
+            }
+
+            if (grid && rowIndex !== undefined && rowIndex !== null) {
+                grid.cellValue(rowIndex, "UnitConversionID", nextUnitConversionId);
+                grid.repaintRows([rowIndex]);
+            }
+
+            return nextUnitConversionId;
+        }
+
+        function prepareUnitConversionEditor(editorOptions, rowData) {
+            var itemId = rowData && rowData.ItemID ? rowData.ItemID : null;
+            var dataSourceConfig = unitLookupDataSource({ data: rowData || {} });
+
+            editorOptions.dataSource = dataSourceConfig;
+            editorOptions.displayExpr = "UnitName";
+            editorOptions.valueExpr = "UnitConversionID";
+            editorOptions.searchEnabled = true;
+            editorOptions.showClearButton = true;
+            editorOptions.disabled = !itemId;
+            editorOptions.placeholder = itemId ? "واحد وټاکئ..." : "لومړی جنس وټاکئ...";
         }
 
         function getItemDisplayText(rowData) {
@@ -521,6 +608,8 @@
             var total = totalInstance ? Number(totalInstance.option("value") || 0) : 0;
             var received = receivedInstance ? Number(receivedInstance.option("value") || 0) : 0;
             remainingInstance.option("value", total - received);
+            updatePurchaseAmountWords();
+            updateProjectedBalanceLabels();
         }
 
         function onReceivedAmountChanged() {
@@ -618,7 +707,10 @@
 
                     grid.cellValue(rowIndex, "ItemID", selectedItemId);
                     grid.cellValue(rowIndex, "UnitConversionID", null);
-                    if (rowData) rowData.UnitOptions = [];
+                    if (rowData) {
+                        rowData.UnitConversionID = null;
+                        rowData.UnitOptions = [];
+                    }
 
                     if (!selectedItemId) {
                         grid.repaintRows([rowIndex]);
@@ -626,11 +718,7 @@
                     }
 
                     loadUnitOptionsForItem(selectedItemId).then(function (options) {
-                        if (rowData) rowData.UnitOptions = options;
-                        if (options.length === 1) {
-                            grid.cellValue(rowIndex, "UnitConversionID", options[0].UnitConversionID);
-                        }
-                        grid.repaintRows([rowIndex]);
+                        syncRowUnitOptions(grid, rowIndex, rowData, options, null);
                     });
                 };
                 return;
@@ -639,21 +727,18 @@
             if (e.dataField === "UnitConversionID") {
                 var rowDataForUnit = e.row && e.row.data ? e.row.data : null;
                 var selectedItemIdForUnit = rowDataForUnit ? rowDataForUnit.ItemID : null;
-                var optionsForUnit = rowDataForUnit && Array.isArray(rowDataForUnit.UnitOptions)
-                    ? rowDataForUnit.UnitOptions
-                    : [];
 
                 e.editorName = "dxSelectBox";
-                e.editorOptions.dataSource = optionsForUnit;
-                e.editorOptions.displayExpr = "UnitName";
-                e.editorOptions.valueExpr = "UnitConversionID";
-                e.editorOptions.searchEnabled = true;
-                e.editorOptions.showClearButton = true;
+                prepareUnitConversionEditor(e.editorOptions, rowDataForUnit);
 
-                if (selectedItemIdForUnit && optionsForUnit.length === 0) {
+                if (selectedItemIdForUnit && (!rowDataForUnit || !Array.isArray(rowDataForUnit.UnitOptions) || rowDataForUnit.UnitOptions.length === 0)) {
                     loadUnitOptionsForItem(selectedItemIdForUnit).then(function (options) {
-                        if (rowDataForUnit) rowDataForUnit.UnitOptions = options;
-                        e.component.repaintRows([e.row.rowIndex]);
+                        syncRowUnitOptions(
+                            e.component,
+                            e.row.rowIndex,
+                            rowDataForUnit,
+                            options,
+                            rowDataForUnit ? rowDataForUnit.UnitConversionID : null);
                     });
                 }
                 return;
@@ -758,11 +843,56 @@
             label.text("بلانس (" + currencyName + "): " + numericText + " (" + wordsText + ")");
         }
 
-        function setAccountBalanceWords(balanceValue) {
-            var wordsInstance = $("#account-balance-words").dxTextArea("instance");
+        function setTextAreaValue(selector, value) {
+            var wordsInstance = $(selector).dxTextArea("instance");
             if (!wordsInstance) return;
 
-            wordsInstance.option("value", humanizeNumberValue(balanceValue));
+            wordsInstance.option("value", value || "صفر");
+        }
+
+        function updatePurchaseAmountWords() {
+            var total = getNumberBoxValue("#purchase-total");
+            var received = getNumberBoxValue("#purchase-received");
+            var remaining = getNumberBoxValue("#purchase-remaining");
+
+            setTextAreaValue("#account-balance-words", [
+                "مجموعه: " + (humanizeNumberValue(total) || "صفر"),
+                "رسید: " + (humanizeNumberValue(received) || "صفر"),
+                "باقي: " + (humanizeNumberValue(remaining) || "صفر")
+            ].join("\n"));
+        }
+
+        function setProjectedBalanceLabel(labelSelector, currencyName, balanceValue) {
+            var label = $(labelSelector);
+            if (!label.length) return;
+
+            label.text("د ثبت وروسته بلانس (" + currencyName + "): " + formatNumeric(balanceValue) + " (" + (humanizeNumberValue(balanceValue) || "صفر") + ")");
+        }
+
+        function updateProjectedBalanceLabels() {
+            if (isHoldedSelected()) {
+                $("#account-balance-note").text("هولډ دی؛ د ثبت وروسته بلانس نه بدلېږي.");
+                $("#treasure-balance-note").text("هولډ دی؛ د ثبت وروسته بلانس نه بدلېږي.");
+                return;
+            }
+
+            var currencySelection = getCurrencySelection();
+            var currencyName = currencySelection && currencySelection.currencyName ? currencySelection.currencyName : "اسعار";
+            var received = getNumberBoxValue("#purchase-received");
+            var remaining = getNumberBoxValue("#purchase-remaining");
+            if (getSelectBoxValue("#account-selector") > 0 && currentAccountBalanceValue !== null && currentAccountBalanceValue !== undefined) {
+                var accountAfter = Number(currentAccountBalanceValue || 0) - remaining;
+                setProjectedBalanceLabel("#account-balance-note", currencyName, accountAfter);
+            } else {
+                resetBalanceLabel("#account-balance-note");
+            }
+
+            if (getSelectBoxValue("#treasure-selector") > 0 && currentTreasureBalanceValue !== null && currentTreasureBalanceValue !== undefined) {
+                var treasureAfter = Number(currentTreasureBalanceValue || 0) - received;
+                setProjectedBalanceLabel("#treasure-balance-note", currencyName, treasureAfter);
+            } else {
+                resetBalanceLabel("#treasure-balance-note");
+            }
         }
 
         function resetBalanceLabel(labelSelector) {
@@ -771,11 +901,9 @@
             label.text("بلانس: 0 (صفر)");
         }
 
-        function resetAccountBalanceWords() {
-            var wordsInstance = $("#account-balance-words").dxTextArea("instance");
-            if (!wordsInstance) return;
-
-            wordsInstance.option("value", "صفر");
+        function resetProjectedBalanceLabels() {
+            resetBalanceLabel("#account-balance-note");
+            resetBalanceLabel("#treasure-balance-note");
         }
 
         function refreshBalanceLabel(accountSelector, labelSelector) {
@@ -785,7 +913,9 @@
 
             if (!accountId || !currencySelection.currencyId) {
                 resetBalanceLabel(labelSelector);
-                if (labelSelector === "#account-balance-note") resetAccountBalanceWords();
+                if (labelSelector === "#account-balance-note") currentAccountBalanceValue = null;
+                if (labelSelector === "#treasure-balance-note") currentTreasureBalanceValue = null;
+                updateProjectedBalanceLabels();
                 return;
             }
 
@@ -799,10 +929,14 @@
             }).done(function (result) {
                 var balance = result && result.Balance !== undefined ? Number(result.Balance) : 0;
                 setBalanceLabel(labelSelector, currencySelection.currencyName, balance);
-                if (labelSelector === "#account-balance-note") setAccountBalanceWords(balance);
+                if (labelSelector === "#account-balance-note") currentAccountBalanceValue = balance;
+                if (labelSelector === "#treasure-balance-note") currentTreasureBalanceValue = balance;
+                updateProjectedBalanceLabels();
             }).fail(function () {
                 resetBalanceLabel(labelSelector);
-                if (labelSelector === "#account-balance-note") resetAccountBalanceWords();
+                if (labelSelector === "#account-balance-note") currentAccountBalanceValue = null;
+                if (labelSelector === "#treasure-balance-note") currentTreasureBalanceValue = null;
+                updateProjectedBalanceLabels();
             });
         }
 
@@ -1039,7 +1173,9 @@
                     var unitPrice = Number(row && row.UnitPrice ? row.UnitPrice : 0);
                     return {
                         ItemID: row && row.ItemID ? row.ItemID : 0,
-                        UnitConversionID: row && row.UnitConversionID ? row.UnitConversionID : null,
+                        UnitConversionID: row && row.UnitConversionID !== null && row.UnitConversionID !== undefined
+                            ? row.UnitConversionID
+                            : null,
                         Quantity: quantity,
                         UnitPrice: unitPrice,
                         TotalPrice: row && row.TotalPrice !== null && row.TotalPrice !== undefined
@@ -1162,7 +1298,9 @@
                         purchaseDetailsData.push({
                             RowID: purchaseRowCounter++,
                             ItemID: row.ItemID || null,
-                            UnitConversionID: row.UnitConversionID || null,
+                            UnitConversionID: row.UnitConversionID !== undefined && row.UnitConversionID !== null
+                                ? row.UnitConversionID
+                                : null,
                             Quantity: row.Quantity || null,
                             UnitPrice: row.UnitPrice || null,
                             TotalPrice: row.TotalPrice || null,
@@ -1183,7 +1321,8 @@
                         (function (targetRow) {
                             if (!targetRow.ItemID) return;
                             var loader = loadUnitOptionsForItem(targetRow.ItemID).then(function (options) {
-                                targetRow.UnitOptions = options;
+                                targetRow.UnitConversionID = getPreferredUnitConversionId(options, targetRow.UnitConversionID);
+                                targetRow.UnitOptions = Array.isArray(options) ? options : [];
                             });
                             unitLoaders.push(loader);
                         })(purchaseDetailsData[j]);
@@ -1231,7 +1370,9 @@
                         purchaseDetailsData.push({
                             RowID: purchaseRowCounter++,
                             ItemID: row.ItemID || null,
-                            UnitConversionID: row.UnitConversionID || null,
+                            UnitConversionID: row.UnitConversionID !== undefined && row.UnitConversionID !== null
+                                ? row.UnitConversionID
+                                : null,
                             Quantity: row.Quantity || null,
                             UnitPrice: null,
                             TotalPrice: null,
@@ -1252,7 +1393,8 @@
                         (function (targetRow) {
                             if (!targetRow.ItemID) return;
                             var loader = loadUnitOptionsForItem(targetRow.ItemID).then(function (options) {
-                                targetRow.UnitOptions = options;
+                                targetRow.UnitConversionID = getPreferredUnitConversionId(options, targetRow.UnitConversionID);
+                                targetRow.UnitOptions = Array.isArray(options) ? options : [];
                             });
                             unitLoaders.push(loader);
                         })(purchaseDetailsData[j]);
@@ -1377,6 +1519,8 @@
 
             refreshAllBalanceLabels();
             updateRemainingAmount();
+            updatePurchaseAmountWords();
+            resetProjectedBalanceLabels();
 
             $("#purchase-no").dxValidator({
                 validationRules: [

@@ -403,7 +403,7 @@ items.Add().Location(ToolbarItemLocation.Before)
             jpegQuality = (typeof jpegQuality === "number") ? jpegQuality : 0.78;
 
             return new Promise(function (resolve, reject) {
-                if (!file) return reject(new Error("No file."));
+                if (!file) return reject(new Error("فایل ونه موندل شو."));
 
                 var name = (file.name || "").toLowerCase();
                 var ext = name.endsWith(".png") ? ".png" : (name.endsWith(".jpg") || name.endsWith(".jpeg")) ? ".jpg" : "";
@@ -463,7 +463,7 @@ items.Add().Location(ToolbarItemLocation.Before)
                     contentType: false
                 }).then(function (r) {
                     var fileName = r && (r.fileName || r.FileName);
-                    if (!fileName) throw new Error("Server did not return fileName.");
+                    if (!fileName) throw new Error("سرور د فایل نوم را ونه لېږه.");
                     return fileName;
                 });
             });

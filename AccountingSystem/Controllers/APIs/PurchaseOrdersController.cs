@@ -34,7 +34,7 @@ public class PurchaseOrdersController(ApplicationDbContext db) : ApiControllerBa
     {
         var today = DateTime.Today;
         var tomorrow = today.AddDays(1);
-        return query.Where(x => x.CreationDate >= today && x.CreationDate < tomorrow);
+        return query.Where(x => x.CreationDate >= today && x.CreationDate < tomorrow && !x.IsCompleted);
     }
 
     private static IQueryable<PurchaseOrderGridRow> ProjectPurchaseOrderGridRows(IQueryable<PurchaseOrder> query)
@@ -60,14 +60,14 @@ public class PurchaseOrdersController(ApplicationDbContext db) : ApiControllerBa
 
         if (hasAccountFilter)
         {
-            query = query.Where(x => x.AccountID == accountId.Value);
+            query = query.Where(x => x.AccountID == accountId.Value && !x.IsCompleted);
         }
 
         if (hasDateRangeFilter)
         {
             var from = fromDate.Value.Date;
             var toExclusive = toDate.Value.Date.AddDays(1);
-            query = query.Where(x => x.CreationDate >= from && x.CreationDate < toExclusive);
+            query = query.Where(x => x.CreationDate >= from && x.CreationDate < toExclusive && !x.IsCompleted);
         }
         else if (!hasAccountFilter)
         {

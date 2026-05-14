@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace AccountingSystem.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260511081854_InitialMigration")]
+    [Migration("20260514121837_InitialMigration")]
     partial class InitialMigration
     {
         /// <inheritdoc />
@@ -173,7 +173,7 @@ namespace AccountingSystem.Migrations
                             AccountTypeID = 10,
                             Code = "Walkin",
                             CreatedByUserId = "f5b9b7e7-2d3a-4b4d-a1b5-1b3f2a7a9e01",
-                            CreationDate = new DateTime(2026, 5, 11, 12, 48, 54, 227, DateTimeKind.Local).AddTicks(1408),
+                            CreationDate = new DateTime(2026, 5, 14, 16, 48, 36, 119, DateTimeKind.Local).AddTicks(5223),
                             IsActive = true,
                             Name = "عادي"
                         });
@@ -256,7 +256,7 @@ namespace AccountingSystem.Migrations
                             AccountID = 1,
                             Address = "",
                             CreatedByUserId = "f5b9b7e7-2d3a-4b4d-a1b5-1b3f2a7a9e01",
-                            CreationDate = new DateTime(2026, 5, 11, 12, 48, 54, 227, DateTimeKind.Local).AddTicks(2579),
+                            CreationDate = new DateTime(2026, 5, 14, 16, 48, 36, 119, DateTimeKind.Local).AddTicks(6891),
                             Email = "",
                             FirstPhone = "",
                             NIC = "",
@@ -415,7 +415,7 @@ namespace AccountingSystem.Migrations
                             LockoutEnabled = false,
                             NormalizedEmail = "ADMIN",
                             NormalizedUserName = "ADMIN",
-                            PasswordHash = "AQAAAAIAAYagAAAAEO+iTv8+9wkOgSceOoTQ0u0A8O7b7MUEruZF5/9iEwY5J2uzr1qr9u9yD3KsgciAmw==",
+                            PasswordHash = "AQAAAAIAAYagAAAAECC+f8RvCmuGqkGsrJI8AcDudFYKibhBdZhnh/bPP5MNXBWnX3epwMuOINIVQELjMA==",
                             PhoneNumberConfirmed = false,
                             ProfilePhoto = "",
                             SecurityStamp = "2c9a4d9b-4f5a-4b8b-9a7c-2b1c3d4e5f61",
@@ -786,7 +786,7 @@ namespace AccountingSystem.Migrations
                         {
                             ID = 1,
                             CreatedByUserId = "f5b9b7e7-2d3a-4b4d-a1b5-1b3f2a7a9e01",
-                            CreationDate = new DateTime(2026, 5, 11, 12, 48, 54, 225, DateTimeKind.Local).AddTicks(8472),
+                            CreationDate = new DateTime(2026, 5, 14, 16, 48, 36, 117, DateTimeKind.Local).AddTicks(6304),
                             Description = "اصلي ګدام د ټولو موادو لپاره دی.",
                             IsActive = true,
                             Name = "عمومي ګدام"
@@ -873,6 +873,9 @@ namespace AccountingSystem.Migrations
                     b.Property<decimal>("TotalPrice")
                         .HasColumnType("TEXT");
 
+                    b.Property<int>("UnitConversionID")
+                        .HasColumnType("INTEGER");
+
                     b.Property<int>("WarehouseID")
                         .HasColumnType("INTEGER");
 
@@ -883,6 +886,8 @@ namespace AccountingSystem.Migrations
                     b.HasIndex("ItemID");
 
                     b.HasIndex("PurchaseID");
+
+                    b.HasIndex("UnitConversionID");
 
                     b.HasIndex("WarehouseID");
 
@@ -992,7 +997,7 @@ namespace AccountingSystem.Migrations
                         {
                             ID = 1,
                             CreatedByUserId = "f5b9b7e7-2d3a-4b4d-a1b5-1b3f2a7a9e01",
-                            CreationDate = new DateTime(2026, 5, 11, 12, 48, 54, 227, DateTimeKind.Local).AddTicks(6010),
+                            CreationDate = new DateTime(2026, 5, 14, 16, 48, 36, 120, DateTimeKind.Local).AddTicks(1682),
                             CurrencyName = "افغانۍ",
                             CurrencySymbole = "AFN",
                             IsActive = true,
@@ -1002,7 +1007,7 @@ namespace AccountingSystem.Migrations
                         {
                             ID = 2,
                             CreatedByUserId = "f5b9b7e7-2d3a-4b4d-a1b5-1b3f2a7a9e01",
-                            CreationDate = new DateTime(2026, 5, 11, 12, 48, 54, 227, DateTimeKind.Local).AddTicks(6016),
+                            CreationDate = new DateTime(2026, 5, 14, 16, 48, 36, 120, DateTimeKind.Local).AddTicks(1690),
                             CurrencyName = "ډالر",
                             CurrencySymbole = "USD",
                             IsActive = true,
@@ -1459,6 +1464,12 @@ namespace AccountingSystem.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("AccountingSystem.Models.Inventory.UnitConversion", "UnitConversion")
+                        .WithMany()
+                        .HasForeignKey("UnitConversionID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("AccountingSystem.Models.Inventory.WareHouse", "Warehouse")
                         .WithMany()
                         .HasForeignKey("WarehouseID")
@@ -1470,6 +1481,8 @@ namespace AccountingSystem.Migrations
                     b.Navigation("Item");
 
                     b.Navigation("Purchase");
+
+                    b.Navigation("UnitConversion");
 
                     b.Navigation("Warehouse");
                 });

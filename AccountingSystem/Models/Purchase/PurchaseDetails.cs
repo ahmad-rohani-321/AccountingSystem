@@ -12,6 +12,8 @@ namespace AccountingSystem.Models.Purchase
         public decimal TotalPrice { get; set; }
         public int WarehouseID { get; set; }
         public string Remarks { get; set; }
+        public int UnitConversionID { get; set; }
+
         [ForeignKey(nameof(ItemID))]
         public Item Item { get; set; }
         [ForeignKey(nameof(PurchaseID))]
@@ -19,5 +21,8 @@ namespace AccountingSystem.Models.Purchase
 
         [ForeignKey(nameof(WarehouseID))]
         public WareHouse Warehouse { get; set; }
+
+        [ForeignKey(nameof(UnitConversionID))]
+        public UnitConversion UnitConversion { get; set; }
     }
 }
