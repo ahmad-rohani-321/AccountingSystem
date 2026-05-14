@@ -7,6 +7,7 @@ using AccountingSystem.Models.Settings;
 using AccountingSystem.Models.Accounts;
 using AccountingSystem.Models.Accounting;
 using AccountingSystem.Models.Purchase;
+using AccountingSystem.Models.Sales;
 
 namespace AccountingSystem.Data
 {
@@ -349,6 +350,13 @@ namespace AccountingSystem.Data
         public DbSet<PurchaseOrderDetails> PurchaseOrderDetails { get; set; }
         public DbSet<Purchase> Purchases { get; set; }
         public DbSet<PurchaseDetails> PurchaseDetails { get; set; }
+        #endregion
+
+        #region Sales
+        public DbSet<SaleOrder> SalesOrders { get; set; }
+        public DbSet<SaleOrderDetails> SalesOrderDetails { get; set; }
+        public DbSet<Sales> Sales { get; set; }
+        public DbSet<SaleDetails> SalesDetails { get; set; }
         #endregion
     }
 }

@@ -1,0 +1,1763 @@
+﻿@{
+    ViewData["title"] ??= "د خرید سمون";
+    var saleId = ViewData["SaleId"] as int? ?? 0;
+}
+<div class="dx-card px-4 py-3 mb-3">
+    <div class="row row-cols-auto">
+        <div class="col">
+            @(
+                Html.DevExtreme().Button()
+                .ID("save-form")
+                .Text("ثبت")
+                .Icon("fa-solid fa-floppy-disk")
+                .StylingMode(ButtonStylingMode.Contained)
+                .Type(ButtonType.Success)
+                .OnClick("purchasePage.onSaveFormClick")
+            )
+        </div>
+
+        <div class="col">
+            @(
+                Html.DevExtreme().Button()
+                .ID("clear-form")
+                .Text("فورم پاکول")
+                .Icon("fa-solid fa-eraser")
+                .StylingMode(ButtonStylingMode.Contained)
+                .Type(ButtonType.Normal)
+                .OnClick("purchasePage.onClearFormClick")
+            )
+        </div>
+
+    </div>
+
+    <div class="row mt-3">
+        <div class="col-12">
+            <div id="purchase-hold-toggle-card" class="purchase-hold-toggle-card">
+                <div class="purchase-hold-toggle-main">
+                    @(
+                        Html.DevExtreme().CheckBox()
+                        .ID("is-holded")
+                        .Text("که چک وي، خرید هولډ پاتې کېږي")
+                        .Value(false)
+                        .OnValueChanged("purchasePage.onIsHoldedChanged")
+                    )
+                </div>
+                <small id="purchase-hold-summary" class="purchase-hold-summary">
+                    هولډ دی. تر څو چې چک لرې نه شي، حسابونه او مالي اغېزې نه تطبیقېږي.
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="dx-card px-4 py-3 mb-3 purchase-form-card">
+    <div class="purchase-form-header">
+        <div>
+            <h5 class="purchase-form-title">د خرید معلومات</h5>
+            <p class="purchase-form-subtitle">حساب، اسعار، بلانس او اړوند معلومات</p>
+        </div>
+    </div>
+    <div class="row g-3 align-items-stretch">
+        <div class="col-12 col-lg-4">
+            <div class="purchase-field purchase-field-readonly">
+                <label class="purchase-label">د خرید شمېره</label>
+                @(Html.DevExtreme().NumberBox()
+                   .ID("purchase-no")
+                   .Placeholder("د خرید شمېره")
+                   .ReadOnly(true)
+                   .ShowSpinButtons(false)
+                )
+            </div>
+        </div>
+        <div class="col-12 col-lg-4" style="display:none;">
+            <div class="purchase-field">
+                <label class="purchase-label">حساب</label>
+                @(
+                    Html.DevExtreme().SelectBox()
+                        .ID("account-selector")
+                        .ValueExpr("AccountID")
+                        .DisplayExpr(new JS("purchasePage.accountDisplayExpr"))
+                        .SearchEnabled(true)
+                        .ShowClearButton(true)
+                        
+                        .Placeholder("حساب انتخاب کړئ...")
+                        .OnSelectionChanged("purchasePage.onAccountSelectionChanged")
+                        .OnValueChanged("purchasePage.onAccountValueChanged")
+                        .DataSource(new JS("purchasePage.accountDataSource"))
+                )
+                <small id="account-balance-note" class="purchase-balance-note">بلانس: 0 (صفر)</small>
+            </div>
+        </div>
+
+        
+        <div class="col-12 col-lg-4">
+            <div class="purchase-field purchase-field-readonly">
+                <label class="purchase-label">موبایل شمېره</label>
+                @(
+                    Html.DevExtreme().TextBox()
+                        .ID("account-phone")
+                        .ReadOnly(true)
+                )
+            </div>
+        </div>
+
+        <div class="col-12 col-lg-4">
+            <div class="purchase-field purchase-field-readonly">
+                <label class="purchase-label">ادرس</label>
+                @(
+                    Html.DevExtreme().TextBox()
+                        .ID("account-address")
+                        .ReadOnly(true)
+                )
+            </div>
+        </div>
+        
+        <div class="col-12 col-lg-4">
+            <div class="purchase-field">
+                <label class="purchase-label">تجري/بانک</label>
+                @(
+                    Html.DevExtreme().SelectBox()
+                        .ID("treasure-selector")
+                        .ValueExpr("AccountID")
+                        .DisplayExpr(new JS("purchasePage.accountDisplayExpr"))
+                        .SearchEnabled(true)
+                        .ShowClearButton(true)
+                        .Placeholder("حساب انتخاب کړئ...")
+                        .OnSelectionChanged("purchasePage.onTreasureSelectionChanged")
+                        .DataSource(new JS("purchasePage.treasureDataSource"))
+                )
+                <small id="treasure-balance-note" class="purchase-balance-note">بلانس: 0 (صفر)</small>
+            </div>
+        </div>
+        
+        <div class="col-12 col-lg-4">
+            <div class="purchase-field">
+                <label class="purchase-label">اسعار</label>
+                @(
+                    Html.DevExtreme().SelectBox()
+                        .ID("currency-selector")
+                        .ValueExpr("ID")
+                        .DisplayExpr("CurrencyName")
+                        .SearchEnabled(true)
+                        .ShowClearButton(true)
+                        
+                        .Placeholder("اسعار انتخاب کړئ...")
+                        .OnValueChanged("purchasePage.onCurrencyChanged")
+                        .DataSource(new JS("purchasePage.currencyDataSource"))
+                )
+            </div>
+        </div>
+        
+        <div class="col-12 col-lg-4">
+            <div class="purchase-field purchase-field-readonly">
+                <label class="purchase-label">نېټه</label>
+                @(
+                    Html.DevExtreme().DateBox()
+                    .ID("purchase-date")
+                    .ReadOnly(true)
+                    .Value(DateTime.Now)
+                )
+            </div>
+        </div>
+
+        <div class="col-12 col-lg-4">
+            <div class="purchase-field purchase-field-readonly">
+                <label class="purchase-label">مجموعه</label>
+                @(
+                    Html.DevExtreme().NumberBox()
+                    .ID("purchase-total")
+                    .Placeholder("مجموعه...")
+                    .Min(0)
+                    .Format("#,##0.###")
+                    .ReadOnly(true)
+                    .ShowSpinButtons(true)
+                )
+            </div>
+        </div>
+
+        <div class="col-12 col-lg-4">
+            <div class="purchase-field purchase-field-readonly">
+                <label class="purchase-label">رسید</label>
+                @(
+                    Html.DevExtreme().NumberBox()
+                    .ID("purchase-received")
+                    .Placeholder("رسید...")
+                    .Min(0)
+                    .Format("#,##0.###")
+                    .ShowSpinButtons(true)
+                    .OnValueChanged("purchasePage.onReceivedAmountChanged")
+                )
+            </div>
+        </div>
+
+        <div class="col-12 col-lg-4">
+            <div class="purchase-field purchase-field-readonly">
+                <label class="purchase-label">باقي</label>
+                @(
+                    Html.DevExtreme().NumberBox()
+                    .ID("purchase-remaining")
+                    .Placeholder("باقي...")
+                    .Format("#,##0.###")
+                    .ReadOnly(true)
+                )
+            </div>
+        </div>
+
+        <div class="col-12 col-lg-4">
+            <div class="purchase-field">
+                <label class="purchase-label">ملاحظات</label>
+                @(
+                    Html.DevExtreme().TextArea()
+                    .ID("purchase-notes")
+                    .Placeholder("ملاحظات...")
+                )
+            </div>
+        </div>
+
+        <div class="col-12 col-lg-4">
+            <div class="purchase-field purchase-field-readonly">
+                <label class="purchase-label">مجموعه، رسید او باقي په تورو</label>
+                @(
+                    Html.DevExtreme().TextArea()
+                    .ID("account-balance-words")
+                    .ReadOnly(true)
+                    .Height(78)
+                )
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<div class="dx-card px-4 py-3 mb-3">
+    <div class="row g-3 align-items-end">
+        @(
+            Html.DevExtreme().DataGrid()
+            .ID("purchase-details")
+            .DataSource(new JS("purchasePage.purchaseDetailsData"))
+            .KeyExpr("RowID")
+            .ShowBorders(true)
+            .RowAlternationEnabled(true)
+            .ColumnAutoWidth(true)
+            .Paging(p => p.Enabled(false))
+            .Editing(e => e
+                .Mode(GridEditMode.Cell)
+                .AllowAdding(true)
+                .AllowUpdating(true)
+                .AllowDeleting(true)
+                .UseIcons(true)
+            )
+            .OnInitNewRow("purchasePage.onPurchaseGridInitNewRow")
+            .OnEditorPreparing("purchasePage.onPurchaseGridEditorPreparing")
+            .OnRowRemoved("purchasePage.onPurchaseGridRowRemoved")
+            .Columns(columns =>
+            {
+                columns.Add()
+                    .DataField("ItemID")
+                    .Caption("جنس")
+                    .Lookup(l => l
+                        .DataSource(new JS("purchasePage.itemLookupDataSource"))
+                        .ValueExpr("ID")
+                        .DisplayExpr("NativeName")
+                    )
+                    .CalculateDisplayValue(new JS("purchasePage.getItemDisplayText"))
+                    .ValidationRules(r => r.AddRequired().Message("جنس ضروري دی."));
+
+                columns.Add()
+                    .DataField("UnitConversionID")
+                    .Caption("واحد")
+                    .Lookup(l => l
+                        .DataSource(new JS("purchasePage.unitLookupDataSource"))
+                        .ValueExpr("UnitConversionID")
+                        .DisplayExpr("UnitName")
+                    )
+                    .CalculateDisplayValue(new JS("purchasePage.getUnitDisplayText"))
+                    .ValidationRules(r => r.AddRequired().Message("واحد ضروري دی."));
+
+                columns.Add()
+                    .DataField("Quantity")
+                    .Caption("مقدار")
+                    .DataType(GridColumnDataType.Number)
+                    .Format("#,##0.###")
+                    .ValidationRules(r =>
+                    {
+                        r.AddRequired().Message("مقدار ضروري دی.");
+                        r.AddRange().Min(0.001).Message("مقدار باید له صفر څخه زیات وي.");
+                    });
+
+                columns.Add()
+                    .DataField("UnitPrice")
+                    .Caption("في قیمت")
+                    .DataType(GridColumnDataType.Number)
+                    .Format("#,##0.###")
+                    .ValidationRules(r =>
+                    {
+                        r.AddRequired().Message("قیمت ضروري دی.");
+                    });
+
+                columns.Add()
+                    .DataField("TotalPrice")
+                    .Caption("مجموعه قیمت")
+                    .DataType(GridColumnDataType.Number)
+                    .Format("#,##0.###");
+
+                
+                columns.Add()
+                    .DataField("WarehouseID")
+                    .Caption("ګدام")
+                    .Lookup(l => l
+                        .DataSource(new JS("purchasePage.warehouseLookupDataSource"))
+                        .ValueExpr("ID")
+                        .DisplayExpr("Name")
+                    )
+                    .CalculateDisplayValue(new JS("purchasePage.getWarehouseDisplayText"))
+                    .ValidationRules(r => r.AddRequired().Message("ګدام ضروري دی."));
+
+                columns.Add()
+                    .DataField("Remarks")
+                    .Caption("یادښت");
+            })
+
+            .Summary(summary => summary
+                .TotalItems(items =>
+                {
+                    items.Add()
+                        .Column("ItemID")
+                        .SummaryType(SummaryType.Count)
+                        .DisplayFormat("ټول قطارونه: {0}");
+
+                    items.Add()
+                        .Column("UnitPrice")
+                        .SummaryType(SummaryType.Sum)
+                        .DisplayFormat("مجموعه: {0}");
+
+                        
+                    items.Add()
+                        .Column("TotalPrice")
+                        .SummaryType(SummaryType.Sum)
+                        .DisplayFormat("مجموعه: {0}");
+
+                })
+            )
+        )
+    </div>
+</div>
+
+<div id="pending-po-popup"></div>
+
+<script>
+    var purchasePage = (function () {
+        var strictFullPaymentAccountTypeId = 10;
+        var editSaleId = @saleId;
+
+        var selectedPurchaseOrderId = null;
+        var editTreasureAccountId = null;
+        var purchaseDetailsData = [];
+        var purchaseRowCounter = 1;
+        var unitOptionsByItemId = {};
+        var activeItemsCache = [];
+        var activeItemNameById = {};
+        var activeWarehousesCache = [];
+        var activeWarehouseNameById = {};
+        var pendingOrdersPopup = null;
+        var currentAccountBalanceValue = null;
+        var currentTreasureBalanceValue = null;
+
+        var accountDataSource = new DevExpress.data.DataSource({
+            store: DevExpress.data.AspNet.createStore({
+                key: "AccountID",
+                loadUrl: '@Url.Content("~/api/Accounts")',
+                loadParams: { types: "3,5, 10" }
+            }),
+            paginate: true,
+            pageSize: 200
+        });
+
+        var activeItemsDataSource = new DevExpress.data.DataSource({
+            store: DevExpress.data.AspNet.createStore({
+                key: "ID",
+                loadUrl: '@Url.Content("~/api/Items")'
+            }),
+            paginate: true,
+            pageSize: 200
+        });
+
+        var itemLookupDataSource = new DevExpress.data.DataSource({
+            store: DevExpress.data.AspNet.createStore({
+                key: "ID",
+                loadUrl: '@Url.Content("~/api/Items")'
+            }),
+            filter: ["IsActive", "=", true],
+            paginate: true,
+            pageSize: 200
+        });
+
+        var activeWarehousesDataSource = new DevExpress.data.DataSource({
+            store: DevExpress.data.AspNet.createStore({
+                key: "ID",
+                loadUrl: '@Url.Content("~/api/Warehouses/Active")'
+            }),
+            paginate: true,
+            pageSize: 200
+        });
+
+        var warehouseLookupDataSource = new DevExpress.data.DataSource({
+            store: DevExpress.data.AspNet.createStore({
+                key: "ID",
+                loadUrl: '@Url.Content("~/api/Warehouses/Active")'
+            }),
+            paginate: true,
+            pageSize: 200
+        });
+
+        function unitLookupDataSource(options) {
+            var rowData = options && options.data ? options.data : null;
+            var itemId = rowData && rowData.ItemID ? rowData.ItemID : 0;
+
+            return {
+                store: new DevExpress.data.CustomStore({
+                    key: "UnitConversionID",
+                    loadMode: "raw",
+                    load: function () {
+                        if (!itemId) return [];
+
+                        return loadUnitOptionsForItem(itemId).then(function (options) {
+                            if (rowData) rowData.UnitOptions = Array.isArray(options) ? options : [];
+                            return rowData && Array.isArray(rowData.UnitOptions) ? rowData.UnitOptions : [];
+                        });
+                    },
+                    byKey: function (key) {
+                        if (!itemId || key === null || key === undefined || key === "") return null;
+
+                        return loadUnitOptionsForItem(itemId).then(function (options) {
+                            var rows = Array.isArray(options) ? options : [];
+                            if (rowData) rowData.UnitOptions = rows;
+
+                            for (var i = 0; i < rows.length; i++) {
+                                if (rows[i] && rows[i].UnitConversionID === key) {
+                                    return rows[i];
+                                }
+                            }
+
+                            return null;
+                        });
+                    }
+                })
+            };
+        }
+
+        function normalizeDxLoadResult(result) {
+            if (Array.isArray(result)) return result;
+            if (result && Array.isArray(result.data)) return result.data;
+            return [];
+        }
+
+        function refreshActiveItemsCache() {
+            return activeItemsDataSource.load().then(function (result) {
+                var allRows = normalizeDxLoadResult(result);
+                activeItemsCache = allRows.filter(function (row) { return row && row.IsActive; });
+                activeItemNameById = {};
+
+                for (var i = 0; i < activeItemsCache.length; i++) {
+                    var item = activeItemsCache[i];
+                    if (item && item.ID) activeItemNameById[item.ID] = item.NativeName || "";
+                }
+
+                return activeItemsCache;
+            });
+        }
+
+        function refreshActiveWarehousesCache() {
+            return activeWarehousesDataSource.load().then(function (result) {
+                var allRows = normalizeDxLoadResult(result);
+                activeWarehousesCache = allRows.filter(function (row) { return row && row.IsActive; });
+                activeWarehouseNameById = {};
+
+                for (var i = 0; i < activeWarehousesCache.length; i++) {
+                    var warehouse = activeWarehousesCache[i];
+                    if (warehouse && warehouse.ID) activeWarehouseNameById[warehouse.ID] = warehouse.Name || "";
+                }
+
+                return activeWarehousesCache;
+            });
+        }
+
+        function loadUnitOptionsForItem(itemId) {
+            if (!itemId) return $.Deferred().resolve([]).promise();
+            if (unitOptionsByItemId[itemId]) return $.Deferred().resolve(unitOptionsByItemId[itemId]).promise();
+
+            return $.getJSON("/api/Items/" + itemId + "/InitialStock/UnitOptions")
+                .then(function (options) {
+                    var rows = Array.isArray(options) ? options : [];
+                    unitOptionsByItemId[itemId] = rows;
+                    return rows;
+                }, function () {
+                    return [];
+                });
+        }
+
+        function findMatchingUnitConversionId(options, unitConversionId) {
+            if (!Array.isArray(options) || unitConversionId === null || unitConversionId === undefined || unitConversionId === "") {
+                return null;
+            }
+
+            for (var i = 0; i < options.length; i++) {
+                var option = options[i];
+                if (option && option.UnitConversionID === unitConversionId) {
+                    return option.UnitConversionID;
+                }
+            }
+
+            return null;
+        }
+
+        function getPreferredUnitConversionId(options, preferredUnitConversionId) {
+            var matchingId = findMatchingUnitConversionId(options, preferredUnitConversionId);
+            if (matchingId !== null) return matchingId;
+
+            if (!Array.isArray(options) || options.length === 0) return null;
+
+            var firstOption = options[0];
+            return firstOption ? firstOption.UnitConversionID : null;
+        }
+
+        function syncRowUnitOptions(grid, rowIndex, rowData, options, preferredUnitConversionId) {
+            var normalizedOptions = Array.isArray(options) ? options : [];
+            var nextUnitConversionId = getPreferredUnitConversionId(normalizedOptions, preferredUnitConversionId);
+
+            if (rowData) {
+                rowData.UnitOptions = normalizedOptions;
+                rowData.UnitConversionID = nextUnitConversionId;
+            }
+
+            if (grid && rowIndex !== undefined && rowIndex !== null) {
+                grid.cellValue(rowIndex, "UnitConversionID", nextUnitConversionId);
+                grid.repaintRows([rowIndex]);
+            }
+
+            return nextUnitConversionId;
+        }
+
+        function prepareUnitConversionEditor(editorOptions, rowData) {
+            var itemId = rowData && rowData.ItemID ? rowData.ItemID : null;
+            var dataSourceConfig = unitLookupDataSource({ data: rowData || {} });
+
+            editorOptions.dataSource = dataSourceConfig;
+            editorOptions.displayExpr = "UnitName";
+            editorOptions.valueExpr = "UnitConversionID";
+            editorOptions.searchEnabled = true;
+            editorOptions.showClearButton = true;
+            editorOptions.disabled = !itemId;
+            editorOptions.placeholder = itemId ? "واحد وټاکئ..." : "لومړی جنس وټاکئ...";
+        }
+
+        function getItemDisplayText(rowData) {
+            if (!rowData || !rowData.ItemID) return "";
+            return activeItemNameById[rowData.ItemID] || rowData.ItemID;
+        }
+
+        function getUnitDisplayText(rowData) {
+            if (!rowData || rowData.UnitConversionID === null || rowData.UnitConversionID === undefined) return "";
+
+            var options = Array.isArray(rowData.UnitOptions) ? rowData.UnitOptions : [];
+            for (var i = 0; i < options.length; i++) {
+                var unit = options[i];
+                if (unit && unit.UnitConversionID === rowData.UnitConversionID) {
+                    return unit.UnitName || "";
+                }
+            }
+
+            return rowData.UnitConversionID;
+        }
+
+        function getWarehouseDisplayText(rowData) {
+            if (!rowData || !rowData.WarehouseID) return "";
+            return activeWarehouseNameById[rowData.WarehouseID] || rowData.WarehouseID;
+        }
+
+        function updatePurchaseTotal() {
+            var totalInstance = $("#purchase-total").dxNumberBox("instance");
+            if (!totalInstance) return;
+
+            var total = 0;
+            var purchaseGrid = getPurchaseGrid();
+            var rows = purchaseGrid ? purchaseGrid.getVisibleRows() : [];
+
+            if (rows && rows.length) {
+                for (var i = 0; i < rows.length; i++) {
+                    var rowData = rows[i] && rows[i].data ? rows[i].data : null;
+                    total += Number(rowData && rowData.TotalPrice ? rowData.TotalPrice : 0);
+                }
+            } else {
+                for (var j = 0; j < purchaseDetailsData.length; j++) {
+                    total += Number(purchaseDetailsData[j].TotalPrice || 0);
+                }
+            }
+
+            totalInstance.option("value", total);
+            syncSpecialAccountPaymentRule();
+            updateRemainingAmount();
+        }
+
+        function updateRemainingAmount() {
+            var totalInstance = $("#purchase-total").dxNumberBox("instance");
+            var receivedInstance = $("#purchase-received").dxNumberBox("instance");
+            var remainingInstance = $("#purchase-remaining").dxNumberBox("instance");
+            if (!remainingInstance) return;
+
+            var total = totalInstance ? Number(totalInstance.option("value") || 0) : 0;
+            var received = receivedInstance ? Number(receivedInstance.option("value") || 0) : 0;
+            remainingInstance.option("value", total - received);
+            updatePurchaseAmountWords();
+            updateProjectedBalanceLabels();
+        }
+
+        function onReceivedAmountChanged() {
+            updateRemainingAmount();
+            refreshPaymentValidators();
+        }
+
+        function getAccountSelectorInstance() {
+            return $("#account-selector").dxSelectBox("instance");
+        }
+
+        function getSelectedAccountItem() {
+            var accountInstance = getAccountSelectorInstance();
+            return accountInstance ? accountInstance.option("selectedItem") : null;
+        }
+
+        function getSelectedAccountTypeId() {
+            var selectedAccount = getSelectedAccountItem();
+            return selectedAccount ? Number(selectedAccount.AccountTypeID || 0) : 0;
+        }
+
+        function isStrictFullPaymentAccountSelected() {
+            return getSelectedAccountTypeId() === strictFullPaymentAccountTypeId;
+        }
+
+        function isHoldedSelected() {
+            var holdedInstance = $("#is-holded").dxCheckBox("instance");
+            return holdedInstance ? !!holdedInstance.option("value") : false;
+        }
+
+        function syncHoldStatePresentation() {
+            var isHolded = isHoldedSelected();
+            var summary = $("#purchase-hold-summary");
+            var card = $("#purchase-hold-toggle-card");
+
+            if (card.length) {
+                card.toggleClass("purchase-hold-toggle-card-active", !isHolded);
+            }
+
+            if (summary.length) {
+                summary.text(isHolded
+                    ? "هولډ دی. تر څو چې چک لرې نه شي، حسابونه او مالي اغېزې نه تطبیقېږي."
+                    : "فعال دی. د ثبت وروسته به حسابونه اغېزمن شي او بیا دا خرید نور د سمون لپاره نه پرانیستل کېږي.");
+            }
+        }
+
+        function syncSpecialAccountPaymentRule() {
+            var receivedInstance = $("#purchase-received").dxNumberBox("instance");
+            if (!receivedInstance) return;
+
+            if (isHoldedSelected()) {
+                receivedInstance.option("readOnly", false);
+                return;
+            }
+
+            var shouldForceFullPayment = isStrictFullPaymentAccountSelected();
+            receivedInstance.option("readOnly", shouldForceFullPayment);
+
+            if (shouldForceFullPayment) {
+                receivedInstance.option("value", getNumberBoxValue("#purchase-total"));
+            }
+        }
+
+        function onPurchaseGridInitNewRow(e) {
+            e.data.RowID = purchaseRowCounter++;
+            e.data.ItemID = null;
+            e.data.UnitConversionID = null;
+            e.data.Quantity = null;
+            e.data.UnitPrice = null;
+            e.data.TotalPrice = null;
+            e.data.WarehouseID = null;
+            e.data.Remarks = "";
+            e.data.UnitOptions = [];
+        }
+
+        function onPurchaseGridEditorPreparing(e) {
+            if (e.parentType !== "dataRow") return;
+
+            if (e.dataField === "ItemID") {
+                e.editorName = "dxSelectBox";
+                e.editorOptions.dataSource = activeItemsCache;
+                e.editorOptions.displayExpr = "NativeName";
+                e.editorOptions.valueExpr = "ID";
+                e.editorOptions.searchEnabled = true;
+                e.editorOptions.showClearButton = true;
+
+                var baseItemChanged = e.editorOptions.onValueChanged;
+                e.editorOptions.onValueChanged = function (args) {
+                    if (baseItemChanged) baseItemChanged(args);
+
+                    var selectedItemId = args && args.value ? args.value : null;
+                    var rowIndex = e.row.rowIndex;
+                    var grid = e.component;
+                    var rowData = e.row && e.row.data ? e.row.data : null;
+
+                    grid.cellValue(rowIndex, "ItemID", selectedItemId);
+                    grid.cellValue(rowIndex, "UnitConversionID", null);
+                    if (rowData) {
+                        rowData.UnitConversionID = null;
+                        rowData.UnitOptions = [];
+                    }
+
+                    if (!selectedItemId) {
+                        grid.repaintRows([rowIndex]);
+                        return;
+                    }
+
+                    loadUnitOptionsForItem(selectedItemId).then(function (options) {
+                        syncRowUnitOptions(grid, rowIndex, rowData, options, null);
+                    });
+                };
+                return;
+            }
+
+            if (e.dataField === "UnitConversionID") {
+                var rowDataForUnit = e.row && e.row.data ? e.row.data : null;
+                var selectedItemIdForUnit = rowDataForUnit ? rowDataForUnit.ItemID : null;
+
+                e.editorName = "dxSelectBox";
+                prepareUnitConversionEditor(e.editorOptions, rowDataForUnit);
+
+                if (selectedItemIdForUnit && (!rowDataForUnit || !Array.isArray(rowDataForUnit.UnitOptions) || rowDataForUnit.UnitOptions.length === 0)) {
+                    loadUnitOptionsForItem(selectedItemIdForUnit).then(function (options) {
+                        syncRowUnitOptions(
+                            e.component,
+                            e.row.rowIndex,
+                            rowDataForUnit,
+                            options,
+                            rowDataForUnit ? rowDataForUnit.UnitConversionID : null);
+                    });
+                }
+                return;
+            }
+
+            if (e.dataField === "WarehouseID") {
+                e.editorName = "dxSelectBox";
+                e.editorOptions.dataSource = activeWarehousesCache;
+                e.editorOptions.displayExpr = "Name";
+                e.editorOptions.valueExpr = "ID";
+                e.editorOptions.searchEnabled = true;
+                e.editorOptions.showClearButton = true;
+                return;
+            }
+
+            if (e.dataField === "Quantity" || e.dataField === "UnitPrice") {
+                e.editorName = "dxNumberBox";
+                e.editorOptions.showSpinButtons = true;
+                e.editorOptions.min = 0;
+                e.editorOptions.step = 0.01;
+                e.editorOptions.format = "#,##0.###";
+
+                var baseValueChanged = e.editorOptions.onValueChanged;
+                e.editorOptions.onValueChanged = function (args) {
+                    if (baseValueChanged) baseValueChanged(args);
+
+                    var grid = e.component;
+                    var rowIndex = e.row.rowIndex;
+
+                    var quantity = Number(grid.cellValue(rowIndex, "Quantity") || 0);
+                    var unitPrice = Number(grid.cellValue(rowIndex, "UnitPrice") || 0);
+                    var total = quantity * unitPrice;
+
+                    grid.cellValue(rowIndex, "TotalPrice", total);
+                    if (e.row && e.row.data) {
+                        e.row.data.TotalPrice = total;
+                    }
+                    updatePurchaseTotal();
+                };
+            }
+        }
+
+        function onPurchaseGridRowRemoved() {
+            updatePurchaseTotal();
+        }
+
+        var treasureDataSource = new DevExpress.data.DataSource({
+            store: DevExpress.data.AspNet.createStore({
+                key: "AccountID",
+                loadUrl: '@Url.Content("~/api/Accounts")',
+                loadParams: { types: "1,2" }
+            }),
+            paginate: true,
+            pageSize: 200
+        });
+
+        var currencyDataSource = new DevExpress.data.DataSource({
+            store: DevExpress.data.AspNet.createStore({
+                key: "ID",
+                loadUrl: '@Url.Content("~/api/Currencies")'
+            }),
+            filter: ["IsActive", "=", true],
+            paginate: true,
+            pageSize: 200
+        });
+
+        var pendingPurchaseOrdersDataSource = DevExpress.data.AspNet.createStore({
+            key: "ID",
+            loadUrl: '@Url.Content("~/api/SaleOrders/GetPending")'
+        });
+
+        function accountDisplayExpr(item) {
+            if (!item) return "";
+            var accountName = item.Name || "";
+            var accountCode = item.Code || "";
+            return accountName + " - " + accountCode;
+        }
+
+        function formatNumeric(value) {
+            if (value === null || value === undefined || Number.isNaN(Number(value))) return "0";
+            return Number(value).toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+        }
+
+        function getCurrencySelection() {
+            var currencyInstance = $("#currency-selector").dxSelectBox("instance");
+            var currencyId = currencyInstance ? Number(currencyInstance.option("value")) : 0;
+            var selectedItem = currencyInstance ? currencyInstance.option("selectedItem") : null;
+            var currencyName = selectedItem && selectedItem.CurrencyName ? selectedItem.CurrencyName : "اسعار";
+
+            return {
+                currencyId: currencyId,
+                currencyName: currencyName
+            };
+        }
+
+        function setBalanceLabel(labelSelector, currencyName, balanceValue) {
+            var label = $(labelSelector);
+            if (!label.length) return;
+
+            var numericText = formatNumeric(balanceValue);
+            var wordsText = humanizeNumberValue(balanceValue);
+            label.text("بلانس (" + currencyName + "): " + numericText + " (" + wordsText + ")");
+        }
+
+        function setTextAreaValue(selector, value) {
+            var wordsInstance = $(selector).dxTextArea("instance");
+            if (!wordsInstance) return;
+
+            wordsInstance.option("value", value || "صفر");
+        }
+
+        function updatePurchaseAmountWords() {
+            var total = getNumberBoxValue("#purchase-total");
+            var received = getNumberBoxValue("#purchase-received");
+            var remaining = getNumberBoxValue("#purchase-remaining");
+
+            setTextAreaValue("#account-balance-words", [
+                "مجموعه: " + (humanizeNumberValue(total) || "صفر"),
+                "رسید: " + (humanizeNumberValue(received) || "صفر"),
+                "باقي: " + (humanizeNumberValue(remaining) || "صفر")
+            ].join("\n"));
+        }
+
+        function setProjectedBalanceLabel(labelSelector, currencyName, balanceValue) {
+            var label = $(labelSelector);
+            if (!label.length) return;
+
+            label.text("د ثبت وروسته بلانس (" + currencyName + "): " + formatNumeric(balanceValue) + " (" + (humanizeNumberValue(balanceValue) || "صفر") + ")");
+        }
+
+        function updateProjectedBalanceLabels() {
+            if (isHoldedSelected()) {
+                $("#account-balance-note").text("هولډ دی؛ د ثبت وروسته بلانس نه بدلېږي.");
+                $("#treasure-balance-note").text("هولډ دی؛ د ثبت وروسته بلانس نه بدلېږي.");
+                return;
+            }
+
+            var currencySelection = getCurrencySelection();
+            var currencyName = currencySelection && currencySelection.currencyName ? currencySelection.currencyName : "اسعار";
+            var received = getNumberBoxValue("#purchase-received");
+            var remaining = getNumberBoxValue("#purchase-remaining");
+            if (getSelectBoxValue("#account-selector") > 0 && currentAccountBalanceValue !== null && currentAccountBalanceValue !== undefined) {
+                var accountAfter = Number(currentAccountBalanceValue || 0) - remaining;
+                setProjectedBalanceLabel("#account-balance-note", currencyName, accountAfter);
+            } else {
+                resetBalanceLabel("#account-balance-note");
+            }
+
+            if (getSelectBoxValue("#treasure-selector") > 0 && currentTreasureBalanceValue !== null && currentTreasureBalanceValue !== undefined) {
+                var treasureAfter = Number(currentTreasureBalanceValue || 0) - received;
+                setProjectedBalanceLabel("#treasure-balance-note", currencyName, treasureAfter);
+            } else {
+                resetBalanceLabel("#treasure-balance-note");
+            }
+        }
+
+        function resetBalanceLabel(labelSelector) {
+            var label = $(labelSelector);
+            if (!label.length) return;
+            label.text("بلانس: 0 (صفر)");
+        }
+
+        function resetProjectedBalanceLabels() {
+            resetBalanceLabel("#account-balance-note");
+            resetBalanceLabel("#treasure-balance-note");
+        }
+
+        function refreshBalanceLabel(accountSelector, labelSelector) {
+            var accountInstance = $(accountSelector).dxSelectBox("instance");
+            var accountId = accountInstance ? Number(accountInstance.option("value")) : 0;
+            var currencySelection = getCurrencySelection();
+
+            if (!accountId || !currencySelection.currencyId) {
+                resetBalanceLabel(labelSelector);
+                if (labelSelector === "#account-balance-note") currentAccountBalanceValue = null;
+                if (labelSelector === "#treasure-balance-note") currentTreasureBalanceValue = null;
+                updateProjectedBalanceLabels();
+                return;
+            }
+
+            $.ajax({
+                url: "/api/Accounts/balance",
+                method: "GET",
+                data: {
+                    accountId: accountId,
+                    currencyId: currencySelection.currencyId
+                }
+            }).done(function (result) {
+                var balance = result && result.Balance !== undefined ? Number(result.Balance) : 0;
+                setBalanceLabel(labelSelector, currencySelection.currencyName, balance);
+                if (labelSelector === "#account-balance-note") currentAccountBalanceValue = balance;
+                if (labelSelector === "#treasure-balance-note") currentTreasureBalanceValue = balance;
+                updateProjectedBalanceLabels();
+            }).fail(function () {
+                resetBalanceLabel(labelSelector);
+                if (labelSelector === "#account-balance-note") currentAccountBalanceValue = null;
+                if (labelSelector === "#treasure-balance-note") currentTreasureBalanceValue = null;
+                updateProjectedBalanceLabels();
+            });
+        }
+
+        function refreshAllBalanceLabels() {
+            refreshBalanceLabel("#account-selector", "#account-balance-note");
+            refreshBalanceLabel("#treasure-selector", "#treasure-balance-note");
+        }
+
+        function setAccountContactFields(account) {
+            var phone = account && account.FirstPhone ? account.FirstPhone : "";
+            var address = account && account.Address ? account.Address : "";
+
+            $("#account-phone").dxTextBox("instance").option("value", phone);
+            $("#account-address").dxTextBox("instance").option("value", address);
+        }
+
+        function syncAccountContactById(accountId) {
+            if (!accountId) {
+                setAccountContactFields(null);
+                return;
+            }
+
+            var store = accountDataSource && accountDataSource.store ? accountDataSource.store() : null;
+            if (!store || !store.byKey) {
+                setAccountContactFields(null);
+                return;
+            }
+
+            store.byKey(Number(accountId))
+                .done(function (account) {
+                    setAccountContactFields(account || null);
+                })
+                .fail(function () {
+                    setAccountContactFields(null);
+                });
+        }
+
+        function onAccountSelectionChanged(e) {
+            var selected = e && e.selectedItem ? e.selectedItem : null;
+            setAccountContactFields(selected);
+            syncSpecialAccountPaymentRule();
+            refreshBalanceLabel("#account-selector", "#account-balance-note");
+            refreshPaymentValidators();
+        }
+
+        function onAccountValueChanged(e) {
+            var accountId = e ? e.value : null;
+            syncAccountContactById(accountId);
+            syncSpecialAccountPaymentRule();
+            refreshBalanceLabel("#account-selector", "#account-balance-note");
+            refreshPaymentValidators();
+        }
+
+        function onTreasureSelectionChanged() {
+            editTreasureAccountId = getSelectBoxValue("#treasure-selector") || null;
+            refreshBalanceLabel("#treasure-selector", "#treasure-balance-note");
+            refreshPaymentValidators();
+        }
+
+        function onIsHoldedChanged() {
+            syncHoldStatePresentation();
+            syncSpecialAccountPaymentRule();
+            refreshPaymentValidators();
+        }
+
+        function onCurrencyChanged() {
+            refreshAllBalanceLabels();
+            refreshPaymentValidators();
+        }
+
+        function getPurchaseGrid() {
+            return $("#purchase-details").dxDataGrid("instance");
+        }
+
+        function getPurchaseGridRows() {
+            var grid = getPurchaseGrid();
+            if (!grid) return [];
+
+            var dataSource = grid.getDataSource();
+            var rows = dataSource && dataSource.items ? dataSource.items() : [];
+            if (Array.isArray(rows)) return rows;
+
+            return [];
+        }
+
+        function validatePurchaseGridRows(rows) {
+            if (!rows || rows.length === 0) return "لږ تر لږه یو قطار اضافه کړئ.";
+
+            for (var i = 0; i < rows.length; i++) {
+                var row = rows[i] || {};
+                if (!row.ItemID) return "په ټولو قطارونو کې جنس ضروري دی.";
+                if (row.UnitConversionID === null || row.UnitConversionID === undefined || row.UnitConversionID === "") return "په ټولو قطارونو کې واحد ضروري دی.";
+                if (row.Quantity === null || row.Quantity === undefined || row.Quantity === "" || Number(row.Quantity) <= 0) return "په ټولو قطارونو کې مقدار باید له صفر څخه زیات وي.";
+                if (row.UnitPrice === null || row.UnitPrice === undefined || row.UnitPrice === "") return "په ټولو قطارونو کې قیمت ضروري دی.";
+                if (!row.WarehouseID) return "په ټولو قطارونو کې ګدام ضروري دی.";
+            }
+
+            return "";
+        }
+
+        function validatePurchaseGrid() {
+            var grid = getPurchaseGrid();
+            if (!grid) return $.Deferred().resolve("د جنسونو جدول ونه موندل شو.").promise();
+
+            var deferred = $.Deferred();
+
+            $.when(grid.saveEditData())
+                .done(function () {
+                    var rows = getPurchaseGridRows();
+                    var validationMessage = validatePurchaseGridRows(rows);
+
+                    if (validationMessage) {
+                        deferred.resolve(validationMessage);
+                        return;
+                    }
+
+                    deferred.resolve("");
+                })
+                .fail(function () {
+                    deferred.resolve("د جنسونو جدول معلومات سم نه دي.");
+                });
+
+            return deferred.promise();
+        }
+
+        function getNumberBoxValue(selector) {
+            var instance = $(selector).dxNumberBox("instance");
+            return instance ? Number(instance.option("value") || 0) : 0;
+        }
+
+        function getSelectBoxValue(selector) {
+            var instance = $(selector).dxSelectBox("instance");
+            return instance ? Number(instance.option("value") || 0) : 0;
+        }
+
+        function getTreasureBalance(accountId, currencyId) {
+            return $.ajax({
+                url: "/api/Accounts/balance",
+                method: "GET",
+                data: {
+                    accountId: accountId,
+                    currencyId: currencyId
+                }
+            }).then(function (result) {
+                return result && result.Balance !== undefined ? Number(result.Balance) : 0;
+            });
+        }
+
+        function loadNextPurchaseNo() {
+            var purchaseNoInstance = $("#purchase-no").dxNumberBox("instance");
+            if (purchaseNoInstance) purchaseNoInstance.option("value", null);
+
+            return $.getJSON("/api/Sales/next-no")
+                .done(function (result) {
+                    if (purchaseNoInstance) {
+                        purchaseNoInstance.option("value", result && result.SaleNo ? result.SaleNo : null);
+                    }
+                })
+                .fail(function () {
+                    if (purchaseNoInstance) purchaseNoInstance.option("value", null);
+                    DevExpress.ui.notify("د خرید شمېره له سرور څخه ترلاسه نه شوه.", "error", 2500);
+                });
+        }
+
+        function validateEditorSelectors(selectors) {
+            var pendingResults = [];
+            var isValid = true;
+
+            for (var i = 0; i < selectors.length; i++) {
+                var validator = $(selectors[i]).dxValidator("instance");
+                if (!validator) continue;
+
+                var result = validator.validate();
+                if (result && result.status === "pending" && result.complete) {
+                    pendingResults.push(result.complete);
+                } else {
+                    isValid = isValid && (!result || result.isValid);
+                }
+            }
+
+            if (!pendingResults.length) {
+                return $.Deferred().resolve(isValid).promise();
+            }
+
+            var deferred = $.Deferred();
+            $.when.apply($, pendingResults)
+                .done(function () {
+                    var results = arguments.length === 1 ? [arguments[0]] : Array.prototype.slice.call(arguments);
+                    for (var j = 0; j < results.length; j++) {
+                        isValid = isValid && (!results[j] || results[j].isValid);
+                    }
+                    deferred.resolve(isValid);
+                })
+                .fail(function () {
+                    deferred.resolve(false);
+                });
+
+            return deferred.promise();
+        }
+
+        function validateFormEditors() {
+            return validateEditorSelectors([
+                "#purchase-no",
+                "#account-selector",
+                "#currency-selector",
+                "#purchase-date",
+                "#treasure-selector",
+                "#purchase-received"
+            ]);
+        }
+
+        function buildPurchasePayload() {
+            var purchaseNo = getNumberBoxValue("#purchase-no");
+            var accountId = getSelectBoxValue("#account-selector");
+            var currencyId = getSelectBoxValue("#currency-selector");
+            var dateInstance = $("#purchase-date").dxDateBox("instance");
+            var notesInstance = $("#purchase-notes").dxTextArea("instance");
+            var rows = getPurchaseGridRows();
+
+            return {
+                OrderID: selectedPurchaseOrderId,
+                SaleNo: purchaseNo,
+                AccountID: accountId,
+                TreasureAccountID: getSelectBoxValue("#treasure-selector") || null,
+                IsHolded: isHoldedSelected(),
+                CurrencyID: currencyId,
+                SaleDate: dateInstance ? dateInstance.option("value") : null,
+                TotalAmount: getNumberBoxValue("#purchase-total"),
+                ReceivedAmount: getNumberBoxValue("#purchase-received"),
+                RemainingAmount: getNumberBoxValue("#purchase-remaining"),
+                Remarks: notesInstance ? (notesInstance.option("value") || "") : "",
+                Details: rows.map(function (row) {
+                    var quantity = Number(row && row.Quantity ? row.Quantity : 0);
+                    var unitPrice = Number(row && row.UnitPrice ? row.UnitPrice : 0);
+                    return {
+                        ItemID: row && row.ItemID ? row.ItemID : 0,
+                        UnitConversionID: row && row.UnitConversionID !== null && row.UnitConversionID !== undefined
+                            ? row.UnitConversionID
+                            : null,
+                        Quantity: quantity,
+                        UnitPrice: unitPrice,
+                        TotalPrice: row && row.TotalPrice !== null && row.TotalPrice !== undefined
+                            ? Number(row.TotalPrice || 0)
+                            : quantity * unitPrice,
+                        WarehouseID: row && row.WarehouseID ? row.WarehouseID : 0,
+                        Remarks: row && row.Remarks ? row.Remarks : ""
+                    };
+                })
+            };
+        }
+
+        function extractServerError(xhr) {
+            if (xhr && xhr.responseJSON && xhr.responseJSON.Message) return xhr.responseJSON.Message;
+            if (xhr && xhr.responseText) return xhr.responseText;
+            return "د ثبت پر مهال ستونزه رامنځته شوه.";
+        }
+
+        function refreshPaymentValidators() {
+            var accountValidator = $("#account-selector").dxValidator("instance");
+            var treasureValidator = $("#treasure-selector").dxValidator("instance");
+            var receivedValidator = $("#purchase-received").dxValidator("instance");
+
+            if (accountValidator) accountValidator.validate();
+            if (treasureValidator) treasureValidator.validate();
+            if (receivedValidator) receivedValidator.validate();
+        }
+
+        function useVisibleEditorValidationMessages() {
+            var editorConfigs = [
+                { selector: "#purchase-no", widget: "dxNumberBox" },
+                { selector: "#account-selector", widget: "dxSelectBox" },
+                { selector: "#currency-selector", widget: "dxSelectBox" },
+                { selector: "#purchase-date", widget: "dxDateBox" },
+                { selector: "#treasure-selector", widget: "dxSelectBox" },
+                { selector: "#purchase-received", widget: "dxNumberBox" }
+            ];
+
+            for (var i = 0; i < editorConfigs.length; i++) {
+                var config = editorConfigs[i];
+                var editor = $(config.selector)[config.widget]("instance");
+                if (!editor) continue;
+
+                editor.option({
+                    validationMessageMode: "always",
+                    validationMessagePosition: "bottom"
+                });
+            }
+        }
+
+        function onSaveFormClick() {
+            validateFormEditors().done(function (isFormEditorsValid) {
+                validatePurchaseGrid().done(function (gridValidationMessage) {
+                    if (!isFormEditorsValid || gridValidationMessage) {
+                        if (gridValidationMessage) {
+                            DevExpress.ui.notify(gridValidationMessage, "error", 2500);
+                        }
+                        return;
+                    }
+
+                    var payload = buildPurchasePayload();
+
+                    $.ajax({
+                        url: "/api/Sales/" + editSaleId,
+                        method: "PUT",
+                        contentType: "application/json; charset=utf-8",
+                        data: JSON.stringify(payload)
+                    }).done(function (response) {
+                        DevExpress.ui.notify(response && response.Message ? response.Message : "خرید په بریالیتوب سم شو.", "success", 2200);
+
+                        if (payload.IsHolded) {
+                            onClearFormClick();
+                            return;
+                        }
+
+                        window.setTimeout(function () {
+                            window.location.href = '@Url.Action("Index", "Sales")';
+                        }, 450);
+                    }).fail(function (xhr) {
+                        DevExpress.ui.notify(extractServerError(xhr), "error", 3500);
+                    });
+                });
+            });
+        }
+
+        function loadPurchaseIntoForm(purchaseId) {
+            if (!purchaseId) return;
+
+            $.getJSON("/api/Sales/" + purchaseId)
+                .done(function (response) {
+                    var accountInstance = $("#account-selector").dxSelectBox("instance");
+                    var treasureInstance = $("#treasure-selector").dxSelectBox("instance");
+                    var currencyInstance = $("#currency-selector").dxSelectBox("instance");
+                    var dateInstance = $("#purchase-date").dxDateBox("instance");
+                    var notesInstance = $("#purchase-notes").dxTextArea("instance");
+                    var purchaseNoInstance = $("#purchase-no").dxNumberBox("instance");
+                    var receivedInstance = $("#purchase-received").dxNumberBox("instance");
+                    var remainingInstance = $("#purchase-remaining").dxNumberBox("instance");
+                    var isHoldedInstance = $("#is-holded").dxCheckBox("instance");
+
+                    editTreasureAccountId = response && response.TreasureAccountID ? response.TreasureAccountID : null;
+                    selectedPurchaseOrderId = response && response.OrderID ? response.OrderID : null;
+
+                    if (purchaseNoInstance) purchaseNoInstance.option("value", response && response.SaleNo ? response.SaleNo : null);
+                    if (accountInstance) accountInstance.option("value", response && response.AccountID ? response.AccountID : null);
+                    if (treasureInstance) treasureInstance.option("value", editTreasureAccountId);
+                    if (currencyInstance) currencyInstance.option("value", response && response.CurrencyID ? response.CurrencyID : null);
+                    if (dateInstance) dateInstance.option("value", response && response.SaleDate ? new Date(response.SaleDate) : new Date());
+                    if (notesInstance) notesInstance.option("value", response && response.Remarks ? response.Remarks : "");
+                    if (receivedInstance) receivedInstance.option("value", response && response.ReceivedAmount ? response.ReceivedAmount : 0);
+                    if (remainingInstance) remainingInstance.option("value", response && response.RemainingAmount ? response.RemainingAmount : 0);
+                    if (isHoldedInstance) isHoldedInstance.option("value", !!(response && response.IsHolded));
+
+                    purchaseDetailsData.length = 0;
+                    purchaseRowCounter = 1;
+
+                    var details = response && Array.isArray(response.Details) ? response.Details : [];
+                    for (var i = 0; i < details.length; i++) {
+                        var row = details[i];
+                        purchaseDetailsData.push({
+                            RowID: purchaseRowCounter++,
+                            ItemID: row.ItemID || null,
+                            UnitConversionID: row.UnitConversionID !== undefined && row.UnitConversionID !== null
+                                ? row.UnitConversionID
+                                : null,
+                            Quantity: row.Quantity || null,
+                            UnitPrice: row.UnitPrice || null,
+                            TotalPrice: row.TotalPrice || null,
+                            WarehouseID: row.WarehouseID || null,
+                            Remarks: row.Remarks || "",
+                            UnitOptions: []
+                        });
+                    }
+
+                    var grid = getPurchaseGrid();
+                    if (grid) {
+                        grid.cancelEditData();
+                        grid.refresh();
+                    }
+
+                    var unitLoaders = [];
+                    for (var j = 0; j < purchaseDetailsData.length; j++) {
+                        (function (targetRow) {
+                            if (!targetRow.ItemID) return;
+                            var loader = loadUnitOptionsForItem(targetRow.ItemID).then(function (options) {
+                                targetRow.UnitConversionID = getPreferredUnitConversionId(options, targetRow.UnitConversionID);
+                                targetRow.UnitOptions = Array.isArray(options) ? options : [];
+                            });
+                            unitLoaders.push(loader);
+                        })(purchaseDetailsData[j]);
+                    }
+
+                    if (unitLoaders.length > 0) {
+                        $.when.apply($, unitLoaders).always(function () {
+                            var purchaseGrid = getPurchaseGrid();
+                            if (purchaseGrid) purchaseGrid.refresh();
+                        });
+                    }
+
+                    updatePurchaseTotal();
+                    syncAccountContactById(response && response.AccountID ? response.AccountID : null);
+                    refreshAllBalanceLabels();
+                    syncHoldStatePresentation();
+                    syncSpecialAccountPaymentRule();
+                    refreshPaymentValidators();
+                })
+                .fail(function () {
+                    DevExpress.ui.notify("د خرید معلومات ونه موندل شول.", "error", 2800);
+                });
+        }
+
+        function loadPurchaseOrderIntoForm(orderId) {
+            if (!orderId) return;
+
+            $.getJSON("/api/SaleOrders/" + orderId)
+                .done(function (response) {
+                    selectedPurchaseOrderId = orderId;
+                    var accountInstance = $("#account-selector").dxSelectBox("instance");
+                    var dateInstance = $("#purchase-date").dxDateBox("instance");
+                    var notesInstance = $("#purchase-notes").dxTextArea("instance");
+
+                    if (accountInstance) accountInstance.option("value", response && response.AccountID ? response.AccountID : null);
+                    if (dateInstance) dateInstance.option("value", response && response.DueDate ? new Date(response.DueDate) : new Date());
+                    if (notesInstance) notesInstance.option("value", response && response.Remarks ? response.Remarks : "");
+
+                    purchaseDetailsData.length = 0;
+                    purchaseRowCounter = 1;
+
+                    var details = response && Array.isArray(response.Details) ? response.Details : [];
+                    for (var i = 0; i < details.length; i++) {
+                        var row = details[i];
+                        purchaseDetailsData.push({
+                            RowID: purchaseRowCounter++,
+                            ItemID: row.ItemID || null,
+                            UnitConversionID: row.UnitConversionID !== undefined && row.UnitConversionID !== null
+                                ? row.UnitConversionID
+                                : null,
+                            Quantity: row.Quantity || null,
+                            UnitPrice: null,
+                            TotalPrice: null,
+                            WarehouseID: null,
+                            Remarks: row.Remarks || "",
+                            UnitOptions: []
+                        });
+                    }
+
+                    var grid = getPurchaseGrid();
+                    if (grid) {
+                        grid.cancelEditData();
+                        grid.refresh();
+                    }
+
+                    var unitLoaders = [];
+                    for (var j = 0; j < purchaseDetailsData.length; j++) {
+                        (function (targetRow) {
+                            if (!targetRow.ItemID) return;
+                            var loader = loadUnitOptionsForItem(targetRow.ItemID).then(function (options) {
+                                targetRow.UnitConversionID = getPreferredUnitConversionId(options, targetRow.UnitConversionID);
+                                targetRow.UnitOptions = Array.isArray(options) ? options : [];
+                            });
+                            unitLoaders.push(loader);
+                        })(purchaseDetailsData[j]);
+                    }
+
+                    if (unitLoaders.length > 0) {
+                        $.when.apply($, unitLoaders).always(function () {
+                            var purchaseGrid = getPurchaseGrid();
+                            if (purchaseGrid) purchaseGrid.refresh();
+                        });
+                    }
+
+                    updatePurchaseTotal();
+                    syncAccountContactById(response && response.AccountID ? response.AccountID : null);
+                    refreshAllBalanceLabels();
+                })
+                .fail(function () {
+                    DevExpress.ui.notify("آرډر ونه موندل شو.", "error", 2800);
+                });
+        }
+
+        function onPendingOrderSelectClick(e) {
+            var rowData = e && e.row ? e.row.data : null;
+            if (!rowData || !rowData.ID) return;
+
+            loadPurchaseOrderIntoForm(rowData.ID);
+            if (pendingOrdersPopup) pendingOrdersPopup.hide();
+        }
+
+        function ensurePendingOrdersPopup() {
+            if (pendingOrdersPopup) return pendingOrdersPopup;
+
+            pendingOrdersPopup = $("#pending-po-popup").dxPopup({
+                title: "ناتکمیل خرید آرډرونه",
+                showTitle: true,
+                visible: false,
+                width: 980,
+                maxWidth: "95vw",
+                height: "auto",
+                maxHeight: "88vh",
+                dragEnabled: true,
+                hideOnOutsideClick: true,
+                contentTemplate: function (contentElement) {
+                    var wrapper = $("<div id='pending-po-grid' style='min-height:60vh;'></div>");
+                    contentElement.append(wrapper);
+
+                    wrapper.dxDataGrid({
+                        dataSource: pendingPurchaseOrdersDataSource,
+                        remoteOperations: true,
+                        showBorders: true,
+                        rowAlternationEnabled: true,
+                        columnAutoWidth: true,
+                        searchPanel: { visible: true, placeholder: "پلټنه..." },
+                        paging: { pageSize: 12 },
+                        pager: {
+                            showPageSizeSelector: true,
+                            allowedPageSizes: [12, 24, 50],
+                            showInfo: true
+                        },
+                        columns: [
+                            { dataField: "ID", caption: "آرډر #" },
+                            { dataField: "AccountName", caption: "حساب" },
+                            { dataField: "DueDate", caption: "د تادیې نېټه", dataType: "date", format: "yyyy-MM-dd" },
+                            { dataField: "Remarks", caption: "ملاحظات" },
+                            { dataField: "CreationDate", caption: "نېټه", dataType: "datetime", format: "yyyy-MM-dd HH:mm" },
+                            {
+                                type: "buttons",
+                                caption: "عملیات",
+                                width: 120,
+                                buttons: [
+                                    {
+                                        hint: "انتخاب",
+                                        icon: "fa-solid fa-check",
+                                        onClick: onPendingOrderSelectClick
+                                    }
+                                ]
+                            }
+                        ]
+                    });
+                },
+                onShown: function () {
+                    var grid = $("#pending-po-grid").dxDataGrid("instance");
+                    if (grid && grid.getDataSource()) {
+                        grid.getDataSource().reload();
+                    }
+                }
+            }).dxPopup("instance");
+
+            return pendingOrdersPopup;
+        }
+
+        function onSelectOrderClick() {
+            ensurePendingOrdersPopup().show();
+        }
+
+        function setDefaultCurrencyToFirst() {
+            var currencyInstance = $("#currency-selector").dxSelectBox("instance");
+            if (!currencyInstance) return;
+
+            if (currencyInstance.option("value")) return;
+
+            currencyDataSource.load().then(function (result) {
+                var rows = normalizeDxLoadResult(result);
+                if (!rows.length) return;
+
+                var firstCurrency = rows[0];
+                if (firstCurrency && firstCurrency.ID) {
+                    currencyInstance.option("value", firstCurrency.ID);
+                }
+            });
+        }
+
+        function onClearFormClick() {
+            loadPurchaseIntoForm(editSaleId);
+        }
+
+        $(function () {
+            var accountInstance = $("#account-selector").dxSelectBox("instance");
+            var initialAccountId = accountInstance ? accountInstance.option("value") : null;
+            syncAccountContactById(initialAccountId);
+            setDefaultCurrencyToFirst();
+
+            refreshAllBalanceLabels();
+            updateRemainingAmount();
+            updatePurchaseAmountWords();
+            resetProjectedBalanceLabels();
+
+            $("#purchase-no").dxValidator({
+                validationRules: [
+                    { type: "required", message: "د خرید شمېره له سرور څخه ضروري ده." }
+                ]
+            });
+
+            $("#account-selector").dxValidator({
+                validationRules: [
+                    { type: "required", message: "حساب انتخاب کړئ." }
+                ]
+            });
+
+            $("#currency-selector").dxValidator({
+                validationRules: [
+                    { type: "required", message: "اسعار انتخاب کړئ." }
+                ]
+            });
+
+            $("#purchase-date").dxValidator({
+                validationRules: [
+                    { type: "required", message: "نېټه انتخاب کړئ." }
+                ]
+            });
+
+            $("#treasure-selector").dxValidator({
+                validationRules: [
+                    {
+                        type: "custom",
+                        reevaluate: true,
+                        message: "کله چې رسید داخل وي، تجري/بانک انتخاب کړئ.",
+                        validationCallback: function () {
+                            if (isHoldedSelected()) return true;
+                            var receivedAmount = getNumberBoxValue("#purchase-received");
+                            var treasureAccountId = getSelectBoxValue("#treasure-selector");
+                            return receivedAmount <= 0 || treasureAccountId > 0;
+                        }
+                    }
+                ]
+            });
+
+            $("#purchase-received").dxValidator({
+                validationRules: [
+                    {
+                        type: "custom",
+                        reevaluate: true,
+                        message: "کله چې تجري/بانک انتخاب وي، رسید باید له صفر څخه زیات وي.",
+                        validationCallback: function () {
+                            if (isHoldedSelected()) return true;
+                            var treasureAccountId = getSelectBoxValue("#treasure-selector");
+                            var receivedAmount = getNumberBoxValue("#purchase-received");
+                            return !treasureAccountId || receivedAmount > 0;
+                        }
+                    },
+                    {
+                        type: "custom",
+                        reevaluate: true,
+                        message: "رسید باید له مجموعې څخه زیات نه وي.",
+                        validationCallback: function () {
+                            return getNumberBoxValue("#purchase-received") <= getNumberBoxValue("#purchase-total");
+                        }
+                    },
+                    {
+                        type: "custom",
+                        reevaluate: true,
+                        message: "د حساب ټایپ 10 لپاره رسید باید له مجموعې سره مساوي وي.",
+                        validationCallback: function () {
+                            if (isHoldedSelected()) return true;
+                            if (!isStrictFullPaymentAccountSelected()) return true;
+                            return getNumberBoxValue("#purchase-received") === getNumberBoxValue("#purchase-total");
+                        }
+                    },
+                    {
+                        type: "async",
+                        reevaluate: true,
+                        message: "رسید مبلغ په دخل/بانک کې نه دی.",
+                        validationCallback: function () {
+                            if (isHoldedSelected()) {
+                                return $.Deferred().resolve(true).promise();
+                            }
+
+                            var treasureAccountId = getSelectBoxValue("#treasure-selector");
+                            var currencyId = getSelectBoxValue("#currency-selector");
+                            var receivedAmount = getNumberBoxValue("#purchase-received");
+
+                            if (!treasureAccountId || !currencyId || receivedAmount <= 0) {
+                                return $.Deferred().resolve(true).promise();
+                            }
+
+                            return getTreasureBalance(treasureAccountId, currencyId)
+                                .then(function (treasureBalance) {
+                                    return receivedAmount <= Number(treasureBalance || 0);
+                                }, function () {
+                                    return false;
+                                });
+                        }
+                    }
+                ]
+            });
+
+            useVisibleEditorValidationMessages();
+            syncHoldStatePresentation();
+            syncSpecialAccountPaymentRule();
+
+            $.when(refreshActiveItemsCache(), refreshActiveWarehousesCache()).always(function () {
+                loadPurchaseIntoForm(editSaleId);
+
+                var purchaseGrid = $("#purchase-details").dxDataGrid("instance");
+                if (purchaseGrid) purchaseGrid.refresh();
+            });
+        });
+
+        return {
+            purchaseDetailsData: purchaseDetailsData,
+            accountDataSource: accountDataSource,
+            treasureDataSource: treasureDataSource,
+            currencyDataSource: currencyDataSource,
+            itemLookupDataSource: itemLookupDataSource,
+            warehouseLookupDataSource: warehouseLookupDataSource,
+            unitLookupDataSource: unitLookupDataSource,
+            accountDisplayExpr: accountDisplayExpr,
+            getItemDisplayText: getItemDisplayText,
+            getUnitDisplayText: getUnitDisplayText,
+            getWarehouseDisplayText: getWarehouseDisplayText,
+            onPurchaseGridRowRemoved: onPurchaseGridRowRemoved,
+            onPurchaseGridInitNewRow: onPurchaseGridInitNewRow,
+            onPurchaseGridEditorPreparing: onPurchaseGridEditorPreparing,
+            onAccountSelectionChanged: onAccountSelectionChanged,
+            onAccountValueChanged: onAccountValueChanged,
+            onTreasureSelectionChanged: onTreasureSelectionChanged,
+            onIsHoldedChanged: onIsHoldedChanged,
+            onCurrencyChanged: onCurrencyChanged,
+            onReceivedAmountChanged: onReceivedAmountChanged,
+            onSaveFormClick: onSaveFormClick,
+            onClearFormClick: onClearFormClick,
+            onSelectOrderClick: onSelectOrderClick
+        };
+    })();
+</script>
+<style>
+    .purchase-hold-toggle-card {
+        border: 1px solid #d6dee8;
+        border-radius: 14px;
+        background: linear-gradient(180deg, #fff7ed 0%, #fffbeb 100%);
+        padding: 0.9rem 1rem;
+        box-shadow: 0 8px 20px rgba(148, 64, 14, 0.08);
+    }
+
+    .purchase-hold-toggle-card.purchase-hold-toggle-card-active {
+        background: linear-gradient(180deg, #ecfdf5 0%, #f0fdf4 100%);
+        box-shadow: 0 8px 20px rgba(21, 128, 61, 0.08);
+    }
+
+    .purchase-hold-toggle-main .dx-checkbox-text {
+        font-weight: 700;
+        color: #0f172a;
+    }
+
+    .purchase-hold-summary {
+        display: block;
+        margin-top: 0.45rem;
+        color: #475569;
+        font-size: 0.86rem;
+    }
+
+    .purchase-form-card {
+        border: 1px solid #e2e8f0;
+        border-radius: 14px;
+        background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
+    }
+
+    .purchase-form-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        margin-bottom: 0.9rem;
+        padding-bottom: 0.8rem;
+        border-bottom: 1px dashed #cbd5e1;
+    }
+
+    .purchase-form-title {
+        margin: 0;
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: #0f172a;
+    }
+
+    .purchase-form-subtitle {
+        margin: 0;
+        font-size: 0.85rem;
+        color: #475569;
+    }
+
+    .purchase-field {
+        background: #ffffff;
+        border: 1px solid #dbe3ef;
+        border-radius: 10px;
+        padding: 0.7rem 0.75rem 0.6rem;
+        min-height: 114px;
+    }
+
+    .purchase-field-wide {
+        min-height: auto;
+    }
+
+    .purchase-label {
+        display: inline-block;
+        margin-bottom: 0.45rem;
+        font-size: 0.86rem;
+        font-weight: 700;
+        color: #1e293b;
+    }
+
+    .purchase-balance-note {
+        display: block;
+        margin-top: 0.45rem;
+        font-size: 0.78rem;
+        color: #334155;
+    }
+
+    .purchase-field .dx-texteditor {
+        border-radius: 8px;
+    }
+
+    .purchase-field-readonly .dx-texteditor-input {
+        color: #334155;
+    }
+
+    @@media (max-width: 991.98px) {
+        .purchase-field {
+            min-height: auto;
+        }
+    }
+</style>
+
+
+
+

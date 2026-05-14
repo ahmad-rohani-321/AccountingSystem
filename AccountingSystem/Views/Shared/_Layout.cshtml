@@ -221,6 +221,22 @@
                 .Selected(IsCurrentUrl("NewPurchase", controllerName));
             });
 
+            sec.Add()
+            .Text("فروشات")
+            .Icon("fa-solid fa-cash-register")
+            .Expanded(ViewContext.RouteData.Values["controller"].ToString() == "Sales")
+            .Items(actions =>
+            {
+                string controllerName = "Sales";
+                actions.Add().Text("ننني فروشات")
+                .Option("path", GetUrl("Index", controllerName))
+                .Selected(IsCurrentUrl("Index", controllerName));
+
+                actions.Add().Text("نوی فروش")
+                .Option("path", GetUrl("NewSale", controllerName))
+                .Selected(IsCurrentUrl("NewSale", controllerName));
+            });
+
 
             sec.Add()
                 .Text("خرید آرډر")
@@ -236,6 +252,22 @@
                     actions.Add().Text("نوی آرډر")
                     .Option("path", GetUrl("NewPurchaseOrder", controllerName))
                     .Selected(IsCurrentUrl("NewPurchaseOrder", controllerName));
+                });
+
+            sec.Add()
+                .Text("فروش آرډر")
+                .Icon("fa-solid fa-file-invoice-dollar")
+                .Expanded(ViewContext.RouteData.Values["controller"].ToString() == "SaleOrder")
+                .Items(actions =>
+                {
+                    string controllerName = "SaleOrder";
+                    actions.Add().Text("آرډرونه")
+                    .Option("path", GetUrl("Index", controllerName))
+                    .Selected(IsCurrentUrl("Index", controllerName));
+
+                    actions.Add().Text("نوی آرډر")
+                    .Option("path", GetUrl("NewSaleOrder", controllerName))
+                    .Selected(IsCurrentUrl("NewSaleOrder", controllerName));
                 });
 
             
