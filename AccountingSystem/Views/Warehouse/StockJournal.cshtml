@@ -1,0 +1,383 @@
+@{
+    ViewData["title"] = "د سټاک ژورنال";
+}
+
+<div class="dx-card px-4 py-3">
+    @(
+    Html.DevExtreme().DataGrid()
+        .ID("stock-journal-grid")
+        .RemoteOperations(true)
+        .ShowBorders(true)
+        .RowAlternationEnabled(true)
+        .ColumnAutoWidth(true)
+        .FilterRow(fr => fr.Visible(true))
+        .HeaderFilter(hf => hf.Visible(true))
+        .SearchPanel(sp => sp.Visible(true).Placeholder("لټون..."))
+        .Editing(editing => editing
+            .AllowAdding(false)
+            .AllowDeleting(false)
+            .AllowUpdating(false)
+        )
+        .Columns(columns =>
+        {
+            columns.Add().DataField("ID").Caption("شمېره").AllowEditing(false).Width(80);
+            columns.Add().DataField("Item").Caption("جنس").AllowEditing(false);
+            columns.Add().DataField("TransactionTypeName").Caption("د معاملې ډول").AllowEditing(false);
+            columns.Add().DataField("Unit").Caption("واحد").AllowEditing(false);
+            columns.Add().DataField("Quantity").Caption("تعداد").AllowEditing(false).DataType(GridColumnDataType.Number);
+            columns.Add().DataField("Stock").Caption("ګدام").AllowEditing(false);
+            columns.Add().DataField("CreationDate").Caption("نېټه").AllowEditing(false).DataType(GridColumnDataType.DateTime).Format("yyyy-MM-dd HH:mm");
+            columns.Add().DataField("Remarks").Caption("ملاحظات").AllowEditing(false);
+        })
+        .Toolbar(t => t.Items(items =>
+        {
+            items.Add().Name("searchPanel").Location(ToolbarItemLocation.Before);
+            items.Add().Location(ToolbarItemLocation.Before)
+                .Widget(w => w.Button()
+                    .ID("btn-stock-journal-filters")
+                    .Text("فلټر")
+                    .Type(ButtonType.Default)
+                    .StylingMode(ButtonStylingMode.Contained)
+                    .Icon("fa-solid fa-magnifying-glass")
+                    .OnClick("stockJournalPage.openFilterPopup")
+                );
+        }))
+    )
+</div>
+
+<div id="stock-journal-filter-popup"></div>
+
+<style>
+    .accounts-popup-body {
+        display: flex;
+        flex-direction: column;
+        gap: 1.25rem;
+    }
+
+    .accounts-section {
+        border-radius: 16px;
+        border: 1px solid rgba(15, 23, 42, 0.08);
+        background: #ffffff;
+        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+    }
+
+    .accounts-section-header {
+        padding: 1.25rem 1.5rem 0.75rem;
+        border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+    }
+
+    .accounts-section-title {
+        margin: 0;
+        font-size: 1.15rem;
+        font-weight: 700;
+        color: #0f172a;
+    }
+
+    .accounts-section-divider {
+        height: 2px;
+        width: 52px;
+        margin-top: 0.5rem;
+        border-radius: 999px;
+        background-image: linear-gradient(90deg, #0ea5e9 0%, #6366f1 100%);
+    }
+
+    .accounts-section-body {
+        padding: 1.25rem 1.5rem 1.5rem;
+    }
+</style>
+
+<script>
+    var stockJournalPage = (function () {
+        var filterPopup = null;
+        var filterForm = null;
+
+        var itemsCache = [];
+        var warehousesCache = [];
+
+        var today = getLocalDateOnly(new Date());
+        var currentFilters = {
+            itemIds: [],
+            warehouseIds: [],
+            startDate: today,
+            endDate: today
+        };
+
+        var stockJournalStore = DevExpress.data.AspNet.createStore({
+            key: "ID",
+            loadUrl: "/api/StockJournal",
+            onBeforeSend: function (method, ajaxOptions) {
+                ajaxOptions.data = ajaxOptions.data || {};
+                ajaxOptions.data.itemIds = (currentFilters.itemIds || []).join(",");
+                ajaxOptions.data.warehouseIds = (currentFilters.warehouseIds || []).join(",");
+                ajaxOptions.data.startDate = formatDateValue(currentFilters.startDate);
+                ajaxOptions.data.endDate = formatDateValue(currentFilters.endDate);
+            }
+        });
+
+        function getGrid() {
+            return $("#stock-journal-grid").dxDataGrid("instance");
+        }
+
+        function getLocalDateOnly(value) {
+            return new Date(value.getFullYear(), value.getMonth(), value.getDate());
+        }
+
+        function formatDateValue(value) {
+            if (!value) return null;
+
+            var date = value instanceof Date ? value : new Date(value);
+            if (isNaN(date.getTime())) return null;
+
+            var year = String(date.getFullYear());
+            var month = String(date.getMonth() + 1).padStart(2, "0");
+            var day = String(date.getDate()).padStart(2, "0");
+            return year + "-" + month + "-" + day;
+        }
+
+        function normalizeDxResult(result) {
+            if (!result) return [];
+            if (Array.isArray(result)) return result;
+            if (Array.isArray(result.data)) return result.data;
+            return [];
+        }
+
+        function normalizeWhenResult(result) {
+            if (result && typeof result === "object" && Object.prototype.hasOwnProperty.call(result, "0")) {
+                return normalizeDxResult(result[0]);
+            }
+
+            return normalizeDxResult(result);
+        }
+
+        function reloadGrid() {
+            var grid = getGrid();
+            if (!grid) return;
+
+            var dataSource = grid.getDataSource ? grid.getDataSource() : null;
+            if (dataSource && dataSource.reload) {
+                dataSource.reload();
+                return;
+            }
+
+            grid.refresh(true);
+        }
+
+        function ensureLookupData() {
+            if (itemsCache.length || warehousesCache.length) {
+                return $.Deferred().resolve().promise();
+            }
+
+            var itemsRequest = $.getJSON("/api/StockOperations/Items");
+            var warehousesRequest = $.getJSON("/api/Warehouses/Active", { take: 100000, skip: 0, requireTotalCount: false });
+
+            return $.when(itemsRequest, warehousesRequest)
+                .done(function (itemsResult, warehousesResult) {
+                    itemsCache = normalizeWhenResult(itemsResult);
+                    warehousesCache = normalizeWhenResult(warehousesResult);
+                });
+        }
+
+        function getInitialFormData() {
+            return {
+                ItemIDs: (currentFilters.itemIds || []).slice(),
+                WarehouseIDs: (currentFilters.warehouseIds || []).slice(),
+                StartDate: currentFilters.startDate ? new Date(currentFilters.startDate) : null,
+                EndDate: currentFilters.endDate ? new Date(currentFilters.endDate) : null
+            };
+        }
+
+        function validateSearchForm(data) {
+            var hasItems = data.ItemIDs && data.ItemIDs.length > 0;
+            var hasWarehouses = data.WarehouseIDs && data.WarehouseIDs.length > 0;
+            var hasStartDate = !!data.StartDate;
+            var hasEndDate = !!data.EndDate;
+            var hasAnyFilter = hasItems || hasWarehouses || hasStartDate || hasEndDate;
+
+            if (!hasAnyFilter) {
+                DevExpress.ui.notify("لږ تر لږه یو فلټر وټاکئ.", "warning", 2600);
+                return false;
+            }
+
+            if (hasStartDate !== hasEndDate) {
+                DevExpress.ui.notify("که یوه نېټه ټاکئ، د پیل او پای دواړه نېټې ضروري دي.", "warning", 3200);
+                return false;
+            }
+
+            if (hasStartDate && hasEndDate) {
+                var start = getLocalDateOnly(new Date(data.StartDate));
+                var end = getLocalDateOnly(new Date(data.EndDate));
+
+                if (start.getTime() > end.getTime()) {
+                    DevExpress.ui.notify("د پیل نېټه باید د پای نېټې څخه وروسته نه وي.", "warning", 3200);
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        function applyFilters() {
+            if (!filterForm) return;
+
+            var formData = $.extend(true, {}, filterForm.option("formData") || {});
+            if (!validateSearchForm(formData)) return;
+
+            currentFilters.itemIds = (formData.ItemIDs || []).slice();
+            currentFilters.warehouseIds = (formData.WarehouseIDs || []).slice();
+            currentFilters.startDate = formData.StartDate ? getLocalDateOnly(new Date(formData.StartDate)) : null;
+            currentFilters.endDate = formData.EndDate ? getLocalDateOnly(new Date(formData.EndDate)) : null;
+
+            reloadGrid();
+
+            if (filterPopup) {
+                filterPopup.hide();
+            }
+        }
+
+        function ensureFilterPopup() {
+            if (filterPopup) return filterPopup;
+
+            filterPopup = $("#stock-journal-filter-popup").dxPopup({
+                rtlEnabled: true,
+                width: 720,
+                height: "auto",
+                maxHeight: "92vh",
+                showTitle: true,
+                showCloseButton: true,
+                dragEnabled: false,
+                hideOnOutsideClick: false,
+                shading: true,
+                title: "د سټاک ژورنال فلټر",
+                toolbarItems: [
+                    {
+                        widget: "dxButton",
+                        toolbar: "bottom",
+                        location: "after",
+                        options: {
+                            text: "لټون",
+                            type: "success",
+                            stylingMode: "contained",
+                            onClick: applyFilters
+                        }
+                    },
+                    {
+                        widget: "dxButton",
+                        toolbar: "bottom",
+                        location: "after",
+                        options: {
+                            text: "بندول",
+                            stylingMode: "text",
+                            onClick: function () {
+                                if (filterPopup) filterPopup.hide();
+                            }
+                        }
+                    }
+                ],
+                contentTemplate: function (contentElement) {
+                    var body = $("<div class='accounts-popup-body'></div>");
+                    var section = $("<div class='accounts-section'></div>");
+                    var header = $("<div class='accounts-section-header'><h5 class='accounts-section-title'>د لټون شرایط</h5><div class='accounts-section-divider'></div></div>");
+                    var sectionBody = $("<div class='accounts-section-body'></div>");
+                    sectionBody.append("<div id='stock-journal-filter-form'></div>");
+                    section.append(header).append(sectionBody);
+                    body.append(section);
+                    contentElement.append(body);
+                },
+                onShown: function () {
+                    filterForm = $("#stock-journal-filter-form").dxForm({
+                        rtlEnabled: true,
+                        formData: getInitialFormData(),
+                        colCount: 2,
+                        labelLocation: "top",
+                        showColonAfterLabel: false,
+                        items: [
+                            {
+                                dataField: "ItemIDs",
+                                label: { text: "اجناس" },
+                                editorType: "dxTagBox",
+                                editorOptions: {
+                                    dataSource: itemsCache,
+                                    displayExpr: "DisplayName",
+                                    valueExpr: "ID",
+                                    searchEnabled: true,
+                                    showSelectionControls: true,
+                                    showClearButton: true,
+                                    placeholder: "اختیاري"
+                                }
+                            },
+                            {
+                                dataField: "WarehouseIDs",
+                                label: { text: "ګدامونه" },
+                                editorType: "dxTagBox",
+                                editorOptions: {
+                                    dataSource: warehousesCache,
+                                    displayExpr: "Name",
+                                    valueExpr: "ID",
+                                    searchEnabled: true,
+                                    showSelectionControls: true,
+                                    showClearButton: true,
+                                    placeholder: "اختیاري"
+                                }
+                            },
+                            {
+                                dataField: "StartDate",
+                                label: { text: "د پیل نېټه" },
+                                editorType: "dxDateBox",
+                                editorOptions: {
+                                    type: "date",
+                                    displayFormat: "yyyy-MM-dd",
+                                    showClearButton: true
+                                }
+                            },
+                            {
+                                dataField: "EndDate",
+                                label: { text: "د پای نېټه" },
+                                editorType: "dxDateBox",
+                                editorOptions: {
+                                    type: "date",
+                                    displayFormat: "yyyy-MM-dd",
+                                    showClearButton: true
+                                }
+                            }
+                        ]
+                    }).dxForm("instance");
+                },
+                onHidden: function () {
+                    if (filterForm) {
+                        try { filterForm.dispose(); } catch (e) { }
+                    }
+
+                    filterForm = null;
+                    $("#stock-journal-filter-form").empty();
+                }
+            }).dxPopup("instance");
+
+            return filterPopup;
+        }
+
+        function openFilterPopup() {
+            ensureLookupData()
+                .done(function () {
+                    ensureFilterPopup().show();
+                })
+                .fail(function () {
+                    DevExpress.ui.notify("د فلټر معلومات لوډ نسول.", "error", 3000);
+                });
+        }
+
+        function init() {
+            var grid = getGrid();
+            if (grid) {
+                grid.option("dataSource", stockJournalStore);
+            }
+
+            reloadGrid();
+        }
+
+        $(function () { init(); });
+
+        return {
+            openFilterPopup: openFilterPopup
+        };
+    })();
+</script>

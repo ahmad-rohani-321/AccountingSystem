@@ -1,5 +1,5 @@
 ﻿@{
-    ViewData["title"] ??= "د خرید سمون";
+    ViewData["title"] ??= "د فروش سمون";
     var saleId = ViewData["SaleId"] as int? ?? 0;
 }
 <div class="dx-card px-4 py-3 mb-3">
@@ -37,7 +37,7 @@
                     @(
                         Html.DevExtreme().CheckBox()
                         .ID("is-holded")
-                        .Text("که چک وي، خرید هولډ پاتې کېږي")
+                        .Text("که چک وي، فروش هولډ پاتې کېږي")
                         .Value(false)
                         .OnValueChanged("purchasePage.onIsHoldedChanged")
                     )
@@ -53,17 +53,17 @@
 <div class="dx-card px-4 py-3 mb-3 purchase-form-card">
     <div class="purchase-form-header">
         <div>
-            <h5 class="purchase-form-title">د خرید معلومات</h5>
+            <h5 class="purchase-form-title">د فروش معلومات</h5>
             <p class="purchase-form-subtitle">حساب، اسعار، بلانس او اړوند معلومات</p>
         </div>
     </div>
     <div class="row g-3 align-items-stretch">
         <div class="col-12 col-lg-4">
             <div class="purchase-field purchase-field-readonly">
-                <label class="purchase-label">د خرید شمېره</label>
+                <label class="purchase-label">د فروش شمېره</label>
                 @(Html.DevExtreme().NumberBox()
                    .ID("purchase-no")
-                   .Placeholder("د خرید شمېره")
+                   .Placeholder("د فروش شمېره")
                    .ReadOnly(true)
                    .ShowSpinButtons(false)
                 )
@@ -359,6 +359,10 @@
         var activeItemNameById = {};
         var activeWarehousesCache = [];
         var activeWarehouseNameById = {};
+        var activeCurrenciesCache = [];
+        var currencyExchangeRows = [];
+        var mainCurrencyId = 0;
+        var currentPriceCurrencyId = 0;
         var pendingOrdersPopup = null;
         var currentAccountBalanceValue = null;
         var currentTreasureBalanceValue = null;
@@ -482,6 +486,114 @@
             });
         }
 
+        function refreshCurrencyCache() {
+            return currencyDataSource.load().then(function (result) {
+                activeCurrenciesCache = normalizeDxLoadResult(result).filter(function (row) { return row && row.IsActive; });
+                mainCurrencyId = 0;
+
+                for (var i = 0; i < activeCurrenciesCache.length; i++) {
+                    if (activeCurrenciesCache[i] && activeCurrenciesCache[i].IsMainCurrency) {
+                        mainCurrencyId = Number(activeCurrenciesCache[i].ID || 0);
+                        break;
+                    }
+                }
+
+                return activeCurrenciesCache;
+            });
+        }
+
+        function loadCurrencyExchangeRows() {
+            return $.getJSON("/api/CurrencyExchange")
+                .then(function (result) {
+                    currencyExchangeRows = normalizeDxLoadResult(result).map(function (item) {
+                        return {
+                            SubCurrencyID: Number(item && item.SubCurrencyID ? item.SubCurrencyID : 0),
+                            ExchangeRate: Number(item && item.ExchangeRate ? item.ExchangeRate : 0)
+                        };
+                    });
+
+                    return currencyExchangeRows;
+                }, function () {
+                    currencyExchangeRows = [];
+                    return [];
+                });
+        }
+
+        function getCurrencyExchangeBySubCurrency(currencyId) {
+            for (var i = 0; i < currencyExchangeRows.length; i++) {
+                var row = currencyExchangeRows[i];
+                if (Number(row && row.SubCurrencyID ? row.SubCurrencyID : 0) === Number(currencyId || 0)) {
+                    return row;
+                }
+            }
+
+            return null;
+        }
+
+        function getCurrencyStoredExchangeRate(currencyId) {
+            var normalizedCurrencyId = Number(currencyId || 0);
+            if (!normalizedCurrencyId) return 0;
+            if (normalizedCurrencyId === Number(mainCurrencyId || 0)) return 1;
+
+            var exchangeRow = getCurrencyExchangeBySubCurrency(normalizedCurrencyId);
+            var rate = Number(exchangeRow && exchangeRow.ExchangeRate ? exchangeRow.ExchangeRate : 0);
+            return rate > 0 ? rate : 0;
+        }
+
+        function convertAmountBetweenCurrencies(amount, fromCurrencyId, toCurrencyId) {
+            var numericAmount = Number(amount);
+            var normalizedFromCurrencyId = Number(fromCurrencyId || 0);
+            var normalizedToCurrencyId = Number(toCurrencyId || 0);
+
+            if (!Number.isFinite(numericAmount)) return amount;
+            if (!normalizedFromCurrencyId || !normalizedToCurrencyId || normalizedFromCurrencyId === normalizedToCurrencyId) {
+                return numericAmount;
+            }
+
+            var fromRate = getCurrencyStoredExchangeRate(normalizedFromCurrencyId);
+            var toRate = getCurrencyStoredExchangeRate(normalizedToCurrencyId);
+            if (fromRate <= 0 || toRate <= 0) return numericAmount;
+
+            return numericAmount * toRate / fromRate;
+        }
+
+        function convertGridPricesToCurrency(fromCurrencyId, toCurrencyId) {
+            var normalizedFromCurrencyId = Number(fromCurrencyId || 0);
+            var normalizedToCurrencyId = Number(toCurrencyId || 0);
+
+            if (!normalizedFromCurrencyId || !normalizedToCurrencyId || normalizedFromCurrencyId === normalizedToCurrencyId) {
+                currentPriceCurrencyId = normalizedToCurrencyId;
+                return;
+            }
+
+            var rows = getPurchaseGridRows();
+            for (var i = 0; i < rows.length; i++) {
+                var row = rows[i];
+                if (!row) continue;
+
+                if (row.UnitPrice !== null && row.UnitPrice !== undefined && row.UnitPrice !== "") {
+                    row.UnitPrice = convertAmountBetweenCurrencies(row.UnitPrice, normalizedFromCurrencyId, normalizedToCurrencyId);
+                }
+
+                if (row.PurchaseUnitPrice !== null && row.PurchaseUnitPrice !== undefined && row.PurchaseUnitPrice !== "") {
+                    row.PurchaseUnitPrice = convertAmountBetweenCurrencies(row.PurchaseUnitPrice, normalizedFromCurrencyId, normalizedToCurrencyId);
+                }
+
+                row.TotalPrice = row.Quantity !== null && row.Quantity !== undefined && row.UnitPrice !== null && row.UnitPrice !== undefined
+                    ? Number(row.Quantity) * Number(row.UnitPrice)
+                    : null;
+                row.Profit = row.Quantity !== null && row.Quantity !== undefined && row.UnitPrice !== null && row.UnitPrice !== undefined && row.PurchaseUnitPrice !== null && row.PurchaseUnitPrice !== undefined
+                    ? (Number(row.UnitPrice) - Number(row.PurchaseUnitPrice)) * Number(row.Quantity)
+                    : 0;
+            }
+
+            var grid = getPurchaseGrid();
+            if (grid) grid.refresh();
+
+            currentPriceCurrencyId = normalizedToCurrencyId;
+            updatePurchaseTotal();
+        }
+
         function loadUnitOptionsForItem(itemId) {
             if (!itemId) return $.Deferred().resolve([]).promise();
             if (unitOptionsByItemId[itemId]) return $.Deferred().resolve(unitOptionsByItemId[itemId]).promise();
@@ -536,6 +648,81 @@
             }
 
             return nextUnitConversionId;
+        }
+
+        function getSelectedSaleDate() {
+            var dateInstance = $("#purchase-date").dxDateBox("instance");
+            return dateInstance ? dateInstance.option("value") : null;
+        }
+
+        function loadItemPricing(itemId, unitConversionId) {
+            if (!itemId) {
+                return $.Deferred().resolve({
+                    SaleUnitPrice: null,
+                    PurchaseUnitPrice: null
+                }).promise();
+            }
+
+            var requestData = {
+                unitConversionId: unitConversionId
+            };
+            var saleDate = getSelectedSaleDate();
+            if (saleDate) {
+                requestData.saleDate = saleDate.toISOString ? saleDate.toISOString() : saleDate;
+            }
+
+            return $.getJSON("/api/Sales/item-pricing/" + itemId, requestData)
+                .then(function (response) {
+                    return response || {};
+                }, function () {
+                    return {
+                        SaleUnitPrice: null,
+                        PurchaseUnitPrice: null
+                    };
+                });
+        }
+
+        function updateRowCalculatedValues(grid, rowIndex, rowData) {
+            var quantity = Number(grid.cellValue(rowIndex, "Quantity") || 0);
+            var unitPrice = Number(grid.cellValue(rowIndex, "UnitPrice") || 0);
+            var total = quantity * unitPrice;
+            var purchaseUnitPrice = rowData && rowData.PurchaseUnitPrice !== null && rowData.PurchaseUnitPrice !== undefined
+                ? Number(rowData.PurchaseUnitPrice)
+                : null;
+            var profit = purchaseUnitPrice === null
+                ? 0
+                : (unitPrice - purchaseUnitPrice) * quantity;
+
+            grid.cellValue(rowIndex, "TotalPrice", total);
+            if (rowData) {
+                rowData.TotalPrice = total;
+                rowData.Profit = profit;
+            }
+
+            updatePurchaseTotal();
+        }
+
+        function applyItemPricing(grid, rowIndex, rowData, pricing, applySaleUnitPrice) {
+            var resolvedPricing = pricing || {};
+            var saleUnitPrice = resolvedPricing.SaleUnitPrice !== null && resolvedPricing.SaleUnitPrice !== undefined
+                ? Number(resolvedPricing.SaleUnitPrice)
+                : null;
+            var purchaseUnitPrice = resolvedPricing.PurchaseUnitPrice !== null && resolvedPricing.PurchaseUnitPrice !== undefined
+                ? Number(resolvedPricing.PurchaseUnitPrice)
+                : null;
+
+            if (rowData) {
+                rowData.PurchaseUnitPrice = purchaseUnitPrice;
+            }
+
+            if (applySaleUnitPrice) {
+                grid.cellValue(rowIndex, "UnitPrice", saleUnitPrice);
+                if (rowData) {
+                    rowData.UnitPrice = saleUnitPrice;
+                }
+            }
+
+            updateRowCalculatedValues(grid, rowIndex, rowData);
         }
 
         function prepareUnitConversionEditor(editorOptions, rowData) {
@@ -652,7 +839,7 @@
             if (summary.length) {
                 summary.text(isHolded
                     ? "هولډ دی. تر څو چې چک لرې نه شي، حسابونه او مالي اغېزې نه تطبیقېږي."
-                    : "فعال دی. د ثبت وروسته به حسابونه اغېزمن شي او بیا دا خرید نور د سمون لپاره نه پرانیستل کېږي.");
+                    : "فعال دی. د ثبت وروسته به حسابونه اغېزمن شي او بیا دا فروش نور د سمون لپاره نه پرانیستل کېږي.");
             }
         }
 
@@ -680,6 +867,8 @@
             e.data.Quantity = null;
             e.data.UnitPrice = null;
             e.data.TotalPrice = null;
+            e.data.PurchaseUnitPrice = null;
+            e.data.Profit = 0;
             e.data.WarehouseID = null;
             e.data.Remarks = "";
             e.data.UnitOptions = [];
@@ -710,15 +899,26 @@
                     if (rowData) {
                         rowData.UnitConversionID = null;
                         rowData.UnitOptions = [];
+                        rowData.PurchaseUnitPrice = null;
+                        rowData.Profit = 0;
                     }
 
                     if (!selectedItemId) {
+                        grid.cellValue(rowIndex, "UnitPrice", null);
+                        if (rowData) {
+                            rowData.UnitPrice = null;
+                        }
+                        updateRowCalculatedValues(grid, rowIndex, rowData);
                         grid.repaintRows([rowIndex]);
                         return;
                     }
 
                     loadUnitOptionsForItem(selectedItemId).then(function (options) {
-                        syncRowUnitOptions(grid, rowIndex, rowData, options, null);
+                        var unitConversionId = syncRowUnitOptions(grid, rowIndex, rowData, options, null);
+
+                        loadItemPricing(selectedItemId, unitConversionId).then(function (pricing) {
+                            applyItemPricing(grid, rowIndex, rowData, pricing, true);
+                        });
                     });
                 };
                 return;
@@ -730,6 +930,27 @@
 
                 e.editorName = "dxSelectBox";
                 prepareUnitConversionEditor(e.editorOptions, rowDataForUnit);
+                var baseUnitChanged = e.editorOptions.onValueChanged;
+                e.editorOptions.onValueChanged = function (args) {
+                    if (baseUnitChanged) baseUnitChanged(args);
+
+                    var grid = e.component;
+                    var rowIndex = e.row.rowIndex;
+                    var selectedUnitConversionId = args && args.value !== undefined ? args.value : null;
+
+                    if (rowDataForUnit) {
+                        rowDataForUnit.UnitConversionID = selectedUnitConversionId;
+                    }
+
+                    if (!selectedItemIdForUnit) {
+                        updateRowCalculatedValues(grid, rowIndex, rowDataForUnit);
+                        return;
+                    }
+
+                    loadItemPricing(selectedItemIdForUnit, selectedUnitConversionId).then(function (pricing) {
+                        applyItemPricing(grid, rowIndex, rowDataForUnit, pricing, false);
+                    });
+                };
 
                 if (selectedItemIdForUnit && (!rowDataForUnit || !Array.isArray(rowDataForUnit.UnitOptions) || rowDataForUnit.UnitOptions.length === 0)) {
                     loadUnitOptionsForItem(selectedItemIdForUnit).then(function (options) {
@@ -767,16 +988,7 @@
 
                     var grid = e.component;
                     var rowIndex = e.row.rowIndex;
-
-                    var quantity = Number(grid.cellValue(rowIndex, "Quantity") || 0);
-                    var unitPrice = Number(grid.cellValue(rowIndex, "UnitPrice") || 0);
-                    var total = quantity * unitPrice;
-
-                    grid.cellValue(rowIndex, "TotalPrice", total);
-                    if (e.row && e.row.data) {
-                        e.row.data.TotalPrice = total;
-                    }
-                    updatePurchaseTotal();
+                    updateRowCalculatedValues(grid, rowIndex, e.row && e.row.data ? e.row.data : null);
                 };
             }
         }
@@ -881,14 +1093,14 @@
             var received = getNumberBoxValue("#purchase-received");
             var remaining = getNumberBoxValue("#purchase-remaining");
             if (getSelectBoxValue("#account-selector") > 0 && currentAccountBalanceValue !== null && currentAccountBalanceValue !== undefined) {
-                var accountAfter = Number(currentAccountBalanceValue || 0) - remaining;
+                var accountAfter = Number(currentAccountBalanceValue || 0) + remaining;
                 setProjectedBalanceLabel("#account-balance-note", currencyName, accountAfter);
             } else {
                 resetBalanceLabel("#account-balance-note");
             }
 
             if (getSelectBoxValue("#treasure-selector") > 0 && currentTreasureBalanceValue !== null && currentTreasureBalanceValue !== undefined) {
-                var treasureAfter = Number(currentTreasureBalanceValue || 0) - received;
+                var treasureAfter = Number(currentTreasureBalanceValue || 0) + received;
                 setProjectedBalanceLabel("#treasure-balance-note", currencyName, treasureAfter);
             } else {
                 resetBalanceLabel("#treasure-balance-note");
@@ -1003,6 +1215,14 @@
         }
 
         function onCurrencyChanged() {
+            var selectedCurrencyId = getSelectBoxValue("#currency-selector");
+
+            if (currentPriceCurrencyId > 0 && selectedCurrencyId > 0 && currentPriceCurrencyId !== selectedCurrencyId) {
+                convertGridPricesToCurrency(currentPriceCurrencyId, selectedCurrencyId);
+            } else if (selectedCurrencyId > 0) {
+                currentPriceCurrencyId = selectedCurrencyId;
+            }
+
             refreshAllBalanceLabels();
             refreshPaymentValidators();
         }
@@ -1097,7 +1317,7 @@
                 })
                 .fail(function () {
                     if (purchaseNoInstance) purchaseNoInstance.option("value", null);
-                    DevExpress.ui.notify("د خرید شمېره له سرور څخه ترلاسه نه شوه.", "error", 2500);
+                    DevExpress.ui.notify("د فروش شمېره له سرور څخه ترلاسه نه شوه.", "error", 2500);
                 });
         }
 
@@ -1244,7 +1464,7 @@
                         contentType: "application/json; charset=utf-8",
                         data: JSON.stringify(payload)
                     }).done(function (response) {
-                        DevExpress.ui.notify(response && response.Message ? response.Message : "خرید په بریالیتوب سم شو.", "success", 2200);
+                        DevExpress.ui.notify(response && response.Message ? response.Message : "فروش په بریالیتوب سم شو.", "success", 2200);
 
                         if (payload.IsHolded) {
                             onClearFormClick();
@@ -1278,6 +1498,7 @@
 
                     editTreasureAccountId = response && response.TreasureAccountID ? response.TreasureAccountID : null;
                     selectedPurchaseOrderId = response && response.OrderID ? response.OrderID : null;
+                    currentPriceCurrencyId = response && response.CurrencyID ? Number(response.CurrencyID) : 0;
 
                     if (purchaseNoInstance) purchaseNoInstance.option("value", response && response.SaleNo ? response.SaleNo : null);
                     if (accountInstance) accountInstance.option("value", response && response.AccountID ? response.AccountID : null);
@@ -1304,6 +1525,8 @@
                             Quantity: row.Quantity || null,
                             UnitPrice: row.UnitPrice || null,
                             TotalPrice: row.TotalPrice || null,
+                            PurchaseUnitPrice: null,
+                            Profit: row.Profit || 0,
                             WarehouseID: row.WarehouseID || null,
                             Remarks: row.Remarks || "",
                             UnitOptions: []
@@ -1323,6 +1546,15 @@
                             var loader = loadUnitOptionsForItem(targetRow.ItemID).then(function (options) {
                                 targetRow.UnitConversionID = getPreferredUnitConversionId(options, targetRow.UnitConversionID);
                                 targetRow.UnitOptions = Array.isArray(options) ? options : [];
+
+                                return loadItemPricing(targetRow.ItemID, targetRow.UnitConversionID).then(function (pricing) {
+                                    targetRow.PurchaseUnitPrice = pricing && pricing.PurchaseUnitPrice !== null && pricing.PurchaseUnitPrice !== undefined
+                                        ? Number(pricing.PurchaseUnitPrice)
+                                        : null;
+                                    targetRow.Profit = targetRow.Quantity && targetRow.UnitPrice !== null && targetRow.PurchaseUnitPrice !== null
+                                        ? (Number(targetRow.UnitPrice) - Number(targetRow.PurchaseUnitPrice)) * Number(targetRow.Quantity)
+                                        : 0;
+                                });
                             });
                             unitLoaders.push(loader);
                         })(purchaseDetailsData[j]);
@@ -1332,10 +1564,11 @@
                         $.when.apply($, unitLoaders).always(function () {
                             var purchaseGrid = getPurchaseGrid();
                             if (purchaseGrid) purchaseGrid.refresh();
+                            updatePurchaseTotal();
                         });
+                    } else {
+                        updatePurchaseTotal();
                     }
-
-                    updatePurchaseTotal();
                     syncAccountContactById(response && response.AccountID ? response.AccountID : null);
                     refreshAllBalanceLabels();
                     syncHoldStatePresentation();
@@ -1343,7 +1576,7 @@
                     refreshPaymentValidators();
                 })
                 .fail(function () {
-                    DevExpress.ui.notify("د خرید معلومات ونه موندل شول.", "error", 2800);
+                    DevExpress.ui.notify("د فروش معلومات ونه موندل شول.", "error", 2800);
                 });
         }
 
@@ -1376,6 +1609,8 @@
                             Quantity: row.Quantity || null,
                             UnitPrice: null,
                             TotalPrice: null,
+                            PurchaseUnitPrice: null,
+                            Profit: 0,
                             WarehouseID: null,
                             Remarks: row.Remarks || "",
                             UnitOptions: []
@@ -1395,6 +1630,21 @@
                             var loader = loadUnitOptionsForItem(targetRow.ItemID).then(function (options) {
                                 targetRow.UnitConversionID = getPreferredUnitConversionId(options, targetRow.UnitConversionID);
                                 targetRow.UnitOptions = Array.isArray(options) ? options : [];
+
+                                return loadItemPricing(targetRow.ItemID, targetRow.UnitConversionID).then(function (pricing) {
+                                    targetRow.UnitPrice = pricing && pricing.SaleUnitPrice !== null && pricing.SaleUnitPrice !== undefined
+                                        ? Number(pricing.SaleUnitPrice)
+                                        : null;
+                                    targetRow.PurchaseUnitPrice = pricing && pricing.PurchaseUnitPrice !== null && pricing.PurchaseUnitPrice !== undefined
+                                        ? Number(pricing.PurchaseUnitPrice)
+                                        : null;
+                                    targetRow.TotalPrice = targetRow.Quantity && targetRow.UnitPrice !== null
+                                        ? Number(targetRow.Quantity) * Number(targetRow.UnitPrice)
+                                        : null;
+                                    targetRow.Profit = targetRow.Quantity && targetRow.UnitPrice !== null && targetRow.PurchaseUnitPrice !== null
+                                        ? (Number(targetRow.UnitPrice) - Number(targetRow.PurchaseUnitPrice)) * Number(targetRow.Quantity)
+                                        : 0;
+                                });
                             });
                             unitLoaders.push(loader);
                         })(purchaseDetailsData[j]);
@@ -1404,10 +1654,11 @@
                         $.when.apply($, unitLoaders).always(function () {
                             var purchaseGrid = getPurchaseGrid();
                             if (purchaseGrid) purchaseGrid.refresh();
+                            updatePurchaseTotal();
                         });
+                    } else {
+                        updatePurchaseTotal();
                     }
-
-                    updatePurchaseTotal();
                     syncAccountContactById(response && response.AccountID ? response.AccountID : null);
                     refreshAllBalanceLabels();
                 })
@@ -1428,7 +1679,7 @@
             if (pendingOrdersPopup) return pendingOrdersPopup;
 
             pendingOrdersPopup = $("#pending-po-popup").dxPopup({
-                title: "ناتکمیل خرید آرډرونه",
+                title: "ناتکمیل فروش آرډرونه",
                 showTitle: true,
                 visible: false,
                 width: 980,
@@ -1524,7 +1775,7 @@
 
             $("#purchase-no").dxValidator({
                 validationRules: [
-                    { type: "required", message: "د خرید شمېره له سرور څخه ضروري ده." }
+                    { type: "required", message: "د فروش شمېره له سرور څخه ضروري ده." }
                 ]
             });
 
@@ -1625,7 +1876,7 @@
             syncHoldStatePresentation();
             syncSpecialAccountPaymentRule();
 
-            $.when(refreshActiveItemsCache(), refreshActiveWarehousesCache()).always(function () {
+            $.when(refreshActiveItemsCache(), refreshActiveWarehousesCache(), refreshCurrencyCache(), loadCurrencyExchangeRows()).always(function () {
                 loadPurchaseIntoForm(editSaleId);
 
                 var purchaseGrid = $("#purchase-details").dxDataGrid("instance");

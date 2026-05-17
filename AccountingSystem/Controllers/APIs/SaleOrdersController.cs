@@ -1,8 +1,6 @@
 using AccountingSystem.Data;
 using AccountingSystem.Models.Sales;
 using AccountingSystem.ViewModels;
-using DevExtreme.AspNet.Data;
-using DevExtreme.AspNet.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -112,7 +110,7 @@ public class SaleOrdersController(ApplicationDbContext db) : ApiControllerBase
             .AsNoTracking()
             .FirstOrDefaultAsync(x => x.ID == id);
         if (order is null)
-            return NotFound(new { Message = "د پېرود امر ونه موندل شو." });
+            return NotFound(new { Message = "د پلور آرډر ونه موندل شو." });
 
         var details = await BuildDetailQuery(order)
             .AsNoTracking()
@@ -224,10 +222,11 @@ public class SaleOrdersController(ApplicationDbContext db) : ApiControllerBase
         {
             order = await _db.SalesOrders.FirstOrDefaultAsync(x => x.ID == request.OrderID.Value);
             if (order is null)
-                return NotFound(new { Message = "د پېرود امر ونه موندل شو." });
+                return NotFound(new { Message = "د پلور آرډر ونه موندل شو." });
 
             order.AccountID = request.AccountID;
             order.DueDate = DateOnly.FromDateTime(request.DueDate.Date);
+            order.Remarks = request.Remarks;
             mode = "updated";
 
             var oldDetails = await BuildDetailQuery(order).ToListAsync();
@@ -270,7 +269,9 @@ public class SaleOrdersController(ApplicationDbContext db) : ApiControllerBase
         {
             OrderID = order.ID,
             Mode = mode,
-            Message = mode == "created" ? "د پېرود امر په بریالیتوب جوړ شو." : "د پېرود امر په بریالیتوب نوي شو."
+            Message = mode == "created"
+                ? "د پلور آرډر په بریالیتوب جوړ شو."
+                : "د پلور آرډر په بریالیتوب نوي شو."
         });
     }
 
@@ -279,7 +280,7 @@ public class SaleOrdersController(ApplicationDbContext db) : ApiControllerBase
     {
         var order = await _db.SalesOrders.FirstOrDefaultAsync(x => x.ID == id);
         if (order is null)
-            return NotFound(new { Message = "د پېرود امر ونه موندل شو." });
+            return NotFound(new { Message = "د پلور آرډر ونه موندل شو." });
 
         var details = await BuildDetailQuery(order).ToListAsync();
         if (details.Count > 0)
@@ -290,7 +291,6 @@ public class SaleOrdersController(ApplicationDbContext db) : ApiControllerBase
         _db.SalesOrders.Remove(order);
         await _db.SaveChangesAsync();
 
-        return Ok(new { Message = "د پېرود امر په بریالیتوب حذف شو." });
+        return Ok(new { Message = "د پلور آرډر په بریالیتوب حذف شو." });
     }
-
 }

@@ -65,7 +65,7 @@ public class CurrencyExchangeController(ApplicationDbContext db) : ApiController
 
         var mainCurrency = await _db.Currencies.FirstOrDefaultAsync(c => c.IsMainCurrency);
         if (mainCurrency is null)
-            return BadRequest(new { Message = "Main currency was not found." });
+            return BadRequest(new { Message = "اصلي اسعار ونه موندل سول." });
 
         var newEntries = payload.Select(item => new CurrencyExchange
         {

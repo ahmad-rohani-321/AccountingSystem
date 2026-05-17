@@ -14,6 +14,11 @@ namespace AccountingSystem.Controllers
             return View();
         }
 
+        public IActionResult StockJournal()
+        {
+            return View();
+        }
+
         public IActionResult Settings()
         {
             return View();

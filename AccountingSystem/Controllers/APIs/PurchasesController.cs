@@ -70,17 +70,17 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
 
     private static string BuildPurchaseJournalRemarks(int purchaseNo, string remarks)
     {
-        return ("Ø®Ø±ÛŒØ¯ Ù†Ù…Ø¨Ø± " + purchaseNo + (remarks ?? string.Empty)).Trim();
+        return ("خرید نمبر " + purchaseNo + (remarks ?? string.Empty)).Trim();
     }
 
     private static string BuildPurchaseRefundJournalRemarks(int purchaseNo, string remarks)
     {
-        return ("Ø¯ Ø®Ø±ÛŒØ¯ ÙˆØ§Ù¾Ø³ÙŠ Ù†Ù…Ø¨Ø± " + purchaseNo + (remarks ?? string.Empty)).Trim();
+        return ("د خرید واپسي نمبر " + purchaseNo + (remarks ?? string.Empty)).Trim();
     }
 
     private static string BuildPurchaseReceiveJournalRemarks(int purchaseNo, string remarks)
     {
-        return ("Ø¯ Ø®Ø±ÛŒØ¯ Ø±Ø³ÛŒØ¯ Ù†Ù…Ø¨Ø± " + purchaseNo + " " + (remarks ?? string.Empty)).Trim();
+        return ("د خرید رسید نمبر " + purchaseNo + " " + (remarks ?? string.Empty)).Trim();
     }
 
     private async Task<int?> ResolveTreasureAccountIdAsync(Purchase purchase)
@@ -258,7 +258,7 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
             .FirstOrDefaultAsync(x => x.ID == id);
 
         if (purchase is null)
-            return NotFound(new { Message = "Ø®Ø±ÛŒØ¯ ÙˆÙ†Ù‡ Ù…ÙˆÙ†Ø¯Ù„ Ø´Ùˆ." });
+            return NotFound(new { Message = "خرید ونه موندل شو." });
 
         var accountInfo = await _db.Accounts
             .AsNoTracking()
@@ -313,7 +313,7 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
     {
         var userId = CurrentUserId;
         if (string.IsNullOrWhiteSpace(userId))
-            return Unauthorized(new { Message = "Ø³ÛŒØ³Ù¼Ù… ØªÙ‡ Ù†Ù†ÙˆØ²Ø¦" });
+            return Unauthorized(new { Message = "سیسټم ته ننوزئ." });
 
         var validationMessage = ValidateRequest(request, requireTreasureRules: !request.IsHolded);
         if (!string.IsNullOrWhiteSpace(validationMessage))
@@ -324,7 +324,7 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
             return BadRequest(new { Message = configurationMessage });
 
         if (await _db.Purchases.AnyAsync(p => p.PurchaseNo == request.PurchaseNo))
-            return BadRequest(new { Message = "Ø¯ Ø®Ø±ÛŒØ¯ Ø´Ù…ÛØ±Ù‡ Ù…Ø®Ú©Û Ø«Ø¨Øª Ø³ÙˆÛ Ø¯Ù‡." });
+            return BadRequest(new { Message = "د خرید شمېره مخکې ثبت سوې ده." });
 
         var referenceValidation = await ValidatePurchaseReferencesAsync(request);
         if (!referenceValidation.Success)
@@ -335,7 +335,7 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
         {
             selectedOrder = await _db.PurchaseOrders.FirstOrDefaultAsync(x => x.ID == request.OrderID.Value);
             if (selectedOrder is null)
-                return BadRequest(new { Message = "Ø®Ø±ÛŒØ¯ Ø¢Ø±Ú‰Ø± ÙˆÙ†Ù‡ Ù…ÙˆÙ†Ø¯Ù„ Ø´Ùˆ." });
+                return BadRequest(new { Message = "خرید آرډر ونه موندل شو." });
         }
 
         await using var tx = await _db.Database.BeginTransactionAsync();
@@ -382,7 +382,7 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
 
         return Ok(new
         {
-            Message = "Ø®Ø±ÛŒØ¯ Ù¾Ù‡ Ø¨Ø±ÛŒØ§Ù„ÛŒØªÙˆØ¨ Ø«Ø¨Øª Ø´Ùˆ.",
+            Message = "خرید په بریالیتوب ثبت شو.",
             PurchaseID = purchase.ID,
             purchase.PurchaseNo,
             AccountBalance = applyResult.AccountBalance,
@@ -395,7 +395,7 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
     {
         var userId = CurrentUserId;
         if (string.IsNullOrWhiteSpace(userId))
-            return Unauthorized(new { Message = "Ø³ÛŒØ³Ù¼Ù… ØªÙ‡ Ù†Ù†ÙˆØ²Ø¦." });
+            return Unauthorized(new { Message = "سیسټم ته ننوزئ." });
 
         var validationMessage = ValidateRequest(request, requireTreasureRules: !request.IsHolded);
         if (!string.IsNullOrWhiteSpace(validationMessage))
@@ -407,23 +407,23 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
 
         var purchase = await _db.Purchases.FirstOrDefaultAsync(x => x.ID == id);
         if (purchase is null)
-            return NotFound(new { Message = "Ø®Ø±ÛŒØ¯ ÙˆÙ†Ù‡ Ù…ÙˆÙ†Ø¯Ù„ Ø´Ùˆ." });
+            return NotFound(new { Message = "خرید ونه موندل شو." });
 
         if (!purchase.IsHolded)
-            return BadRequest(new { Message = "Ø¯Ø§ Ø®Ø±ÛŒØ¯ Ù‡ÙˆÙ„Ú‰ Ø³ÙˆÛŒ Ù†Ù‡ Ø¯ÛŒ." });
+            return BadRequest(new { Message = "دا خرید هولډ سوی نه دی." });
 
         if (purchase.IsRefunded)
-            return BadRequest(new { Message = "ÙˆØ§Ù¾Ø³ÙŠ Ø³ÙˆÛŒ Ø®Ø±ÛŒØ¯ Ø³Ù…ÛØ¯Ø§ÛŒ Ù†Ù‡ Ø³ÙŠ." });
+            return BadRequest(new { Message = "واپسي سوی خرید سمېدای نه سي." });
 
         if (await _db.Purchases.AnyAsync(p => p.ID != id && p.PurchaseNo == request.PurchaseNo))
-            return BadRequest(new { Message = "Ø¯ Ø®Ø±ÛŒØ¯ Ø´Ù…ÛØ±Ù‡ Ù…Ø®Ú©Û Ø«Ø¨Øª Ø³ÙˆÛ Ø¯Ù‡." });
+            return BadRequest(new { Message = "د خرید شمېره مخکې ثبت سوې ده." });
 
         var referenceValidation = await ValidatePurchaseReferencesAsync(request);
         if (!referenceValidation.Success)
             return BadRequest(new { Message = referenceValidation.ErrorMessage });
 
         if (!request.IsHolded && request.ReceivedAmount > 0 && request.TreasureAccountID is not > 0)
-            return BadRequest(new { Message = "Ú©Ù‡ Ø±Ø³ÛŒØ¯ Ù„Ù‡ ØµÙØ± Ú…Ø®Ù‡ Ø²ÛŒØ§Øª ÙˆÙŠØŒ ØªØ¬Ø±ÙŠ/Ø¨Ø§Ù†Ú© Ø­Ø³Ø§Ø¨ Ù„Ø§ Ù‡Ù… Ø¶Ø±ÙˆØ±ÙŠ Ø¯ÛŒ." });
+            return BadRequest(new { Message = "که رسید له صفر څخه زیات وي، تجرۍ/بانک حساب لا هم ضروري دی." });
 
         var purchaseDetails = await _db.PurchaseDetails
             .Where(x => x.PurchaseID == purchase.ID)
@@ -431,7 +431,7 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
             .ToListAsync();
 
         if (purchaseDetails.Count == 0)
-            return BadRequest(new { Message = "Ø¯ Ø®Ø±ÛŒØ¯ ØªÙØµÛŒÙ„Ø§Øª ÙˆÙ†Ù‡ Ù…ÙˆÙ†Ø¯Ù„ Ø´ÙˆÙ„." });
+            return BadRequest(new { Message = "د خرید تفصیلات ونه موندل شول." });
 
         var existingEffectsResult = await LoadExistingPurchaseEffectsAsync(
             purchase,
@@ -448,7 +448,9 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
         var reverseResult = await ReversePurchaseEffectsAsync(
             existingEffectsResult.StockEffects!,
             existingEffectsResult.JournalEntries!,
-            reverseFinancialEffects: !purchase.IsHolded);
+            reverseFinancialEffects: !purchase.IsHolded,
+            userId: userId,
+            effectiveDate: request.PurchaseDate);
 
         if (!reverseResult.Success)
         {
@@ -457,7 +459,6 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
         }
 
         _db.PurchaseDetails.RemoveRange(purchaseDetails);
-        _db.StockTransactions.RemoveRange(existingEffectsResult.StockTransactions!);
         if (existingEffectsResult.JournalEntries!.Count > 0)
             _db.JournalEntries.RemoveRange(existingEffectsResult.JournalEntries!);
 
@@ -490,7 +491,7 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
 
         return Ok(new
         {
-            Message = "Ø®Ø±ÛŒØ¯ Ù¾Ù‡ Ø¨Ø±ÛŒØ§Ù„ÛŒØªÙˆØ¨ Ø³Ù… Ø´Ùˆ.",
+            Message = "خرید په بریالیتوب سم شو.",
             PurchaseID = purchase.ID,
             purchase.PurchaseNo,
             AccountBalance = applyResult.AccountBalance,
@@ -503,19 +504,19 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
     {
         var userId = CurrentUserId;
         if (string.IsNullOrWhiteSpace(userId))
-            return Unauthorized(new { Message = "Ù…Ù‡Ø±Ø¨Ø§Ù†ÙŠ ÙˆÚ©Ú“Ø¦ Ø¨ÛŒØ§ Ø³ÛŒØ³Ù¼Ù… ØªÙ‡ Ù†Ù†ÙˆØ²Ø¦." });
+            return Unauthorized(new { Message = "مهرباني وکړئ بیا سیسټم ته ننوزئ." });
 
         if (request is null)
-            return BadRequest(new { Message = "Ø¯ ÙˆØ§Ù¾Ø³ÙŠ ØºÙˆÚšØªÙ†Ù‡ Ø¶Ø±ÙˆØ±ÙŠ Ø¯Ù‡." });
+            return BadRequest(new { Message = "د واپسي غوښتنه ضروري ده." });
 
         if (request.RefundAmount < 0)
-            return BadRequest(new { Message = "Ø¯ ÙˆØ§Ù¾Ø³ÙŠ Ù…Ø¨Ù„Øº Ù…Ù†ÙÙŠ Ú©ÛØ¯Ø§ÛŒ Ù†Ù‡ Ø´ÙŠ." });
+            return BadRequest(new { Message = "د واپسي مبلغ منفي کېدای نه شي." });
 
         if (request.RefundAmount > 0 && request.TreasureAccountID is not > 0)
-            return BadRequest(new { Message = "Ú©Ù„Ù‡ Ú†Û Ø¯ ÙˆØ§Ù¾Ø³ÙŠ Ù…Ø¨Ù„Øº Ù„Ù‡ ØµÙØ± Ú…Ø®Ù‡ Ø²ÛŒØ§Øª ÙˆÙŠØŒ ØªØ¬Ø±ÙŠ/Ø¨Ø§Ù†Ú© Ø­Ø³Ø§Ø¨ Ø¶Ø±ÙˆØ±ÙŠ Ø¯ÛŒ." });
+            return BadRequest(new { Message = "کله چې د واپسي مبلغ له صفر څخه زیات وي، تجرۍ/بانک حساب ضروري دی." });
 
         if (request.RefundAmount <= 0 && request.TreasureAccountID is > 0)
-            return BadRequest(new { Message = "Ú©Ù„Ù‡ Ú†Û ØªØ¬Ø±ÙŠ/Ø¨Ø§Ù†Ú© Ø­Ø³Ø§Ø¨ Ø§Ù†ØªØ®Ø§Ø¨ ÙˆÙŠØŒ Ø¯ ÙˆØ§Ù¾Ø³ÙŠ Ù…Ø¨Ù„Øº Ø¨Ø§ÛŒØ¯ Ù„Ù‡ ØµÙØ± Ú…Ø®Ù‡ Ø²ÛŒØ§Øª ÙˆÙŠ." });
+            return BadRequest(new { Message = "کله چې تجرۍ/بانک حساب انتخاب وي، د واپسي مبلغ باید له صفر څخه زیات وي." });
 
         var configurationMessage = await ValidatePurchaseRefundConfigurationAsync();
         if (!string.IsNullOrWhiteSpace(configurationMessage))
@@ -523,20 +524,20 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
 
         var purchase = await _db.Purchases.FirstOrDefaultAsync(x => x.ID == id);
         if (purchase is null)
-            return NotFound(new { Message = "Ø®Ø±ÛŒØ¯ ÙˆÙ†Ù‡ Ù…ÙˆÙ†Ø¯Ù„ Ø´Ùˆ." });
+            return NotFound(new { Message = "خرید ونه موندل شو." });
 
         if (purchase.IsRefunded)
-            return BadRequest(new { Message = "Ø¯ Ø¯Û Ø®Ø±ÛŒØ¯ ÙˆØ§Ù¾Ø³ÙŠ Ù…Ø®Ú©Û Ù„Ø§ Ø´ÙˆÛ Ø¯Ù‡." });
+            return BadRequest(new { Message = "د دې خرید واپسي مخکې لا سوې ده." });
 
         if (purchase.IsHolded && request.RefundAmount > 0)
-            return BadRequest(new { Message = "Ø¯ Ù‡ÙˆÙ„Ú‰ Ø´ÙˆÙŠ Ø®Ø±ÛŒØ¯ Ù„Ù¾Ø§Ø±Ù‡ Ø¯ ÙˆØ§Ù¾Ø³ÙŠ Ù†ØºØ¯ÙŠ Ù‚ÛŒØ¯ÙˆÙ†Ù‡ Ù†Ù‡ Ø´ÙŠ Ø«Ø¨ØªÛØ¯Ø§ÛŒ." });
+            return BadRequest(new { Message = "د هولډ شوي خرید لپاره د واپسي نغدي قیدونه نه شي ثبتېدای." });
 
         if (!purchase.IsHolded && request.RefundAmount > purchase.ReceivedAmount)
-            return BadRequest(new { Message = "Ø¯ ÙˆØ§Ù¾Ø³ÙŠ Ù…Ø¨Ù„Øº Ø¯ Ø®Ø±ÛŒØ¯ Ù„Ù‡ Ø±Ø³ÛŒØ¯ Ø´ÙˆÛ Ø§Ù†Ø¯Ø§Ø²Û Ú…Ø®Ù‡ Ø²ÛŒØ§Øª Ú©ÛØ¯Ø§ÛŒ Ù†Ù‡ Ø´ÙŠ." });
+            return BadRequest(new { Message = "د واپسي مبلغ د خرید له رسید شوې اندازې څخه زیات کېدای نه شي." });
 
         if (request.TreasureAccountID is > 0 &&
             !await _db.Accounts.AnyAsync(a => a.ID == request.TreasureAccountID.Value))
-            return BadRequest(new { Message = "ØªØ¬Ø±ÙŠ/Ø¨Ø§Ù†Ú© Ø­Ø³Ø§Ø¨ ÙˆÙ†Ù‡ Ù…ÙˆÙ†Ø¯Ù„ Ø´Ùˆ." });
+            return BadRequest(new { Message = "تجرۍ/بانک حساب ونه موندل شو." });
 
         var purchaseDetails = await _db.PurchaseDetails
             .Where(x => x.PurchaseID == purchase.ID)
@@ -544,7 +545,7 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
             .ToListAsync();
 
         if (purchaseDetails.Count == 0)
-            return BadRequest(new { Message = "Ø¯ Ø®Ø±ÛŒØ¯ ØªÙØµÛŒÙ„Ø§Øª ÙˆÙ†Ù‡ Ù…ÙˆÙ†Ø¯Ù„ Ø´ÙˆÙ„." });
+            return BadRequest(new { Message = "د خرید تفصیلات ونه موندل شول." });
 
         var existingEffectsResult = await LoadExistingPurchaseEffectsAsync(
             purchase,
@@ -561,7 +562,7 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
             if (stockEffect.StockBalance.Quantity < stockEffect.MainStockQuantity)
             {
                 await tx.RollbackAsync();
-                return BadRequest(new { Message = "ÙˆØ§Ù¾Ø³ÙŠ Ù†Ù‡ Ø´ÙŠ Ø¨Ø´Ù¾Ú“ÛØ¯Ø§ÛŒØŒ ÚÚ©Ù‡ Ø¯ ÛŒÙˆ ÛŒØ§ Ú…Ùˆ Ø¬Ù†Ø³ÙˆÙ†Ùˆ Ù„Ù¾Ø§Ø±Ù‡ Ú©Ø§ÙÙŠ Ù…ÙˆØ¬ÙˆØ¯ÙŠ Ù†Ø´ØªÙ‡." });
+                return BadRequest(new { Message = "واپسي نه شي بشپړېدای، ځکه د یو یا څو جنسونو لپاره کافي موجودي نشته." });
             }
 
             stockEffect.StockBalance.Quantity -= stockEffect.MainStockQuantity;
@@ -650,7 +651,7 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
 
         return Ok(new
         {
-            Message = "Ø®Ø±ÛŒØ¯ ÙˆØ§Ù¾Ø³ Ú©Ú“Ù„ Ø³Ùˆ.",
+            Message = "خرید واپس کړل سو.",
             PurchaseID = purchase.ID,
             purchase.PurchaseNo,
             AccountBalance = accountBalanceValue,
@@ -663,38 +664,38 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
     {
         var userId = CurrentUserId;
         if (string.IsNullOrWhiteSpace(userId))
-            return Unauthorized(new { Message = "Ã™â€¦Ã™â€¡Ã˜Â±Ã˜Â¨Ã˜Â§Ã™â€ Ã™Å  Ã™Ë†ÃšÂ©Ãšâ€œÃ˜Â¦ Ã˜Â¨Ã›Å’Ã˜Â§ Ã˜Â³Ã›Å’Ã˜Â³Ã™Â¼Ã™â€¦ Ã˜ÂªÃ™â€¡ Ã™â€ Ã™â€ Ã™Ë†Ã˜Â²Ã˜Â¦." });
+            return Unauthorized(new { Message = "مهرباني وکړئ بیا سیسټم ته ننوزئ." });
 
         if (request is null)
-            return BadRequest(new { Message = "Ã˜Â¯ Ã˜Â±Ã˜Â³Ã›Å’Ã˜Â¯ Ã˜ÂºÃ™Ë†ÃšÅ¡Ã˜ÂªÃ™â€ Ã™â€¡ Ã˜Â¶Ã˜Â±Ã™Ë†Ã˜Â±Ã™Å  Ã˜Â¯Ã™â€¡." });
+            return BadRequest(new { Message = "د رسید غوښتنه ضروري ده." });
 
         if (request.ReceiveAmount <= 0)
-            return BadRequest(new { Message = "Ã˜Â¯ Ã˜Â±Ã˜Â³Ã›Å’Ã˜Â¯ Ã™â€¦Ã˜Â¨Ã™â€žÃ˜Âº Ã˜Â¨Ã˜Â§Ã›Å’Ã˜Â¯ Ã™â€žÃ™â€¡ Ã˜ÂµÃ™ÂÃ˜Â± Ãšâ€¦Ã˜Â®Ã™â€¡ Ã˜Â²Ã›Å’Ã˜Â§Ã˜Âª Ã™Ë†Ã™Å ." });
+            return BadRequest(new { Message = "د رسید مبلغ باید له صفر څخه زیات وي." });
 
         if (request.TreasureAccountID is not > 0)
-            return BadRequest(new { Message = "Ã˜ÂªÃ˜Â¬Ã˜Â±Ã™Å /Ã˜Â¨Ã˜Â§Ã™â€ ÃšÂ© Ã˜Â­Ã˜Â³Ã˜Â§Ã˜Â¨ Ã˜Â¶Ã˜Â±Ã™Ë†Ã˜Â±Ã™Å  Ã˜Â¯Ã›Å’." });
+            return BadRequest(new { Message = "تجرۍ/بانک حساب ضروري دی." });
 
         var purchase = await _db.Purchases.FirstOrDefaultAsync(x => x.ID == id);
         if (purchase is null)
-            return NotFound(new { Message = "Ã˜Â®Ã˜Â±Ã›Å’Ã˜Â¯ Ã™Ë†Ã™â€ Ã™â€¡ Ã™â€¦Ã™Ë†Ã™â€ Ã˜Â¯Ã™â€ž Ã˜Â´Ã™Ë†." });
+            return NotFound(new { Message = "خرید ونه موندل شو." });
 
         if (purchase.IsRefunded)
-            return BadRequest(new { Message = "Ã˜Â¯ Ã™Ë†Ã˜Â§Ã™Â¾Ã˜Â³ Ã˜Â´Ã™Ë†Ã™Å  Ã˜Â®Ã˜Â±Ã›Å’Ã˜Â¯ Ã™â€žÃ™Â¾Ã˜Â§Ã˜Â±Ã™â€¡ Ã˜Â±Ã˜Â³Ã›Å’Ã˜Â¯ Ã™â€ Ã™â€¡ Ã˜Â´Ã™Å  Ã˜Â«Ã˜Â¨Ã˜ÂªÃ›ÂÃ˜Â¯Ã˜Â§Ã›Å’." });
+            return BadRequest(new { Message = "د واپس شوي خرید لپاره رسید نه شي ثبتېدای." });
 
         if (purchase.IsHolded)
-            return BadRequest(new { Message = "Ã˜Â¯ Ã™â€¡Ã™Ë†Ã™â€žÃšâ€° Ã˜Â´Ã™Ë†Ã™Å  Ã˜Â®Ã˜Â±Ã›Å’Ã˜Â¯ Ã™â€žÃ™Â¾Ã˜Â§Ã˜Â±Ã™â€¡ Ã˜Â±Ã˜Â³Ã›Å’Ã˜Â¯ Ã™â€ Ã™â€¡ Ã˜Â´Ã™Å  Ã˜Â«Ã˜Â¨Ã˜ÂªÃ›ÂÃ˜Â¯Ã˜Â§Ã›Å’." });
+            return BadRequest(new { Message = "د هولډ شوي خرید لپاره رسید نه شي ثبتېدای." });
 
         if (purchase.ReceivedAmount >= purchase.TotalAmount && purchase.TotalAmount > 0)
-            return BadRequest(new { Message = "Ø¯ Ø¯Û Ø®Ø±ÛŒØ¯ Ù¼ÙˆÙ„ Ù…Ø¨Ù„Øº Ù„Ø§ Ù…Ø®Ú©Û Ø¨Ø´Ù¾Ú“ Ø±Ø³ÛŒØ¯ Ø´ÙˆÛŒ Ø¯ÛŒ." });
+            return BadRequest(new { Message = "د دې خرید ټول مبلغ لا مخکې بشپړ رسید شوی دی." });
 
         if (purchase.RemainingAmount <= 0)
-            return BadRequest(new { Message = "Ã˜Â¯ Ã˜Â¯Ã›Â Ã˜Â®Ã˜Â±Ã›Å’Ã˜Â¯ Ã˜Â¨Ã˜Â§Ã™â€šÃ™Å  Ã™â€¦Ã˜Â¨Ã™â€žÃ˜Âº Ã˜ÂµÃ™ÂÃ˜Â± Ã˜Â¯Ã›Å’." });
+            return BadRequest(new { Message = "د دې خرید باقي مبلغ صفر دی." });
 
         if (request.ReceiveAmount > purchase.RemainingAmount)
-            return BadRequest(new { Message = "Ã˜Â¯ Ã˜Â±Ã˜Â³Ã›Å’Ã˜Â¯ Ã™â€¦Ã˜Â¨Ã™â€žÃ˜Âº Ã˜Â¯ Ã˜Â®Ã˜Â±Ã›Å’Ã˜Â¯ Ã™â€žÃ™â€¡ Ã˜Â¨Ã˜Â§Ã™â€šÃ™Å  Ã˜Â§Ã™â€ Ã˜Â¯Ã˜Â§Ã˜Â²Ã›Â Ãšâ€¦Ã˜Â®Ã™â€¡ Ã˜Â²Ã›Å’Ã˜Â§Ã˜Âª ÃšÂ©Ã›ÂÃ˜Â¯Ã˜Â§Ã›Å’ Ã™â€ Ã™â€¡ Ã˜Â´Ã™Å ." });
+            return BadRequest(new { Message = "د رسید مبلغ د خرید له باقي اندازې څخه زیات کېدای نه شي." });
 
         if (!await _db.Accounts.AnyAsync(a => a.ID == request.TreasureAccountID.Value))
-            return BadRequest(new { Message = "Ã˜ÂªÃ˜Â¬Ã˜Â±Ã™Å /Ã˜Â¨Ã˜Â§Ã™â€ ÃšÂ© Ã˜Â­Ã˜Â³Ã˜Â§Ã˜Â¨ Ã™Ë†Ã™â€ Ã™â€¡ Ã™â€¦Ã™Ë†Ã™â€ Ã˜Â¯Ã™â€ž Ã˜Â´Ã™Ë†." });
+            return BadRequest(new { Message = "تجرۍ/بانک حساب ونه موندل شو." });
 
         var configurationMessage = await ValidatePurchaseConfigurationAsync();
         if (!string.IsNullOrWhiteSpace(configurationMessage))
@@ -709,7 +710,7 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
             effectiveDate);
 
         if (request.ReceiveAmount > treasureBalance.Balance)
-            return BadRequest(new { Message = "Ã˜Â±Ã˜Â³Ã›Å’Ã˜Â¯ Ã™â€¦Ã˜Â¨Ã™â€žÃ˜Âº Ã™Â¾Ã™â€¡ Ã˜Â¯Ã˜Â®Ã™â€ž/Ã˜Â¨Ã˜Â§Ã™â€ ÃšÂ© Ã™â€ Ã™â€¡ Ã˜Â¯Ã›Å’." });
+            return BadRequest(new { Message = "رسید مبلغ په دکان/بانک کې نه دی." });
 
         var journalRemarks = BuildPurchaseReceiveJournalRemarks(purchase.PurchaseNo, purchase.Remarks);
         await using var tx = await _db.Database.BeginTransactionAsync();
@@ -751,7 +752,7 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
 
         return Ok(new
         {
-            Message = "Ã˜Â¯ Ã˜Â®Ã˜Â±Ã›Å’Ã˜Â¯ Ã˜Â±Ã˜Â³Ã›Å’Ã˜Â¯ Ã˜Â«Ã˜Â¨Ã˜Âª Ã˜Â´Ã™Ë†.",
+            Message = "د خرید رسید ثبت شو.",
             PurchaseID = purchase.ID,
             purchase.PurchaseNo,
             purchase.ReceivedAmount,
@@ -764,13 +765,13 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
     private async Task<string> ValidatePurchaseConfigurationAsync()
     {
         if (!await _db.JournalEntryTransactionTypes.AnyAsync(x => x.ID == PurchaseTransactionTypeId))
-            return $"Required journal transaction type {PurchaseTransactionTypeId} was not found.";
+            return $"اړین د ورځني معاملاتو ډول {PurchaseTransactionTypeId} ونه موندل سو.";
 
         if (!await _db.JournalEntryTransactionTypes.AnyAsync(x => x.ID == PurchaseChangeTransactionTypeId))
-            return $"Required journal transaction type {PurchaseChangeTransactionTypeId} was not found.";
+            return $"اړین د ورځني معاملاتو ډول {PurchaseChangeTransactionTypeId} ونه موندل سو.";
 
         if (!await _db.StockTransactionTypes.AnyAsync(x => x.ID == PurchaseStockTransactionTypeId))
-            return $"Required stock transaction type {PurchaseStockTransactionTypeId} was not found.";
+            return $"اړین د سټاک معاملې ډول {PurchaseStockTransactionTypeId} ونه موندل سو.";
 
         return string.Empty;
     }
@@ -778,10 +779,10 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
     private async Task<string> ValidatePurchaseRefundConfigurationAsync()
     {
         if (!await _db.JournalEntryTransactionTypes.AnyAsync(x => x.ID == PurchaseRefundTransactionTypeId))
-            return $"Required journal transaction type {PurchaseRefundTransactionTypeId} was not found.";
+            return $"اړین د ورځني معاملاتو ډول {PurchaseRefundTransactionTypeId} ونه موندل سو.";
 
         if (!await _db.StockTransactionTypes.AnyAsync(x => x.ID == PurchaseRefundStockTransactionTypeId))
-            return $"Required stock transaction type {PurchaseRefundStockTransactionTypeId} was not found.";
+            return $"اړین د سټاک معاملې ډول {PurchaseRefundStockTransactionTypeId} ونه موندل سو.";
 
         return string.Empty;
     }
@@ -793,19 +794,19 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
             .Include(a => a.AccountType)
             .FirstOrDefaultAsync(a => a.ID == request.AccountID);
         if (account is null)
-            return (false, "Ø­Ø³Ø§Ø¨ ÙˆÙ†Ù‡ Ù…ÙˆÙ†Ø¯Ù„ Ø³Ùˆ.", null);
+            return (false, "حساب ونه موندل سو.", null);
 
         if (!await _db.Currencies.AnyAsync(c => c.ID == request.CurrencyID))
-            return (false, "Ø§Ø³Ø¹Ø§Ø± ÙˆÙ†Ù‡ Ù…ÙˆÙ†Ø¯Ù„ Ø³Ùˆ.", null);
+            return (false, "اسعار ونه موندل سول.", null);
 
         if (request.TreasureAccountID is > 0 &&
             !await _db.Accounts.AnyAsync(a => a.ID == request.TreasureAccountID.Value))
-            return (false, "ØªØ¬Ø±Ø¦/Ø¨Ø§Ù†Ú© ÙˆÙ†Ù‡ Ù…ÙˆÙ†Ø¯Ù„ Ø³Ùˆ.", null);
+            return (false, "تجرۍ/بانک ونه موندل سو.", null);
 
         if (!request.IsHolded &&
             account.AccountTypeID == StrictFullPaymentAccountTypeId &&
             request.ReceivedAmount != request.TotalAmount)
-            return (false, "Ø¯ Ø­Ø³Ø§Ø¨ Ú‰ÙˆÙ„ 10 Ù„Ù¾Ø§Ø±Ù‡ Ø±Ø³ÛŒØ¯ Ù…Ø¨Ù„Øº Ø¨Ø§ÛŒØ¯ Ù„Ù‡ Ù…Ø¬Ù…ÙˆØ¹Û Ø³Ø±Ù‡ Ù…Ø³Ø§ÙˆÙŠ ÙˆÙŠ.", null);
+            return (false, "د حساب ډول 10 لپاره رسید مبلغ باید له مجموعې سره مساوي وي.", null);
 
         return (true, string.Empty, account);
     }
@@ -816,10 +817,10 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
         var warehouseIds = request.Details.Select(d => d.WarehouseID).Distinct().ToArray();
 
         if (await _db.Items.CountAsync(i => itemIds.Contains(i.ID)) != itemIds.Length)
-            return (false, "Ù¾Ù‡ Ø¬Ù†Ø³ÙˆÙ†Ùˆ Ú©Û Ù†Ø§Ø³Ù… Ø§Ù†ØªØ®Ø§Ø¨ Ø´ØªÙ‡.", null);
+            return (false, "په جنسونو کې ناسم انتخاب شته.", null);
 
         if (await _db.WareHouses.CountAsync(w => warehouseIds.Contains(w.ID)) != warehouseIds.Length)
-            return (false, "Ù¾Ù‡ Ú«Ø¯Ø§Ù…ÙˆÙ†Ùˆ Ú©Û Ù†Ø§Ø³Ù… Ø§Ù†ØªØ®Ø§Ø¨ Ø´ØªÙ‡.", null);
+            return (false, "په ګدامونو کې ناسم انتخاب شته.", null);
 
         var itemsById = await _db.Items
             .Where(i => itemIds.Contains(i.ID))
@@ -829,7 +830,7 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
         foreach (var detail in request.Details)
         {
             if (!itemsById.TryGetValue(detail.ItemID, out var item))
-                return (false, "Ù¾Ù‡ Ø¬Ù†Ø³ÙˆÙ†Ùˆ Ú©Û Ù†Ø§Ø³Ù… Ø§Ù†ØªØ®Ø§Ø¨ Ø´ØªÙ‡.", null);
+                return (false, "په جنسونو کې ناسم انتخاب شته.", null);
 
             var (mainStockQuantity, unitId, unitConversion, unitError) =
                 await ResolvePurchaseUnitAsync(detail.UnitConversionID!.Value, detail.Quantity, item, userId);
@@ -888,13 +889,13 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
         foreach (var detail in purchaseDetails)
         {
             if (!itemsById.TryGetValue(detail.ItemID, out var item))
-                return (false, "Ù¾Ù‡ Ø¬Ù†Ø³ÙˆÙ†Ùˆ Ú©Û Ù†Ø§Ø³Ù… Ø§Ù†ØªØ®Ø§Ø¨ Ø´ØªÙ‡.", null, null, null);
+                return (false, "په جنسونو کې ناسم انتخاب شته.", null, null, null);
 
             var expectedUnitId = item.UnitId;
             if (detail.UnitConversionID > 0)
             {
                 if (!unitSubUnitByConversionId.TryGetValue(detail.UnitConversionID, out expectedUnitId))
-                    return (false, "Ø¯ Ø²ÙˆÚ“ Ø®Ø±ÛŒØ¯ Ø¯ ÙˆØ§Ø­Ø¯ ØªØ¨Ø§Ø¯Ù„Ù‡ ÙˆÙ†Ù‡ Ù…ÙˆÙ†Ø¯Ù„ Ø´Ùˆ.", null, null, null);
+                    return (false, "د زوړ خرید د واحد تبادله ونه موندل شو.", null, null, null);
             }
 
             var matchedStockTransaction = stockTransactions
@@ -925,7 +926,7 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
             }
 
             if (matchedStockTransaction is null || matchedStockTransaction.StockBalance is null)
-                return (false, "Ø¯ Ø²ÙˆÚ“ Ø®Ø±ÛŒØ¯ Ø¯ Ø³Ù¼Ø§Ú© Ø¨Ø¯Ù„ÙˆÙ†ÙˆÙ†Ù‡ ÙˆÙ†Ù‡ Ù…ÙˆÙ†Ø¯Ù„ Ø´Ùˆ.", null, null, null);
+                return (false, "د زوړ خرید د سټاک بدلونونه ونه موندل شو.", null, null, null);
 
             usedStockTransactionIds.Add(matchedStockTransaction.ID);
 
@@ -957,7 +958,7 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
             .ToListAsync();
 
         if (journalEntries.Count == 0)
-            return (false, "Ø¯ Ø²ÙˆÚ“ Ø®Ø±ÛŒØ¯ Ø¬Ø±Ù†Ù„ Ù‚ÛŒØ¯ÙˆÙ†Ù‡ ÙˆÙ†Ù‡ Ù…ÙˆÙ†Ø¯Ù„ Ø´Ùˆ.", null, null, null);
+            return (false, "د زوړ خرید جرنل قیدونه ونه موندل شو.", null, null, null);
 
         }
 
@@ -967,14 +968,28 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
     private async Task<(bool Success, string ErrorMessage)> ReversePurchaseEffectsAsync(
         List<ExistingPurchaseStockEffect> stockEffects,
         List<JournalEntry> journalEntries,
-        bool reverseFinancialEffects)
+        bool reverseFinancialEffects,
+        string userId,
+        DateTime effectiveDate)
     {
         foreach (var stockEffect in stockEffects)
         {
             if (stockEffect.StockBalance.Quantity < stockEffect.MainStockQuantity)
-                return (false, "Ø¯ Ø²ÙˆÚ“ Ø®Ø±ÛŒØ¯ Ø³Ù…ÙˆÙ† Ù†Ù‡ Ø´ÙŠØŒ ÚÚ©Ù‡ Ø§ÙˆØ³Ù†ÛŒ Ø³Ù¼Ø§Ú© Ú©Ù… Ø¯ÛŒ.");
+                return (false, "د زوړ خرید سمون نه شي کېدای، ځکه اوسنی سټاک کم دی.");
 
             stockEffect.StockBalance.Quantity -= stockEffect.MainStockQuantity;
+
+            // Keep stock movement history intact by recording the reversal as its own transaction.
+            _db.StockTransactions.Add(new StockTransactions
+            {
+                StockBalanceID = stockEffect.StockBalance.ID,
+                Quantity = stockEffect.StockTransaction.Quantity,
+                Remarks = stockEffect.StockTransaction.Remarks ?? string.Empty,
+                UnitID = stockEffect.StockTransaction.UnitID,
+                TransactionID = PurchaseRefundStockTransactionTypeId,
+                CreatedByUserId = userId,
+                CreationDate = effectiveDate
+            });
         }
 
         if (!reverseFinancialEffects)
@@ -983,7 +998,7 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
         foreach (var journalEntry in journalEntries)
         {
             if (journalEntry.AccountBalance is null)
-                return (false, "Ø¯ Ø²ÙˆÚ“ Ø®Ø±ÛŒØ¯ Ø¯ Ø­Ø³Ø§Ø¨ Ø¨Ù„Ø§Ù†Ø³ Ù‚ÛŒØ¯ ÙˆÙ†Ù‡ Ù…ÙˆÙ†Ø¯Ù„ Ø´Ùˆ.");
+                return (false, "د زوړ خرید د حساب بلانس قید ونه موندل شو.");
 
             journalEntry.AccountBalance.Balance += journalEntry.Debit - journalEntry.Credit;
         }
@@ -1086,7 +1101,7 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
                 ab.CurrencyID == request.CurrencyID);
 
             if (treasureAccountBalance is null || request.ReceivedAmount > treasureAccountBalance.Balance)
-                return (false, "Ø±Ø³ÛŒØ¯ Ù…Ø¨Ù„Øº Ù¾Ù‡ Ø¯Ø®Ù„/Ø¨Ø§Ù†Ú© Ù†Ù‡ Ø¯ÛŒ.", null, null);
+                return (false, "رسید مبلغ په دکان/بانک کې نه دی.", null, null);
 
             accountBalance.Balance += request.ReceivedAmount;
 
@@ -1154,40 +1169,40 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
             .FirstOrDefaultAsync(u => u.ItemID == item.ID && u.SubUnitID == unitId);
 
         if (unitConversion is null)
-            return (false, "Ø¯ Ø²ÙˆÚ“ Ø®Ø±ÛŒØ¯ Ø¯ ÙˆØ§Ø­Ø¯ ØªØ¨Ø§Ø¯Ù„Ù‡ ÙˆÙ†Ù‡ Ù…ÙˆÙ†Ø¯Ù„ Ø´Ùˆ.", 0);
+            return (false, "د زوړ خرید د واحد تبادله ونه موندل شو.", 0);
 
         var exchangedAmount = unitConversion.ExchangedAmount;
         if (exchangedAmount <= 0 && unitConversion.MainAmount > 0 && unitConversion.SubAmount > 0)
             exchangedAmount = unitConversion.SubAmount / unitConversion.MainAmount;
 
         if (exchangedAmount <= 0)
-            return (false, "Ø¯ Ø²ÙˆÚ“ Ø®Ø±ÛŒØ¯ Ø¯ ÙˆØ§Ø­Ø¯ ØªØ¨Ø§Ø¯Ù„Ù‡ Ù†Ø§Ø³Ù…Ù‡ Ø¯Ù‡.", 0);
+            return (false, "د زوړ خرید د واحد تبادله ناسمه ده.", 0);
 
         return (true, string.Empty, quantity / exchangedAmount);
     }
 
     private static string ValidateRequest(PurchaseSaveRequest request, bool requireTreasureRules)
     {
-        if (request is null) return "Ù…Ø¹Ù„ÙˆÙ…Ø§Øª Ù†Ø¯ÙŠ Ø±Ø³ÛØ¯Ù„ÙŠ.";
-        if (request.PurchaseNo <= 0) return "Ø¯ Ø®Ø±ÛŒØ¯ Ø´Ù…ÛØ±Ù‡ Ø¶Ø±ÙˆØ±ÛŒ Ø¯Ù‡.";
-        if (request.AccountID <= 0) return "Ø­Ø³Ø§Ø¨ Ø§Ù†ØªØ®Ø§Ø¨ Ú©Ú“Ø¦.";
-        if (request.CurrencyID <= 0) return "Ø§Ø³Ø¹Ø§Ø± Ø§Ù†ØªØ®Ø§Ø¨ Ú©Ú“Ø¦.";
-        if (request.PurchaseDate == default) return "Ù†ÛÙ¼Ù‡ Ø§Ù†ØªØ®Ø§Ø¨ Ú©Ú“Ø¦.";
-        if (request.Details is null || request.Details.Count == 0) return "Ù„Ú– ØªØ± Ù„Ú–Ù‡ ÛŒÙˆ Ù‚Ø·Ø§Ø± Ø§Ø¶Ø§ÙÙ‡ Ú©Ú“Ø¦.";
-        if (request.TotalAmount <= 0) return "Ù…Ø¬Ù…ÙˆØ¹Ù‡ Ø¨Ø§ÛŒØ¯ Ù„Ù‡ ØµÙØ± Ú…Ø®Ù‡ Ø²ÛŒØ§ØªÙ‡ ÙˆÙŠ.";
-        if (request.ReceivedAmount < 0) return "Ø±Ø³ÛŒØ¯ Ø¨Ø§ÛŒØ¯ Ù…Ù†ÙÙŠ Ù†Ù‡ ÙˆÙŠ.";
-        if (request.ReceivedAmount > request.TotalAmount) return "Ø±Ø³ÛŒØ¯ Ø¨Ø§ÛŒØ¯ Ù„Ù‡ Ù…Ø¬Ù…ÙˆØ¹Û Ú…Ø®Ù‡ Ø²ÛŒØ§Øª Ù†Ù‡ ÙˆÙŠ.";
-        if (requireTreasureRules && request.TreasureAccountID is > 0 && request.ReceivedAmount <= 0) return "Ú©Ù„Ù‡ Ú†Û ØªØ¬Ø±Ø¦/Ø¨Ø§Ù†Ú© Ø§Ù†ØªØ®Ø§Ø¨ ÙˆÙŠØŒ Ø±Ø³ÛŒØ¯ Ø¨Ø§ÛŒØ¯ Ù„Ù‡ ØµÙØ± Ú…Ø®Ù‡ Ø²ÛŒØ§Øª ÙˆÙŠ.";
-        if (requireTreasureRules && (request.TreasureAccountID is null or <= 0) && request.ReceivedAmount > 0) return "Ú©Ù„Ù‡ Ú†Û Ø±Ø³ÛŒØ¯ Ø¯Ø§Ø®Ù„ ÙˆÙŠØŒ ØªØ¬Ø±Ø¦/Ø¨Ø§Ù†Ú© Ø§Ù†ØªØ®Ø§Ø¨ Ú©Ú“Ø¦.";
+        if (request is null) return "معلومات ندي رسېدلي.";
+        if (request.PurchaseNo <= 0) return "د خرید شمېره ضروري ده.";
+        if (request.AccountID <= 0) return "حساب انتخاب کړئ.";
+        if (request.CurrencyID <= 0) return "اسعار انتخاب کړئ.";
+        if (request.PurchaseDate == default) return "نېټه انتخاب کړئ.";
+        if (request.Details is null || request.Details.Count == 0) return "لږ تر لږه یو قطار اضافه کړئ.";
+        if (request.TotalAmount <= 0) return "مجموعه باید له صفر څخه زیاته وي.";
+        if (request.ReceivedAmount < 0) return "رسید باید منفي نه وي.";
+        if (request.ReceivedAmount > request.TotalAmount) return "رسید باید له مجموعې څخه زیات نه وي.";
+        if (requireTreasureRules && request.TreasureAccountID is > 0 && request.ReceivedAmount <= 0) return "کله چې تجرۍ/بانک انتخاب وي، رسید باید له صفر څخه زیات وي.";
+        if (requireTreasureRules && (request.TreasureAccountID is null or <= 0) && request.ReceivedAmount > 0) return "کله چې رسید داخل وي، تجرۍ/بانک انتخاب کړئ.";
 
         var calculatedTotal = 0m;
         foreach (var row in request.Details)
         {
-            if (row.ItemID <= 0) return "Ù¾Ù‡ Ù¼ÙˆÙ„Ùˆ Ù‚Ø·Ø§Ø±ÙˆÙ†Ùˆ Ú©Û Ø¬Ù†Ø³ Ø¶Ø±ÙˆØ±ÛŒ Ø¯ÛŒ.";
-            if (row.UnitConversionID is null || row.UnitConversionID < 0) return "Ù¾Ù‡ Ù¼ÙˆÙ„Ùˆ Ù‚Ø·Ø§Ø±ÙˆÙ†Ùˆ Ú©Û ÙˆØ§Ø­Ø¯ Ø¶Ø±ÙˆØ±ÛŒ Ø¯ÛŒ.";
-            if (row.Quantity <= 0) return "Ù¾Ù‡ Ù¼ÙˆÙ„Ùˆ Ù‚Ø·Ø§Ø±ÙˆÙ†Ùˆ Ú©Û Ù…Ù‚Ø¯Ø§Ø± Ø¨Ø§ÛŒØ¯ Ù„Ù‡ ØµÙØ± Ú…Ø®Ù‡ Ø²ÛŒØ§Øª ÙˆÙŠ.";
-            if (row.UnitPrice < 0) return "Ù¾Ù‡ Ù¼ÙˆÙ„Ùˆ Ù‚Ø·Ø§Ø±ÙˆÙ†Ùˆ Ú©Û Ù‚ÛŒÙ…Øª Ø¶Ø±ÙˆØ±ÛŒ Ø¯ÛŒ.";
-            if (row.WarehouseID <= 0) return "Ù¾Ù‡ Ù¼ÙˆÙ„Ùˆ Ù‚Ø·Ø§Ø±ÙˆÙ†Ùˆ Ú©Û Ú«Ø¯Ø§Ù… Ø¶Ø±ÙˆØ±ÛŒ Ø¯ÛŒ.";
+            if (row.ItemID <= 0) return "په ټولو قطارونو کې جنس ضروري دی.";
+            if (row.UnitConversionID is null || row.UnitConversionID < 0) return "په ټولو قطارونو کې واحد ضروري دی.";
+            if (row.Quantity <= 0) return "په ټولو قطارونو کې مقدار باید له صفر څخه زیات وي.";
+            if (row.UnitPrice < 0) return "په ټولو قطارونو کې قیمت ضروري دی.";
+            if (row.WarehouseID <= 0) return "په ټولو قطارونو کې ګدام ضروري دی.";
 
             var expectedRowTotal = row.Quantity * row.UnitPrice;
             if (row.TotalPrice != expectedRowTotal) row.TotalPrice = expectedRowTotal;
@@ -1232,14 +1247,14 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
         else
         {
             if (unitConversionId < 0)
-                return (0, 0, null, "Ù¾Ù‡ Ù¼ÙˆÙ„Ùˆ Ù‚Ø·Ø§Ø±ÙˆÙ†Ùˆ Ú©Û ÙˆØ§Ø­Ø¯ Ø¶Ø±ÙˆØ±ÛŒ Ø¯ÛŒ.");
+                return (0, 0, null, "په ټولو قطارونو کې واحد ضروري دی.");
 
             unitConversion = await _db.UnitConversion
                 .FirstOrDefaultAsync(u => u.ID == unitConversionId && u.ItemID == item.ID);
         }
 
         if (unitConversion is null)
-            return (0, 0, null, "Ø¯ Ø¯Û Ø¬Ù†Ø³ Ù„Ù¾Ø§Ø±Ù‡ ÙˆØ§Ø­Ø¯ Ù†Ø§Ø³Ù… Ø¯ÛŒ.");
+            return (0, 0, null, "د دې جنس لپاره واحد ناسم دی.");
 
         var exchangedAmount = unitConversion.ExchangedAmount;
         if (exchangedAmount <= 0 && unitConversion.MainAmount > 0 && unitConversion.SubAmount > 0)
@@ -1250,7 +1265,7 @@ public class PurchasesController(ApplicationDbContext db) : ApiControllerBase
         }
 
         if (exchangedAmount <= 0)
-            return (0, 0, null, "Ø¯ ÙˆØ§Ø­Ø¯ ØªØ¨Ø§Ø¯Ù„Ù‡ Ù†Ø§Ø³Ù…Ù‡ Ø¯Ù‡.");
+            return (0, 0, null, "د واحد تبادله ناسمه ده.");
 
         return (quantity / exchangedAmount, unitConversion.SubUnitID, unitConversion, string.Empty);
     }

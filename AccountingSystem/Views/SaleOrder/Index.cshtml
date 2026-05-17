@@ -1,19 +1,19 @@
 ﻿@{
-    ViewData["Title"] = "د خرید آرډرونه";
+    ViewData["Title"] = "د پلور آرډرونه";
 }
 
 <div class="dx-card p-3">
     @(
         Html.DevExtreme().DataGrid()
-            .ID("purchaseOrdersTodayGrid")
+            .ID("saleOrdersGrid")
             .DataSource(ds => ds.WebApi()
-                .Controller("PurchaseOrders")
+                .Controller("SaleOrders")
                 .LoadAction("GetToday")
                 .LoadParams(new
                 {
-                    fromDate = new JS("purchaseOrderIndexPage.getFilterFromDateParam"),
-                    toDate = new JS("purchaseOrderIndexPage.getFilterToDateParam"),
-                    accountId = new JS("purchaseOrderIndexPage.getFilterAccountIdParam")
+                    fromDate = new JS("saleOrderIndexPage.getFilterFromDateParam"),
+                    toDate = new JS("saleOrderIndexPage.getFilterToDateParam"),
+                    accountId = new JS("saleOrderIndexPage.getFilterAccountIdParam")
                 })
                 .Key("ID"))
             .RemoteOperations(true)
@@ -33,10 +33,10 @@
                     items.Add()
                         .Location(ToolbarItemLocation.Before)
                         .Widget(widget => widget.Button()
-                            .Text("نوی خرید آرډر")
+                            .Text("نوی پلور آرډر")
                             .Type(ButtonType.Success)
                             .Icon("fa-solid fa-plus")
-                            .OnClick("purchaseOrderIndexPage.onNewOrderClick"));
+                            .OnClick("saleOrderIndexPage.onNewOrderClick"));
 
                     items.Add()
                         .Location(ToolbarItemLocation.Before)
@@ -44,11 +44,11 @@
                             .Text("چاڼ")
                             .Type(ButtonType.Success)
                             .Icon("fa-solid fa-search")
-                            .OnClick("purchaseOrderIndexPage.onFilterClick"));
+                            .OnClick("saleOrderIndexPage.onFilterClick"));
 
                     items.Add().Location(ToolbarItemLocation.After).Widget(widget => widget.Button()
                         .Icon("fa-solid fa-arrows-rotate")
-                        .OnClick("purchaseOrderIndexPage.onRefreshClick"));
+                        .OnClick("saleOrderIndexPage.onRefreshClick"));
 
 
                     items.Add().Name(DataGridToolbarItem.SearchPanel);
@@ -61,7 +61,7 @@
                 columns.Add().DataField("AccountCode").Caption("کوډ");
                 columns.Add()
                     .DataField("DueDate")
-                    .Caption("د تادیې نېټه")
+                    .Caption("د سپارلو نېټه")
                     .DataType(GridColumnDataType.Date)
                     .Format("yyyy-MM-dd");
                 columns.Add().DataField("Remarks").Caption("ملاحظات");
@@ -86,12 +86,12 @@
                         buttons.Add()
                             .Hint("سمون")
                             .Icon("fa-solid fa-pen-to-square")
-                            .OnClick("purchaseOrderIndexPage.onEditClick");
+                            .OnClick("saleOrderIndexPage.onEditClick");
 
                         buttons.Add()
                             .Hint("حذف")
                             .Icon("fa-solid fa-trash")
-                            .OnClick("purchaseOrderIndexPage.onDeleteClick");
+                            .OnClick("saleOrderIndexPage.onDeleteClick");
                     });
             })
     )
@@ -135,8 +135,8 @@
 </style>
 
 <script>
-    var purchaseOrderIndexPage = (function () {
-        var purchaseOrdersApiBaseUrl = "@Url.Content("~/api/SaleOrders/")";
+    var saleOrderIndexPage = (function () {
+        var saleOrdersApiBaseUrl = "@Url.Content("~/api/SaleOrders/")";
 
         var activeFilters = {
             accountId: null,
@@ -152,12 +152,12 @@
             };
         }
 
-        function createPurchaseOrdersDataSource(loadAction) {
+        function createSaleOrdersDataSource(loadAction) {
             return {
                 store: new DevExpress.data.CustomStore({
                     key: "ID",
                     load: function () {
-                        return $.getJSON(purchaseOrdersApiBaseUrl + loadAction, getFilterRequestParams())
+                        return $.getJSON(saleOrdersApiBaseUrl + loadAction, getFilterRequestParams())
                             .then(function (result) {
                                 var rows = Array.isArray(result) ? result : [];
                                 return {
@@ -183,7 +183,7 @@
             store: DevExpress.data.AspNet.createStore({
                 key: "AccountID",
                 loadUrl: "@Url.Content("~/api/Accounts")",
-                loadParams: { types: "4,5" }
+                loadParams: { types: "3,5" }
             }),
             paginate: true,
             pageSize: 200
@@ -193,7 +193,7 @@
             store: DevExpress.data.AspNet.createStore({
                 key: "AccountID",
                 loadUrl: "@Url.Content("~/api/Accounts")",
-                loadParams: { types: "4,5" }
+                loadParams: { types: "3,5" }
             }),
             paginate: true,
             pageSize: 200,
@@ -215,7 +215,7 @@
         });
 
         function getGrid() {
-            return $("#purchaseOrdersTodayGrid").dxDataGrid("instance");
+            return $("#saleOrdersGrid").dxDataGrid("instance");
         }
 
         function clearActiveFilters() {
@@ -234,7 +234,7 @@
             var grid = getGrid();
             if (!grid) return;
 
-            grid.option("dataSource", createPurchaseOrdersDataSource(loadAction));
+            grid.option("dataSource", createSaleOrdersDataSource(loadAction));
         }
 
         function getEditGrid() {
@@ -454,7 +454,7 @@
 
         function validatePopupPayload(payload) {
             if (!payload.AccountID) return "حساب ضروری دی.";
-            if (!payload.DueDate) return "د تادیې نېټه ضروری ده.";
+            if (!payload.DueDate) return "د سپارلو نېټه ضروری ده.";
             if (!payload.Details || payload.Details.length === 0) return "لږ تر لږه یو قطار اضافه کړئ.";
 
             for (var i = 0; i < payload.Details.length; i++) {
@@ -503,7 +503,7 @@
                 }).done(function (response) {
                     var successMessage = response && response.Message
                         ? response.Message
-                        : "آرډر په بریالیتوب سره ثبت سو.";
+                        : "پلور آرډر په بریالیتوب سره ثبت شو.";
 
                     DevExpress.ui.notify(successMessage, "success", 2200);
                     if (popupInstance) popupInstance.hide();
@@ -551,7 +551,7 @@
             setEditorValidationState(editors.toDate, null);
 
             if (!hasAccount && !hasAnyDate) {
-                DevExpress.ui.notify("د پلټنې لپاره عرضه کوونکی یا د نېټو موده وټاکئ.", "error", 2800);
+                DevExpress.ui.notify("د پلټنې لپاره پېرېدونکی یا د نېټو موده وټاکئ.", "error", 2800);
                 return false;
             }
 
@@ -680,7 +680,7 @@
 
         function initPopup() {
             popupInstance = $("#poEditPopup").dxPopup({
-                title: "سمون خرید آرډر",
+                title: "سمون پلور آرډر",
                 showTitle: true,
                 visible: false,
                 width: 900,
@@ -722,7 +722,7 @@
                         '      <div id="poEditAccount"></div>' +
                         '    </div>' +
                         '    <div class="col-12 col-lg-6">' +
-                        '      <label class="form-label">د تادیې نېټه</label>' +
+                        '      <label class="form-label">د سپارلو نېټه</label>' +
                         '      <div id="poEditDueDate"></div>' +
                         '    </div>' +
                         '  </div>' +
@@ -826,7 +826,7 @@
         }
 
         function onNewOrderClick() {
-            window.location.href = '@Url.Action("NewPurchaseOrder", "PurchaseOrder")';
+            window.location.href = '@Url.Action("NewSaleOrder", "SaleOrder")';
         }
 
         function onEditClick(e) {
@@ -859,7 +859,7 @@
                 }).done(function (response) {
                     var message = response && response.Message
                         ? response.Message
-                        : "آرډر حذف شو.";
+                        : "پلور آرډر حذف شو.";
 
                     DevExpress.ui.notify(message, "success", 2200);
                     onRefreshClick();

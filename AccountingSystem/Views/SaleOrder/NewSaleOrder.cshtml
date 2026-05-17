@@ -1,5 +1,5 @@
 ﻿@{
-    ViewData["Title"] = "نوی آرډر";
+    ViewData["Title"] = "نوی پلور آرډر";
 }
 
 <div class="dx-card px-4 py-3 mb-3">
@@ -11,7 +11,7 @@
                 .Type(ButtonType.Success)
                 .StylingMode(ButtonStylingMode.Contained)
                 .Icon("fa-solid fa-floppy-disk")
-                .OnClick("purchaseOrderPage.onSaveClick")
+                .OnClick("saleOrderPage.onSaveClick")
         )
         @(
             Html.DevExtreme().Button()
@@ -20,7 +20,7 @@
                 .Type(ButtonType.Normal)
                 .StylingMode(ButtonStylingMode.Outlined)
                 .Icon("fa-solid fa-eraser")
-                .OnClick("purchaseOrderPage.onClearClick")
+                .OnClick("saleOrderPage.onClearClick")
         )
     </div>
 </div>
@@ -33,12 +33,12 @@
                 Html.DevExtreme().SelectBox()
                     .ID("poAccountSelect")
                     .ValueExpr("AccountID")
-                    .DisplayExpr(new JS("purchaseOrderPage.accountDisplayExpr"))
+                    .DisplayExpr(new JS("saleOrderPage.accountDisplayExpr"))
                     .SearchEnabled(true)
                     .ShowClearButton(true)
                     .Placeholder("حساب انتخاب کړئ...")
-                    .OnSelectionChanged("purchaseOrderPage.onAccountChanged")
-                    .DataSource(new JS("purchaseOrderPage.accountDataSource"))
+                    .OnSelectionChanged("saleOrderPage.onAccountChanged")
+                    .DataSource(new JS("saleOrderPage.accountDataSource"))
             )
         </div>
 
@@ -61,7 +61,7 @@
         </div>
 
         <div class="col-12 col-md-6 col-lg-4">
-            <label class="form-label">د تادیې نېټه</label>
+            <label class="form-label">د سپارلو نېټه</label>
             @(
                 Html.DevExtreme().DateBox()
                     .ID("poDate")
@@ -90,7 +90,7 @@
     @(
         Html.DevExtreme().DataGrid()
             .ID("poDetailsGrid")
-            .DataSource(new JS("purchaseOrderPage.orderRows"))
+            .DataSource(new JS("saleOrderPage.orderRows"))
             .KeyExpr("RowID")
             .ShowBorders(true)
             .RowAlternationEnabled(true)
@@ -103,20 +103,20 @@
                 .AllowDeleting(true)
                 .UseIcons(true)
             )
-            .OnInitNewRow("purchaseOrderPage.onOrderGridInitNewRow")
-            .OnEditorPreparing("purchaseOrderPage.onOrderGridEditorPreparing")
+            .OnInitNewRow("saleOrderPage.onOrderGridInitNewRow")
+            .OnEditorPreparing("saleOrderPage.onOrderGridEditorPreparing")
             .Columns(columns =>
             {
                 columns.Add()
                     .DataField("ItemID")
                     .Caption("جنس")
-                    .CalculateDisplayValue(new JS("purchaseOrderPage.getItemDisplayText"))
+                    .CalculateDisplayValue(new JS("saleOrderPage.getItemDisplayText"))
                     .ValidationRules(r => r.AddRequired().Message("جنس ضروری دی."));
 
                 columns.Add()
                     .DataField("UnitConversionID")
                     .Caption("واحد")
-                    .CalculateDisplayValue(new JS("purchaseOrderPage.getUnitDisplayText"))
+                    .CalculateDisplayValue(new JS("saleOrderPage.getUnitDisplayText"))
                     .ValidationRules(r => r.AddRequired().Message("واحد ضروری دی."));
 
                 columns.Add()
@@ -148,7 +148,7 @@
 </div>
 
 <script>
-    var purchaseOrderPage = (function () {
+    var saleOrderPage = (function () {
         var initialOrderId = @(((int?)ViewBag.OrderID).GetValueOrDefault(0));
 
         var accountDataSource = new DevExpress.data.DataSource({
@@ -163,7 +163,7 @@
 
         var orderRows = [];
         var rowCounter = 1;
-        var currentPurchaseOrderId = null;
+        var currentSaleOrderId = null;
         var unitOptionsByItemId = {};
         var activeItemsCache = [];
         var activeItemNameById = {};
@@ -341,7 +341,7 @@
             var detailRows = getOrderGridRows();
 
             return {
-                OrderID: currentPurchaseOrderId,
+                OrderID: currentSaleOrderId,
                 AccountID: accountId || null,
                 DueDate: dueDate,
                 Remarks: remarks,
@@ -388,7 +388,7 @@
         function applyLoadedOrder(data) {
             if (!data) return;
 
-            currentPurchaseOrderId = data.ID || null;
+            currentSaleOrderId = data.ID || null;
 
             var accountEditor = $("#poAccountSelect").dxSelectBox("instance");
             var dateEditor = $("#poDate").dxDateBox("instance");
@@ -470,11 +470,11 @@
                     contentType: "application/json; charset=utf-8",
                     data: JSON.stringify(payload)
                 }).done(function (response) {
-                    if (response && response.OrderID) currentPurchaseOrderId = response.OrderID;
+                    if (response && response.OrderID) currentSaleOrderId = response.OrderID;
 
                     var successMessage = response && response.Message
                         ? response.Message
-                        : "خرید آرډر په بریالیتوب ثبت شو.";
+                        : "پلور آرډر په بریالیتوب ثبت شو.";
 
                     DevExpress.ui.notify(successMessage, "success", 2200);
                     onClearClick();
@@ -494,7 +494,7 @@
 
             setContactFields(null);
             orderRows.length = 0;
-            currentPurchaseOrderId = null;
+            currentSaleOrderId = null;
 
             if (grid) {
                 grid.cancelEditData();
@@ -518,7 +518,7 @@
 
             $("#poDate").dxValidator({
                 validationRules: [
-                    { type: "required", message: "د تادیې نېټه انتخاب کړئ." }
+                    { type: "required", message: "د سپارلو نېټه انتخاب کړئ." }
                 ]
             });
         });

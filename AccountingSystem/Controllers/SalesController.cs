@@ -23,7 +23,7 @@ namespace AccountingSystem.Controllers
             if (sale is null || !sale.IsHolded)
                 return RedirectToAction(nameof(Index));
 
-            ViewData["title"] = "د خرید سمون";
+            ViewData["title"] = "د فروش سمون";
             ViewData["SaleId"] = id;
 
             return View();
@@ -31,7 +31,7 @@ namespace AccountingSystem.Controllers
 
         public IActionResult NewSale()
         {
-            ViewData["title"] = "نوی خرید";
+            ViewData["title"] = "نوی فروش";
 
             return View();
         }

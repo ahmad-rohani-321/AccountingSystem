@@ -1,5 +1,5 @@
 ﻿@{
-    ViewData["Title"] = "د خریداتو لېست";
+    ViewData["Title"] = "د فروشاتو لېست";
 }
 
 <div class="dx-card p-3">
@@ -48,7 +48,7 @@
             })
             .Columns(columns =>
             {
-                columns.Add().DataField("SaleNo").Caption("خرید #");
+                columns.Add().DataField("SaleNo").Caption("فروش #");
                 columns.Add().DataField("AccountName").Caption("حساب");
                 columns.Add().DataField("CurrencyName").Caption("اسعار");
                 columns.Add()
@@ -491,7 +491,7 @@
             }
 
             if (placeholder.length) {
-                placeholder.text(message || "د خرید معلومات دلته ښکاري.");
+                placeholder.text(message || "د فروش معلومات دلته ښکاري.");
                 placeholder.toggle(!isLoading && returnPopupDetailsData.length === 0);
             }
 
@@ -581,7 +581,7 @@
             }
 
             if (hasQuantity && quantityValue > receivedAmount) {
-                var refundAmountMessage = "د واپسي مبلغ د خرید له رسید شوې اندازې څخه زیات کېدای نه شي.";
+                var refundAmountMessage = "د واپسي مبلغ د فروش له رسید شوې اندازې څخه زیات کېدای نه شي.";
                 setReturnFieldValidationState(quantityEditor, refundAmountMessage);
                 DevExpress.ui.notify(refundAmountMessage, "error", 3200);
                 return false;
@@ -605,7 +605,7 @@
                 return;
             }
             if (!currentReturnPurchaseId) {
-                DevExpress.ui.notify("خرید ونه موندل شو.", "error", 2500);
+                DevExpress.ui.notify("فروش ونه موندل شو.", "error", 2500);
                 return;
             }
 
@@ -618,7 +618,7 @@
                 data: JSON.stringify(buildReturnPayload())
             }).done(function (response) {
                 setReturnPopupLoadingState(false, "د واپسي معلومات په بریالیتوب ثبت شول.");
-                DevExpress.ui.notify(response && response.Message ? response.Message : "د خرید واپسي په بریالیتوب بشپړه شوه.", "success", 2500);
+                DevExpress.ui.notify(response && response.Message ? response.Message : "د فروش واپسي په بریالیتوب بشپړه شوه.", "success", 2500);
 
                 if (returnPopupInstance) {
                     returnPopupInstance.hide();
@@ -629,7 +629,7 @@
                     grid.refresh();
                 }
             }).fail(function (xhr) {
-                setReturnPopupLoadingState(false, "د خرید معلومات به دلته ښکاره شي.");
+                setReturnPopupLoadingState(false, "د فروش معلومات به دلته ښکاره شي.");
                 DevExpress.ui.notify((xhr && xhr.responseJSON && xhr.responseJSON.Message) ? xhr.responseJSON.Message : "د واپسي معلومات ثبت نه شول.", "error", 3600);
             });
             return;
@@ -706,14 +706,14 @@
                 if (detailsGrid) detailsGrid.refresh();
             });
 
-            setReturnPopupLoadingState(false, "د خرید معلومات دلته ښکاري.");
+            setReturnPopupLoadingState(false, "د فروش معلومات دلته ښکاري.");
         }
 
         function ensureReturnPopup() {
             if (returnPopupInstance) return returnPopupInstance;
 
             returnPopupInstance = $("#purchaseReturnPopup").dxPopup({
-                title: "د خرید راستنولو معلومات",
+                title: "د فروش راستنولو معلومات",
                 showTitle: true,
                 visible: false,
                 width: 920,
@@ -731,12 +731,12 @@
                         '  <div class="purchase-return-card">' +
                         '    <div class="purchase-return-header">' +
                         '      <div>' +
-                        '        <h5 class="purchase-return-title">د خرید معلومات</h5>' +
-                        '        <p class="purchase-return-subtitle">د انتخاب شوي خرید ټول جزئیات او جنسونه</p>' +
+                        '        <h5 class="purchase-return-title">د فروش معلومات</h5>' +
+                        '        <p class="purchase-return-subtitle">د انتخاب شوي فروش ټول جزئیات او جنسونه</p>' +
                         '      </div>' +
                         '    </div>' +
                         '    <div class="row g-2 align-items-stretch">' +
-                        '      <div class="col-12 col-lg-4"><div class="purchase-return-field"><label class="purchase-return-label">د خرید شمېره</label><div id="purchaseReturnNo"></div></div></div>' +
+                        '      <div class="col-12 col-lg-4"><div class="purchase-return-field"><label class="purchase-return-label">د فروش شمېره</label><div id="purchaseReturnNo"></div></div></div>' +
                         '      <div class="col-12 col-lg-4"><div class="purchase-return-field"><label class="purchase-return-label">حساب</label><div id="purchaseReturnAccount"></div><small id="purchaseReturnAccountBalance" class="purchase-return-balance-note">بلانس: 0 (صفر)</small></div></div>' +
                         '      <div class="col-12 col-lg-4"><div class="purchase-return-field"><label class="purchase-return-label">اسعار</label><div id="purchaseReturnCurrency"></div></div></div>' +
                         '      <div class="col-12 col-lg-4"><div class="purchase-return-field"><label class="purchase-return-label">نېټه</label><div id="purchaseReturnDate"></div></div></div>' +
@@ -754,7 +754,7 @@
                         '    </div>' +
                         '  </div>' +
                         '  <div class="purchase-return-card">' +
-                        '    <div id="purchaseReturnEmptyState" class="purchase-return-loading">د خرید معلومات دلته ښکاري.</div>' +
+                        '    <div id="purchaseReturnEmptyState" class="purchase-return-loading">د فروش معلومات دلته ښکاري.</div>' +
                         '    <div id="purchaseReturnDetailsGrid"></div>' +
                         '  </div>' +
                         '</div>';
@@ -897,7 +897,7 @@
                     });
 
                     returnPopupContentInitialized = true;
-                    setReturnPopupLoadingState(false, "د خرید معلومات دلته ښکاري.");
+                    setReturnPopupLoadingState(false, "د فروش معلومات دلته ښکاري.");
                 },
                 toolbarItems: [
                 
@@ -936,7 +936,7 @@
                 },
                 onHidden: function () {
                     clearReturnPopupForm();
-                    setReturnPopupLoadingState(false, "د خرید معلومات دلته ښکاري.");
+                    setReturnPopupLoadingState(false, "د فروش معلومات دلته ښکاري.");
                 }
             }).dxPopup("instance");
 
@@ -964,8 +964,8 @@
                         })
                         .fail(function (xhr) {
                             clearReturnPopupForm();
-                            setReturnPopupLoadingState(false, "د خرید معلومات دلته ښکاري.");
-                            DevExpress.ui.notify((xhr && xhr.responseJSON && xhr.responseJSON.Message) ? xhr.responseJSON.Message : "د خرید معلومات ترلاسه نه شول.", "error", 3200);
+                            setReturnPopupLoadingState(false, "د فروش معلومات دلته ښکاري.");
+                            DevExpress.ui.notify((xhr && xhr.responseJSON && xhr.responseJSON.Message) ? xhr.responseJSON.Message : "د فروش معلومات ترلاسه نه شول.", "error", 3200);
                         });
                 });
         }
@@ -1154,7 +1154,7 @@
             }
 
             if (!currentReceivePurchaseId) {
-                DevExpress.ui.notify("خرید ونه موندل شو.", "error", 2500);
+                DevExpress.ui.notify("فروش ونه موندل شو.", "error", 2500);
                 return;
             }
 
@@ -1164,7 +1164,7 @@
                 contentType: "application/json; charset=utf-8",
                 data: JSON.stringify(buildReceivePayload())
             }).done(function (response) {
-                DevExpress.ui.notify("د خرید رسید ثبت شو.", "success", 2500);
+                DevExpress.ui.notify("د فروش رسید ثبت شو.", "success", 2500);
 
                 if (receivePopupInstance) {
                     receivePopupInstance.hide();
@@ -1175,7 +1175,7 @@
                     grid.refresh();
                 }
             }).fail(function (xhr) {
-                DevExpress.ui.notify("د خرید رسید ثبت نه شو. لطفاً اندازه، باقي مبلغ، او د تجري/بانک بلانس وګورئ.", "error", 3500);
+                DevExpress.ui.notify("د فروش رسید ثبت نه شو. لطفاً اندازه، باقي مبلغ، او د تجري/بانک بلانس وګورئ.", "error", 3500);
             });
         }
 
@@ -1183,7 +1183,7 @@
             if (receivePopupInstance) return receivePopupInstance;
 
             receivePopupInstance = $("#purchaseReceivePopup").dxPopup({
-                title: "د خرید رسید",
+                title: "د فروش رسید",
                 showTitle: true,
                 visible: false,
                 width: 780,
@@ -1200,12 +1200,12 @@
                         '  <div class="purchase-return-card">' +
                         '    <div class="purchase-return-header">' +
                         '      <div>' +
-                        '        <h5 class="purchase-return-title">د خرید معلومات</h5>' +
-                        '        <p class="purchase-return-subtitle">د انتخاب شوي خرید رسید او باقي مدیریت</p>' +
+                        '        <h5 class="purchase-return-title">د فروش معلومات</h5>' +
+                        '        <p class="purchase-return-subtitle">د انتخاب شوي فروش رسید او باقي مدیریت</p>' +
                         '      </div>' +
                         '    </div>' +
                         '    <div class="row g-2 align-items-stretch">' +
-                        '      <div class="col-12 col-lg-4"><div class="purchase-return-field"><label class="purchase-return-label">د خرید شمېره</label><div id="purchaseReceiveNo"></div></div></div>' +
+                        '      <div class="col-12 col-lg-4"><div class="purchase-return-field"><label class="purchase-return-label">د فروش شمېره</label><div id="purchaseReceiveNo"></div></div></div>' +
                         '      <div class="col-12 col-lg-4"><div class="purchase-return-field"><label class="purchase-return-label">حساب</label><div id="purchaseReceiveAccount"></div><small id="purchaseReceiveAccountBalance" class="purchase-return-balance-note">بلانس: 0 (صفر)</small></div></div>' +
                         '      <div class="col-12 col-lg-4"><div class="purchase-return-field"><label class="purchase-return-label">اسعار</label><div id="purchaseReceiveCurrency"></div></div></div>' +
                         '      <div class="col-12 col-lg-4"><div class="purchase-return-field"><label class="purchase-return-label">نېټه</label><div id="purchaseReceiveDate"></div></div></div>' +
@@ -1316,7 +1316,7 @@
                 })
                 .fail(function (xhr) {
                     clearReceivePopupForm();
-                    DevExpress.ui.notify((xhr && xhr.responseJSON && xhr.responseJSON.Message) ? xhr.responseJSON.Message : "د خرید معلومات ترلاسه نه شول.", "error", 3200);
+                    DevExpress.ui.notify((xhr && xhr.responseJSON && xhr.responseJSON.Message) ? xhr.responseJSON.Message : "د فروش معلومات ترلاسه نه شول.", "error", 3200);
                 });
         }
 
@@ -1586,8 +1586,13 @@
             var rowData = e && e.row ? e.row.data : null;
             if (!rowData || !rowData.ID) return;
 
+            if (rowData.IsRefunded) {
+                DevExpress.ui.notify("د واپس شوي فروش سمون نه شي کېدای.", "warning", 2500);
+                return;
+            }
+
             if (!rowData.IsHolded) {
-                DevExpress.ui.notify("دا خرید هولډ سوی نه دی.", "warning", 2500);
+                DevExpress.ui.notify("دا فروش هولډ سوی نه دی.", "warning", 2500);
                 return;
             }
 
@@ -1601,22 +1606,22 @@
             var receivedAmount = Number(rowData.ReceivedAmount || 0);
 
             if (rowData.IsRefunded) {
-                DevExpress.ui.notify("د واپس شوي خرید لپاره رسید نه شي ثبتېدای.", "warning", 2500);
+                DevExpress.ui.notify("د واپس شوي فروش لپاره رسید نه شي ثبتېدای.", "warning", 2500);
                 return;
             }
 
             if (rowData.IsHolded) {
-                DevExpress.ui.notify("د هولډ شوي خرید لپاره رسید نه شي ثبتېدای.", "warning", 2500);
+                DevExpress.ui.notify("د هولډ شوي فروش لپاره رسید نه شي ثبتېدای.", "warning", 2500);
                 return;
             }
 
             if (receivedAmount >= totalAmount && totalAmount > 0) {
-                DevExpress.ui.notify("د دې خرید ټول مبلغ لا مخکې بشپړ رسید شوی دی.", "warning", 2500);
+                DevExpress.ui.notify("د دې فروش ټول مبلغ لا مخکې بشپړ رسید شوی دی.", "warning", 2500);
                 return;
             }
 
             if (Number(rowData.RemainingAmount || 0) <= 0) {
-                DevExpress.ui.notify("د دې خرید باقي مبلغ صفر دی.", "warning", 2500);
+                DevExpress.ui.notify("د دې فروش باقي مبلغ صفر دی.", "warning", 2500);
                 return;
             }
 
@@ -1640,7 +1645,7 @@
             if (!rowData || !rowData.ID) return;
 
             if (rowData.IsRefunded) {
-                DevExpress.ui.notify("د دې خرید واپسي مخکې لا سوې ده.", "warning", 2500);
+                DevExpress.ui.notify("د دې فروش واپسي مخکې لا سوې ده.", "warning", 2500);
                 return;
             }
 

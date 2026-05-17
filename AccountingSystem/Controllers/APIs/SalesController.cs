@@ -70,17 +70,17 @@ public class SalesController(ApplicationDbContext db) : ApiControllerBase
 
     private static string BuildSaleJournalRemarks(int saleNo, string remarks)
     {
-        return ("خرید نمبر " + saleNo + (remarks ?? string.Empty)).Trim();
+        return ("فروش نمبر " + saleNo + (remarks ?? string.Empty)).Trim();
     }
 
     private static string BuildSaleRefundJournalRemarks(int saleNo, string remarks)
     {
-        return ("د خرید واپسي نمبر " + saleNo + (remarks ?? string.Empty)).Trim();
+        return ("د فروش واپسي نمبر " + saleNo + (remarks ?? string.Empty)).Trim();
     }
 
     private static string BuildSaleReceiveJournalRemarks(int saleNo, string remarks)
     {
-        return ("د خرید رسید نمبر " + saleNo + " " + (remarks ?? string.Empty)).Trim();
+        return ("د فروش رسید نمبر " + saleNo + " " + (remarks ?? string.Empty)).Trim();
     }
 
     private async Task<int?> ResolveTreasureAccountIdAsync(Sales sale)
@@ -104,6 +104,75 @@ public class SalesController(ApplicationDbContext db) : ApiControllerBase
             .OrderByDescending(x => x.ID)
             .Select(x => (int?)x.AccountBalance.AccountID)
             .FirstOrDefaultAsync();
+    }
+
+    private async Task<decimal?> GetLatestItemSalePriceAsync(int itemId)
+    {
+        return await _db.ItemsPrices
+            .AsNoTracking()
+            .Where(x => x.ItemID == itemId)
+            .OrderByDescending(x => x.CreationDate)
+            .ThenByDescending(x => x.ID)
+            .Select(x => (decimal?)x.Price)
+            .FirstOrDefaultAsync();
+    }
+
+    private async Task<decimal?> GetUnitExchangeAmountAsync(int itemId, int? unitConversionId)
+    {
+        if (unitConversionId is null or <= 0)
+            return 1m;
+
+        var unitInfo = await _db.UnitConversion
+            .AsNoTracking()
+            .Where(x => x.ID == unitConversionId.Value && x.ItemID == itemId)
+            .Select(x => new
+            {
+                x.ExchangedAmount,
+                x.MainAmount,
+                x.SubAmount
+            })
+            .FirstOrDefaultAsync();
+
+        if (unitInfo is null)
+            return null;
+
+        var exchangeAmount = unitInfo.ExchangedAmount;
+        if (exchangeAmount <= 0 && unitInfo.MainAmount > 0 && unitInfo.SubAmount > 0)
+            exchangeAmount = unitInfo.SubAmount / unitInfo.MainAmount;
+
+        return exchangeAmount > 0 ? exchangeAmount : null;
+    }
+
+    private async Task<decimal?> GetLatestPurchaseUnitPriceAsync(int itemId, int? unitConversionId, DateTime? effectiveDate = null)
+    {
+        var purchaseDetailQuery = _db.PurchaseDetails
+            .AsNoTracking()
+            .Where(x => x.ItemID == itemId);
+
+        if (effectiveDate.HasValue)
+            purchaseDetailQuery = purchaseDetailQuery.Where(x => x.CreationDate <= effectiveDate.Value);
+
+        var latestPurchaseDetail = await purchaseDetailQuery
+            .OrderByDescending(x => x.CreationDate)
+            .ThenByDescending(x => x.ID)
+            .Select(x => new
+            {
+                x.PerPrice,
+                PurchaseUnitConversionId = (int?)x.UnitConversionID
+            })
+            .FirstOrDefaultAsync();
+
+        if (latestPurchaseDetail is null)
+            return null;
+
+        var sourceExchangeAmount = await GetUnitExchangeAmountAsync(itemId, latestPurchaseDetail.PurchaseUnitConversionId);
+        var targetExchangeAmount = await GetUnitExchangeAmountAsync(itemId, unitConversionId);
+
+        if (!sourceExchangeAmount.HasValue || !targetExchangeAmount.HasValue)
+            return null;
+
+        var mainUnitPrice = latestPurchaseDetail.PerPrice * sourceExchangeAmount.Value;
+        return mainUnitPrice / targetExchangeAmount.Value;
     }
 
     private async Task<List<SaleDetailResponse>> BuildSaleDetailResponsesAsync(Sales sale)
@@ -258,7 +327,7 @@ public class SalesController(ApplicationDbContext db) : ApiControllerBase
             .FirstOrDefaultAsync(x => x.ID == id);
 
         if (sale is null)
-            return NotFound(new { Message = "خرید ونه موندل شو." });
+            return NotFound(new { Message = "فروش ونه موندل شو." });
 
         var accountInfo = await _db.Accounts
             .AsNoTracking()
@@ -298,6 +367,28 @@ public class SalesController(ApplicationDbContext db) : ApiControllerBase
         });
     }
 
+    [HttpGet("item-pricing/{itemId:int}")]
+    public async Task<IActionResult> GetItemPricing(int itemId, [FromQuery] int? unitConversionId, [FromQuery] DateTime? saleDate)
+    {
+        var itemExists = await _db.Items
+            .AsNoTracking()
+            .AnyAsync(x => x.ID == itemId && x.IsActive);
+
+        if (!itemExists)
+            return NotFound();
+
+        var saleUnitPrice = await GetLatestItemSalePriceAsync(itemId);
+        var purchaseUnitPrice = await GetLatestPurchaseUnitPriceAsync(itemId, unitConversionId, saleDate);
+
+        return Ok(new
+        {
+            ItemID = itemId,
+            UnitConversionID = unitConversionId,
+            SaleUnitPrice = saleUnitPrice,
+            PurchaseUnitPrice = purchaseUnitPrice
+        });
+    }
+
     [HttpGet("next-no")]
     public async Task<IActionResult> GetNextNo()
     {
@@ -324,7 +415,7 @@ public class SalesController(ApplicationDbContext db) : ApiControllerBase
             return BadRequest(new { Message = configurationMessage });
 
         if (await _db.Sales.AnyAsync(p => p.SaleNo == request.SaleNo))
-            return BadRequest(new { Message = "د خرید شمېره مخکې ثبت سوې ده." });
+            return BadRequest(new { Message = "د فروش شمېره مخکې ثبت سوې ده." });
 
         var referenceValidation = await ValidateSaleReferencesAsync(request);
         if (!referenceValidation.Success)
@@ -335,7 +426,7 @@ public class SalesController(ApplicationDbContext db) : ApiControllerBase
         {
             selectedOrder = await _db.SalesOrders.FirstOrDefaultAsync(x => x.ID == request.OrderID.Value);
             if (selectedOrder is null)
-                return BadRequest(new { Message = "خرید آرډر ونه موندل شو." });
+                return BadRequest(new { Message = "فروش آرډر ونه موندل شو." });
         }
 
         await using var tx = await _db.Database.BeginTransactionAsync();
@@ -382,7 +473,7 @@ public class SalesController(ApplicationDbContext db) : ApiControllerBase
 
         return Ok(new
         {
-            Message = "خرید په بریالیتوب ثبت شو.",
+            Message = "فروش په بریالیتوب ثبت شو.",
             SaleID = sale.ID,
             sale.SaleNo,
             AccountBalance = applyResult.AccountBalance,
@@ -407,16 +498,16 @@ public class SalesController(ApplicationDbContext db) : ApiControllerBase
 
         var sale = await _db.Sales.FirstOrDefaultAsync(x => x.ID == id);
         if (sale is null)
-            return NotFound(new { Message = "خرید ونه موندل شو." });
+            return NotFound(new { Message = "فروش ونه موندل شو." });
 
         if (!sale.IsHolded)
-            return BadRequest(new { Message = "دا خرید هولډ سوی نه دی." });
+            return BadRequest(new { Message = "دا فروش هولډ سوی نه دی." });
 
         if (sale.IsRefunded)
-            return BadRequest(new { Message = "واپسي سوی خرید سمېدای نه سي." });
+            return BadRequest(new { Message = "واپسي سوی فروش سمېدای نه سي." });
 
         if (await _db.Sales.AnyAsync(p => p.ID != id && p.SaleNo == request.SaleNo))
-            return BadRequest(new { Message = "د خرید شمېره مخکې ثبت سوې ده." });
+            return BadRequest(new { Message = "د فروش شمېره مخکې ثبت سوې ده." });
 
         var referenceValidation = await ValidateSaleReferencesAsync(request);
         if (!referenceValidation.Success)
@@ -431,7 +522,7 @@ public class SalesController(ApplicationDbContext db) : ApiControllerBase
             .ToListAsync();
 
         if (saleDetails.Count == 0)
-            return BadRequest(new { Message = "د خرید تفصیلات ونه موندل شول." });
+            return BadRequest(new { Message = "د فروش تفصیلات ونه موندل شول." });
 
         var existingEffectsResult = await LoadExistingSaleEffectsAsync(
             sale,
@@ -490,7 +581,7 @@ public class SalesController(ApplicationDbContext db) : ApiControllerBase
 
         return Ok(new
         {
-            Message = "خرید په بریالیتوب سم شو.",
+            Message = "فروش په بریالیتوب سم شو.",
             SaleID = sale.ID,
             sale.SaleNo,
             AccountBalance = applyResult.AccountBalance,
@@ -523,16 +614,16 @@ public class SalesController(ApplicationDbContext db) : ApiControllerBase
 
         var sale = await _db.Sales.FirstOrDefaultAsync(x => x.ID == id);
         if (sale is null)
-            return NotFound(new { Message = "خرید ونه موندل شو." });
+            return NotFound(new { Message = "فروش ونه موندل شو." });
 
         if (sale.IsRefunded)
-            return BadRequest(new { Message = "د دې خرید واپسي مخکې لا شوې ده." });
+            return BadRequest(new { Message = "د دې فروش واپسي مخکې لا شوې ده." });
 
         if (sale.IsHolded && request.RefundAmount > 0)
-            return BadRequest(new { Message = "د هولډ شوي خرید لپاره د واپسي نغدي قیدونه نه شي ثبتېدای." });
+            return BadRequest(new { Message = "د هولډ شوي فروش لپاره د واپسي نغدي قیدونه نه شي ثبتېدای." });
 
         if (!sale.IsHolded && request.RefundAmount > sale.ReceivedAmount)
-            return BadRequest(new { Message = "د واپسي مبلغ د خرید له رسید شوې اندازې څخه زیات کېدای نه شي." });
+            return BadRequest(new { Message = "د واپسي مبلغ د فروش له رسید شوې اندازې څخه زیات کېدای نه شي." });
 
         if (request.TreasureAccountID is > 0 &&
             !await _db.Accounts.AnyAsync(a => a.ID == request.TreasureAccountID.Value))
@@ -544,7 +635,7 @@ public class SalesController(ApplicationDbContext db) : ApiControllerBase
             .ToListAsync();
 
         if (saleDetails.Count == 0)
-            return BadRequest(new { Message = "د خرید تفصیلات ونه موندل شول." });
+            return BadRequest(new { Message = "د فروش تفصیلات ونه موندل شول." });
 
         var existingEffectsResult = await LoadExistingSaleEffectsAsync(
             sale,
@@ -645,7 +736,7 @@ public class SalesController(ApplicationDbContext db) : ApiControllerBase
 
         return Ok(new
         {
-            Message = "خرید واپس کړل سو.",
+            Message = "فروش واپس کړل سو.",
             SaleID = sale.ID,
             sale.SaleNo,
             AccountBalance = accountBalanceValue,
@@ -680,7 +771,7 @@ public class SalesController(ApplicationDbContext db) : ApiControllerBase
             return BadRequest(new { Message = "Ø¯ Ù‡ÙˆÙ„Ú‰ Ø´ÙˆÙŠ Ø®Ø±ÛŒØ¯ Ù„Ù¾Ø§Ø±Ù‡ Ø±Ø³ÛŒØ¯ Ù†Ù‡ Ø´ÙŠ Ø«Ø¨ØªÛØ¯Ø§ÛŒ." });
 
         if (sale.ReceivedAmount >= sale.TotalAmount && sale.TotalAmount > 0)
-            return BadRequest(new { Message = "د دې خرید ټول مبلغ لا مخکې بشپړ رسید شوی دی." });
+            return BadRequest(new { Message = "د دې فروش ټول مبلغ لا مخکې بشپړ رسید شوی دی." });
 
         if (sale.RemainingAmount <= 0)
             return BadRequest(new { Message = "Ø¯ Ø¯Û Ø®Ø±ÛŒØ¯ Ø¨Ø§Ù‚ÙŠ Ù…Ø¨Ù„Øº ØµÙØ± Ø¯ÛŒ." });
@@ -757,13 +848,13 @@ public class SalesController(ApplicationDbContext db) : ApiControllerBase
     private async Task<string> ValidateSaleConfigurationAsync()
     {
         if (!await _db.JournalEntryTransactionTypes.AnyAsync(x => x.ID == SaleTransactionTypeId))
-            return $"Required journal transaction type {SaleTransactionTypeId} was not found.";
+            return $"اړین د ورځني معاملاتو ډول {SaleTransactionTypeId} ونه موندل سو.";
 
         if (!await _db.JournalEntryTransactionTypes.AnyAsync(x => x.ID == SaleChangeTransactionTypeId))
-            return $"Required journal transaction type {SaleChangeTransactionTypeId} was not found.";
+            return $"اړین د ورځني معاملاتو ډول {SaleChangeTransactionTypeId} ونه موندل سو.";
 
         if (!await _db.StockTransactionTypes.AnyAsync(x => x.ID == SaleStockTransactionTypeId))
-            return $"Required stock transaction type {SaleStockTransactionTypeId} was not found.";
+            return $"اړین د سټاک معاملې ډول {SaleStockTransactionTypeId} ونه موندل سو.";
 
         return string.Empty;
     }
@@ -771,10 +862,10 @@ public class SalesController(ApplicationDbContext db) : ApiControllerBase
     private async Task<string> ValidateSaleRefundConfigurationAsync()
     {
         if (!await _db.JournalEntryTransactionTypes.AnyAsync(x => x.ID == SaleRefundTransactionTypeId))
-            return $"Required journal transaction type {SaleRefundTransactionTypeId} was not found.";
+            return $"اړین د ورځني معاملاتو ډول {SaleRefundTransactionTypeId} ونه موندل سو.";
 
         if (!await _db.StockTransactionTypes.AnyAsync(x => x.ID == SaleRefundStockTransactionTypeId))
-            return $"Required stock transaction type {SaleRefundStockTransactionTypeId} was not found.";
+            return $"اړین د سټاک معاملې ډول {SaleRefundStockTransactionTypeId} ونه موندل سو.";
 
         return string.Empty;
     }
@@ -890,7 +981,7 @@ public class SalesController(ApplicationDbContext db) : ApiControllerBase
             if (detail.UnitConversionID > 0)
             {
                 if (!unitSubUnitByConversionId.TryGetValue(detail.UnitConversionID, out expectedUnitId))
-                    return (false, "د زوړ خرید د واحد تبادله ونه موندل شو.", null, null, null);
+                    return (false, "د زوړ فروش د واحد تبادله ونه موندل شو.", null, null, null);
             }
 
             var matchedStockTransaction = stockTransactions
@@ -921,7 +1012,7 @@ public class SalesController(ApplicationDbContext db) : ApiControllerBase
             }
 
             if (matchedStockTransaction is null || matchedStockTransaction.StockBalance is null)
-                return (false, "د زوړ خرید د سټاک بدلونونه ونه موندل شو.", null, null, null);
+                return (false, "د زوړ فروش د سټاک بدلونونه ونه موندل شو.", null, null, null);
 
             usedStockTransactionIds.Add(matchedStockTransaction.ID);
 
@@ -953,7 +1044,7 @@ public class SalesController(ApplicationDbContext db) : ApiControllerBase
             .ToListAsync();
 
         if (journalEntries.Count == 0)
-            return (false, "د زوړ خرید جرنل قیدونه ونه موندل شو.", null, null, null);
+            return (false, "د زوړ فروش جرنل قیدونه ونه موندل شو.", null, null, null);
 
         }
 
@@ -977,7 +1068,7 @@ public class SalesController(ApplicationDbContext db) : ApiControllerBase
         foreach (var journalEntry in journalEntries)
         {
             if (journalEntry.AccountBalance is null)
-                return (false, "د زوړ خرید د حساب بلانس قید ونه موندل شو.");
+                return (false, "د زوړ فروش د حساب بلانس قید ونه موندل شو.");
 
             journalEntry.AccountBalance.Balance += journalEntry.Debit - journalEntry.Credit;
         }
@@ -1008,6 +1099,14 @@ public class SalesController(ApplicationDbContext db) : ApiControllerBase
             if (!string.IsNullOrWhiteSpace(preparedDetail.Remarks))
                 stockBalance.Remarks = preparedDetail.Remarks;
 
+            var purchaseUnitPrice = await GetLatestPurchaseUnitPriceAsync(
+                preparedDetail.Detail.ItemID,
+                preparedDetail.Detail.UnitConversionID,
+                effectiveDate);
+            var profit = purchaseUnitPrice.HasValue
+                ? (preparedDetail.Detail.UnitPrice - purchaseUnitPrice.Value) * preparedDetail.Detail.Quantity
+                : 0;
+
             _db.SalesDetails.Add(new SaleDetails
             {
                 SaleID = sale.ID,
@@ -1016,7 +1115,7 @@ public class SalesController(ApplicationDbContext db) : ApiControllerBase
                 Quantity = preparedDetail.Detail.Quantity,
                 PerPrice = preparedDetail.Detail.UnitPrice,
                 TotalPrice = preparedDetail.Detail.TotalPrice,
-                Profit = 0,
+                Profit = profit,
                 WarehouseID = preparedDetail.Detail.WarehouseID,
                 Remarks = preparedDetail.Remarks,
                 CreatedByUserId = userId,
@@ -1134,14 +1233,14 @@ public class SalesController(ApplicationDbContext db) : ApiControllerBase
             .FirstOrDefaultAsync(u => u.ItemID == item.ID && u.SubUnitID == unitId);
 
         if (unitConversion is null)
-            return (false, "د زوړ خرید د واحد تبادله ونه موندل شو.", 0);
+            return (false, "د زوړ فروش د واحد تبادله ونه موندل شو.", 0);
 
         var exchangedAmount = unitConversion.ExchangedAmount;
         if (exchangedAmount <= 0 && unitConversion.MainAmount > 0 && unitConversion.SubAmount > 0)
             exchangedAmount = unitConversion.SubAmount / unitConversion.MainAmount;
 
         if (exchangedAmount <= 0)
-            return (false, "د زوړ خرید د واحد تبادله ناسمه ده.", 0);
+            return (false, "د زوړ فروش د واحد تبادله ناسمه ده.", 0);
 
         return (true, string.Empty, quantity / exchangedAmount);
     }
@@ -1149,7 +1248,7 @@ public class SalesController(ApplicationDbContext db) : ApiControllerBase
     private static string ValidateRequest(SaleSaveRequest request, bool requireTreasureRules)
     {
         if (request is null) return "معلومات ندي رسېدلي.";
-        if (request.SaleNo <= 0) return "د خرید شمېره ضروری ده.";
+        if (request.SaleNo <= 0) return "د فروش شمېره ضروری ده.";
         if (request.AccountID <= 0) return "حساب انتخاب کړئ.";
         if (request.CurrencyID <= 0) return "اسعار انتخاب کړئ.";
         if (request.SaleDate == default) return "نېټه انتخاب کړئ.";

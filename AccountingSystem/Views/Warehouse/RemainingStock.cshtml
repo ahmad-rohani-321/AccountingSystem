@@ -567,7 +567,7 @@ items.Add().Location(ToolbarItemLocation.Before)
         function open() {
             ensureItemsLoaded()
                 .done(function () { ensurePopup().show(); })
-                .fail(function () { DevExpress.ui.notify("? ???????? ??????? ?? ???? ??? ????.", "error", 3500); });
+                .fail(function () { DevExpress.ui.notify("د اجناسو معلومات پورته نه سول.", "error", 3500); });
         }
 
         return { open: open };

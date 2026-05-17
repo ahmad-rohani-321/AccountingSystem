@@ -102,7 +102,7 @@
                 </div>
             </text>)
                 .Template(new TemplateName("navigation-menu"))
-                                                                                                                                                                                                                                                                                                                        )
+                                                                                                                                                                                                                                                                                                                                )
         </div>
     </div>
 
@@ -180,6 +180,11 @@
                 .Selected(IsCurrentUrl("RemainingStock", mainControllerName));
 
             sec.Add()
+                .Text("د سټاک ژورنال")
+                .Option("path", GetUrl("StockJournal", mainControllerName))
+                .Selected(IsCurrentUrl("StockJournal", mainControllerName));
+
+            sec.Add()
                 .Text("د کمښت لیست")
                 .Option("path", GetUrl("LeastItems", mainControllerName))
                 .Selected(IsCurrentUrl("LeastItems", mainControllerName));
@@ -212,7 +217,7 @@
             .Items(actions =>
             {
                 string controllerName = "Purchase";
-                actions.Add().Text("ننني خریدات")
+                actions.Add().Text("خرید")
                 .Option("path", GetUrl("Index", controllerName))
                 .Selected(IsCurrentUrl("Index", controllerName));
 
@@ -228,7 +233,7 @@
             .Items(actions =>
             {
                 string controllerName = "Sales";
-                actions.Add().Text("ننني فروشات")
+                actions.Add().Text("فروشات")
                 .Option("path", GetUrl("Index", controllerName))
                 .Selected(IsCurrentUrl("Index", controllerName));
 
