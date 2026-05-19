@@ -53,7 +53,6 @@ public class AccountsController(ApplicationDbContext db, IWebHostEnvironment env
             data = await _db.Accounts
                 .Include(a => a.AccountType)
                 .Where(a => requestedTypes.Contains(a.AccountTypeID))
-                .OrderByDescending(a => a.CreationDate)
                 .AsNoTracking()
                 .Select(account => new AccountListItem
                 {
@@ -72,7 +71,6 @@ public class AccountsController(ApplicationDbContext db, IWebHostEnvironment env
                 .Include(x => x.Account)
                 .Include(x => x.Account.AccountType)
                 .Where(a => requestedTypes.Contains(a.Account.AccountTypeID))
-                .OrderByDescending(a => a.Account.CreationDate)
                 .AsNoTracking()
                 .Select(account => new AccountListItem
                 {
@@ -584,7 +582,7 @@ public class AccountsController(ApplicationDbContext db, IWebHostEnvironment env
             if (TryGetString(dict, nameof(AccountListItem.FirstPhone), out var firstPhone))
             {
                 if (string.IsNullOrWhiteSpace(firstPhone))
-            return BadRequest(new { Message = "لومړی موبایل ضروري دی." });
+                    return BadRequest(new { Message = "لومړی موبایل ضروري دی." });
 
                 contact.FirstPhone = firstPhone;
             }
