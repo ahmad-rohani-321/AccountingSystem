@@ -1,0 +1,100 @@
+﻿@using AccountingSystem.ViewModels
+@model LoginModel
+@{
+    Layout = null; 
+}
+
+<!doctype html>
+<html lang="ps-AF">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>ننوتل</title>
+
+    <link rel="stylesheet" href="~/css/site.css" />
+    <link href="~/lib/tabler/dist/css/tabler.rtl.min.css" rel="stylesheet"/>
+    <link rel="stylesheet" href="~/lib/fontawesome/css/all.min.css" />
+    <link rel="icon" href="~/MainIcon.ico" asp-append-version="true">
+    <!-- END DEMO STYLES -->
+</head>
+<body dir="rtl">
+    <!-- BEGIN GLOBAL THEME SCRIPT -->
+    <script src="~/lib/tabler/dist/js/tabler-theme.min.js"></script>
+    <!-- END GLOBAL THEME SCRIPT -->
+    <div class="page page-center">
+        <div class="container container-tight py-4">
+        <div class="card card-md">
+            <div class="card-body">
+                <h2 class="h2 text-center mb-4">سیسټم ته ننوتل</h2>
+                    @if (!ViewData.ModelState.IsValid)
+                    {
+                        <div class="alert alert-important alert-danger alert-dismissible" role="alert">
+                            <div class="alert-icon">
+                                <i class="fa-regular fa-circle-xmark"></i>
+                            </div>
+                            <div class="alert-description">
+                                <ul class="alert-list">
+                                    @foreach (var modelState in ViewData.ModelState.Values)
+                                    {
+                                        @foreach (var modelError in modelState.Errors)
+                                        {
+                                            <h5>@modelError.ErrorMessage</h5>
+                                        }
+                                    }
+                                </ul>
+                            </div>
+                            <a class="btn-close" data-bs-dismiss="alert" aria-label="close"></a>
+                        </div>
+                    }
+
+                    <form id="loginForm" method="post" asp-controller="Auth" asp-action="Index">
+                            @Html.AntiForgeryToken()
+                        <div class="mb-3">
+                            <label class="form-label">یوزر نوم</label>
+                                <input type="text" dir="ltr" class="form-control" asp-for="UserName"/>
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label">
+                                پټ نوم
+                            </label>
+                            <div class="input-group input-group-flat">
+                                <input type="password" dir="ltr" class="form-control" id="passwordInput" asp-for="Password"/>
+                                <span class="input-group-text">
+                                    <a class="link-secondary" title="پاسورډ ښکاره کول" data-bs-toggle="tooltip" id="show-password">
+                                        <i class="fa fa-eye"></i>
+                                    </a>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-check">
+                                    <input type="checkbox" class="form-check-input" asp-for="RememberMe" />
+                                <span class="form-check-label">په یاد لرل</span>
+                            </label>
+                        </div>
+                        <div class="form-footer">
+                            <button type="submit" class="btn btn-primary w-100">داخلېدل</button>
+                        </div>
+                    </form>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- BEGIN GLOBAL MANDATORY SCRIPTS -->
+<script src="~/lib/tabler/dist/js/tabler.min.js"></script>
+<script>
+    var showPasswordElement = document.getElementById("show-password");
+    showPasswordElement.onclick = function(){
+        var passwordInput = document.getElementById("passwordInput");
+        if(passwordInput.type === "password"){
+            passwordInput.type = "text";
+        }else {
+            passwordInput.type = "password";
+        }
+    }
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,7 @@
+@font-face {
+    font-family: 'Vazirmatn';
+    src: url('Vazirmatn.ttf') format('truetype');
+}
+:root {
+    --tblr-font-sans-serif: "Vazirmatn";
+}

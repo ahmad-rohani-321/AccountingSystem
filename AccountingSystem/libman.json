@@ -1,0 +1,14 @@
+{
+  "version": "3.0",
+  "defaultProvider": "unpkg",
+  "libraries": [
+    {
+      "library": "@tabler/core@1.4.0",
+      "destination": "wwwroot/lib/tabler"
+    },
+    {
+      "library": "@fortawesome/fontawesome-free@6.1.1",
+      "destination": "wwwroot/lib/fontawesome"
+    }
+  ]
+}
