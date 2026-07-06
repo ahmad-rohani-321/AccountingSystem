@@ -7,7 +7,7 @@
     string roles = string.Join(',', userRoles);
 }
 <!DOCTYPE html>
-<html lang="ps-AF">
+<html lang="ps-AF" data-bs-theme="light">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -291,8 +291,6 @@
 
             </ul>
 
-
-
             <div class="navbar-nav flex-row order-md-last ms-auto">
                 <div class="nav-item dropdown">
                     <a href="#"
@@ -320,9 +318,11 @@
                                 <i class="fa-solid fa-gears"></i>
                             تنظیمات
                         </a>
+                        <button id="theme-toggle" type="button" class="dropdown-item">
+                            <i class="fa-solid fa-moon"></i>
+                        </button>
                         <button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#logoutModal">
-                                <i class="fa-solid fa-right-from-bracket"></i>
-                            وتل
+                                <i class="fa-solid fa-right-from-bracket"></i> وتل
                         </button>
 
                     </div>
@@ -392,6 +392,27 @@
             logoutform.submit();
         }
 
+
+
+        const html = document.documentElement;
+
+        // Load saved theme
+        const savedTheme = localStorage.getItem("theme") || "light";
+        html.setAttribute("data-bs-theme", savedTheme);
+
+        var toggleThemeButton = document.getElementById("theme-toggle");
+
+        toggleThemeButton.innerHTML = (savedTheme === "dark" ? "<i class='fa-solid fa-sun'></i> روښان شکل" : "<i class='fa-solid fa-moon'></i> تاریک شکل");
+
+        toggleThemeButton.addEventListener("click", function () {
+
+            const theme = html.getAttribute("data-bs-theme") === "dark"
+            ? "light"
+            : "dark";
+            html.setAttribute("data-bs-theme", theme);
+        toggleThemeButton.innerHTML = (theme === "dark" ? "<i class='fa-solid fa-sun'></i> روښان شکل" : "<i class='fa-solid fa-moon'></i> تاریک شکل");
+            localStorage.setItem("theme", theme);
+        });
     </script>
 </body>
 </html>
