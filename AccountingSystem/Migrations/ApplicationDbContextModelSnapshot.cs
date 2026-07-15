@@ -30,11 +30,9 @@ namespace AccountingSystem.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<string>("ChequePhoto")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<string>("CreatedByUserId")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime>("CreationDate")
@@ -47,7 +45,6 @@ namespace AccountingSystem.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Remarks")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<int>("TransactionTypeID")
@@ -70,7 +67,6 @@ namespace AccountingSystem.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("TypeName")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.HasKey("ID");
@@ -150,11 +146,9 @@ namespace AccountingSystem.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("Code")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<string>("CreatedByUserId")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime>("CreationDate")
@@ -164,7 +158,6 @@ namespace AccountingSystem.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("Name")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.HasKey("ID");
@@ -182,7 +175,7 @@ namespace AccountingSystem.Migrations
                             AccountTypeID = 10,
                             Code = "Walkin",
                             CreatedByUserId = "f5b9b7e7-2d3a-4b4d-a1b5-1b3f2a7a9e01",
-                            CreationDate = new DateTime(2026, 7, 5, 15, 29, 31, 931, DateTimeKind.Local).AddTicks(9387),
+                            CreationDate = new DateTime(2026, 7, 13, 18, 35, 6, 486, DateTimeKind.Local).AddTicks(9269),
                             IsActive = true,
                             Name = "عادي"
                         });
@@ -201,7 +194,6 @@ namespace AccountingSystem.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<string>("CreatedByUserId")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime>("CreationDate")
@@ -231,30 +223,24 @@ namespace AccountingSystem.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("Address")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<string>("CreatedByUserId")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime>("CreationDate")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Email")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<string>("FirstPhone")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<string>("NIC")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<string>("SecondPhone")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.HasKey("ID");
@@ -272,7 +258,7 @@ namespace AccountingSystem.Migrations
                             AccountID = 1,
                             Address = "",
                             CreatedByUserId = "f5b9b7e7-2d3a-4b4d-a1b5-1b3f2a7a9e01",
-                            CreationDate = new DateTime(2026, 7, 5, 15, 29, 31, 932, DateTimeKind.Local).AddTicks(865),
+                            CreationDate = new DateTime(2026, 7, 13, 18, 35, 6, 487, DateTimeKind.Local).AddTicks(840),
                             Email = "",
                             FirstPhone = "",
                             NIC = "",
@@ -287,7 +273,6 @@ namespace AccountingSystem.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("Name")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.HasKey("ID");
@@ -370,7 +355,6 @@ namespace AccountingSystem.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<string>("PashtoName")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
@@ -444,14 +428,12 @@ namespace AccountingSystem.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("FirstName")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("LastName")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<bool>("LockoutEnabled")
@@ -478,7 +460,6 @@ namespace AccountingSystem.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("ProfilePhoto")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<string>("SecurityStamp")
@@ -516,7 +497,7 @@ namespace AccountingSystem.Migrations
                             LockoutEnabled = false,
                             NormalizedEmail = "ADMIN@ADMIN.COM",
                             NormalizedUserName = "ADMIN",
-                            PasswordHash = "AQAAAAIAAYagAAAAEDw0biJGqS1ANkJY+8JsPqRTPx7Zv3OZHXupPLkvT4G6SyplovsVCruXfcOVZ/WzuA==",
+                            PasswordHash = "AQAAAAIAAYagAAAAEH2wmwLk+vCFBGUI6gDPM9W6NuoA1o7Zf5Cocp8Va+HAEhKwdB/h612z8yQW4dyBqQ==",
                             PhoneNumberConfirmed = false,
                             ProfilePhoto = "",
                             SecurityStamp = "2c9a4d9b-4f5a-4b8b-9a7c-2b1c3d4e5f61",
@@ -532,18 +513,15 @@ namespace AccountingSystem.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("CreatedByUserId")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime>("CreationDate")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Details")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<string>("ModelName")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.HasKey("ID");
@@ -575,7 +553,7 @@ namespace AccountingSystem.Migrations
                         {
                             UserId = "f5b9b7e7-2d3a-4b4d-a1b5-1b3f2a7a9e01",
                             RoleId = "65a02658-9b8d-4505-95af-5edd8634bb35",
-                            CreationDate = new DateTime(2026, 7, 5, 15, 29, 31, 930, DateTimeKind.Local).AddTicks(513)
+                            CreationDate = new DateTime(2026, 7, 13, 18, 35, 6, 484, DateTimeKind.Local).AddTicks(8464)
                         });
                 });
 
@@ -586,21 +564,18 @@ namespace AccountingSystem.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("CreatedByUserId")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime>("CreationDate")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Description")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("Name")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.HasKey("ID");
@@ -617,25 +592,21 @@ namespace AccountingSystem.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("AliasName")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<int>("CategoryId")
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("CreatedByUserId")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime>("CreationDate")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Description")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<string>("ImageName")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<bool>("IsActive")
@@ -645,15 +616,12 @@ namespace AccountingSystem.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<string>("NativeName")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<string>("SKU")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<string>("SerialNumber")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<int>("UnitId")
@@ -677,7 +645,6 @@ namespace AccountingSystem.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("CreatedByUserId")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime>("CreationDate")
@@ -690,7 +657,6 @@ namespace AccountingSystem.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Remarks")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.HasKey("ID");
@@ -709,7 +675,6 @@ namespace AccountingSystem.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("CreatedByUserId")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime>("CreationDate")
@@ -722,7 +687,6 @@ namespace AccountingSystem.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Remarks")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<int>("WarehouseID")
@@ -745,7 +709,6 @@ namespace AccountingSystem.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("Name")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.HasKey("ID");
@@ -817,7 +780,6 @@ namespace AccountingSystem.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("CreatedByUserId")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime>("CreationDate")
@@ -827,7 +789,6 @@ namespace AccountingSystem.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Remarks")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<int>("StockBalanceID")
@@ -859,21 +820,18 @@ namespace AccountingSystem.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("CreatedByUserId")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime>("CreationDate")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Description")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("Name")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.HasKey("ID");
@@ -890,7 +848,6 @@ namespace AccountingSystem.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("CreatedByUserId")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime>("CreationDate")
@@ -909,7 +866,6 @@ namespace AccountingSystem.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("Remarks")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<decimal>("SubAmount")
@@ -938,21 +894,18 @@ namespace AccountingSystem.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("CreatedByUserId")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime>("CreationDate")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Description")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("Name")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.HasKey("ID");
@@ -966,7 +919,7 @@ namespace AccountingSystem.Migrations
                         {
                             ID = 1,
                             CreatedByUserId = "f5b9b7e7-2d3a-4b4d-a1b5-1b3f2a7a9e01",
-                            CreationDate = new DateTime(2026, 7, 5, 15, 29, 31, 931, DateTimeKind.Local).AddTicks(5292),
+                            CreationDate = new DateTime(2026, 7, 13, 18, 35, 6, 486, DateTimeKind.Local).AddTicks(4773),
                             Description = "اصلي ګدام د ټولو موادو لپاره دی.",
                             IsActive = true,
                             Name = "عمومي ګدام"
@@ -983,7 +936,6 @@ namespace AccountingSystem.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("CreatedByUserId")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime>("CreationDate")
@@ -1008,7 +960,6 @@ namespace AccountingSystem.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Remarks")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<decimal>("TotalAmount")
@@ -1032,7 +983,6 @@ namespace AccountingSystem.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("CreatedByUserId")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime>("CreationDate")
@@ -1051,7 +1001,6 @@ namespace AccountingSystem.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Remarks")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<decimal>("TotalPrice")
@@ -1085,7 +1034,6 @@ namespace AccountingSystem.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("CreatedByUserId")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime>("CreationDate")
@@ -1095,7 +1043,6 @@ namespace AccountingSystem.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("Remarks")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<decimal>("TotalExpense")
@@ -1117,7 +1064,6 @@ namespace AccountingSystem.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("CreatedByUserId")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime>("CreationDate")
@@ -1165,7 +1111,6 @@ namespace AccountingSystem.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("CreatedByUserId")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime>("CreationDate")
@@ -1178,7 +1123,6 @@ namespace AccountingSystem.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("Remarks")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.HasKey("ID");
@@ -1197,7 +1141,6 @@ namespace AccountingSystem.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("CreatedByUserId")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime>("CreationDate")
@@ -1210,7 +1153,6 @@ namespace AccountingSystem.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Remarks")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<int>("UnitID")
@@ -1240,7 +1182,6 @@ namespace AccountingSystem.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<string>("CreatedByUserId")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime>("CreationDate")
@@ -1253,7 +1194,6 @@ namespace AccountingSystem.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("Remarks")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.HasKey("ID");
@@ -1276,7 +1216,6 @@ namespace AccountingSystem.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("CreatedByUserId")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime>("CreationDate")
@@ -1295,7 +1234,6 @@ namespace AccountingSystem.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Remarks")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<int>("SaleID")
@@ -1335,7 +1273,6 @@ namespace AccountingSystem.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("CreatedByUserId")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime>("CreationDate")
@@ -1348,7 +1285,6 @@ namespace AccountingSystem.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("Remarks")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.HasKey("ID");
@@ -1367,7 +1303,6 @@ namespace AccountingSystem.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("CreatedByUserId")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime>("CreationDate")
@@ -1380,7 +1315,6 @@ namespace AccountingSystem.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Remarks")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<int>("UnitID")
@@ -1407,7 +1341,6 @@ namespace AccountingSystem.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("CreatedByUserId")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime>("CreationDate")
@@ -1429,7 +1362,6 @@ namespace AccountingSystem.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Remarks")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<int>("SaleNo")
@@ -1456,18 +1388,15 @@ namespace AccountingSystem.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("CreatedByUserId")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime>("CreationDate")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("CurrencyName")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<string>("CurrencySymbole")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<bool>("IsActive")
@@ -1487,7 +1416,7 @@ namespace AccountingSystem.Migrations
                         {
                             ID = 1,
                             CreatedByUserId = "f5b9b7e7-2d3a-4b4d-a1b5-1b3f2a7a9e01",
-                            CreationDate = new DateTime(2026, 7, 5, 15, 29, 31, 932, DateTimeKind.Local).AddTicks(5224),
+                            CreationDate = new DateTime(2026, 7, 13, 18, 35, 6, 487, DateTimeKind.Local).AddTicks(5414),
                             CurrencyName = "افغانۍ",
                             CurrencySymbole = "AFN",
                             IsActive = true,
@@ -1497,7 +1426,7 @@ namespace AccountingSystem.Migrations
                         {
                             ID = 2,
                             CreatedByUserId = "f5b9b7e7-2d3a-4b4d-a1b5-1b3f2a7a9e01",
-                            CreationDate = new DateTime(2026, 7, 5, 15, 29, 31, 932, DateTimeKind.Local).AddTicks(5303),
+                            CreationDate = new DateTime(2026, 7, 13, 18, 35, 6, 487, DateTimeKind.Local).AddTicks(5422),
                             CurrencyName = "ډالر",
                             CurrencySymbole = "USD",
                             IsActive = true,
@@ -1512,7 +1441,6 @@ namespace AccountingSystem.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("CreatedByUserId")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime>("CreationDate")
@@ -1536,6 +1464,10 @@ namespace AccountingSystem.Migrations
                     b.HasKey("ID");
 
                     b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("MainCurrencyID");
+
+                    b.HasIndex("SubCurrencyID");
 
                     b.ToTable("CurrencyExchanges");
                 });
@@ -1637,9 +1569,7 @@ namespace AccountingSystem.Migrations
 
                     b.HasOne("AccountingSystem.Models.Identity.User", "CreatedByUser")
                         .WithMany()
-                        .HasForeignKey("CreatedByUserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("CreatedByUserId");
 
                     b.HasOne("AccountingSystem.Models.Accounting.JournalTransactionType", "TransactionType")
                         .WithMany()
@@ -1664,9 +1594,7 @@ namespace AccountingSystem.Migrations
 
                     b.HasOne("AccountingSystem.Models.Identity.User", "CreatedByUser")
                         .WithMany()
-                        .HasForeignKey("CreatedByUserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("CreatedByUserId");
 
                     b.Navigation("AccountType");
 
@@ -1683,9 +1611,7 @@ namespace AccountingSystem.Migrations
 
                     b.HasOne("AccountingSystem.Models.Identity.User", "CreatedByUser")
                         .WithMany()
-                        .HasForeignKey("CreatedByUserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("CreatedByUserId");
 
                     b.HasOne("AccountingSystem.Models.Settings.Currency", "Currency")
                         .WithMany()
@@ -1710,9 +1636,7 @@ namespace AccountingSystem.Migrations
 
                     b.HasOne("AccountingSystem.Models.Identity.User", "CreatedByUser")
                         .WithMany()
-                        .HasForeignKey("CreatedByUserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("CreatedByUserId");
 
                     b.Navigation("Account");
 
@@ -1723,9 +1647,7 @@ namespace AccountingSystem.Migrations
                 {
                     b.HasOne("AccountingSystem.Models.Identity.User", "CreatedByUser")
                         .WithMany()
-                        .HasForeignKey("CreatedByUserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("CreatedByUserId");
 
                     b.Navigation("CreatedByUser");
                 });
@@ -1749,9 +1671,7 @@ namespace AccountingSystem.Migrations
                 {
                     b.HasOne("AccountingSystem.Models.Identity.User", "CreatedByUser")
                         .WithMany()
-                        .HasForeignKey("CreatedByUserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("CreatedByUserId");
 
                     b.Navigation("CreatedByUser");
                 });
@@ -1766,9 +1686,7 @@ namespace AccountingSystem.Migrations
 
                     b.HasOne("AccountingSystem.Models.Identity.User", "CreatedByUser")
                         .WithMany()
-                        .HasForeignKey("CreatedByUserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("CreatedByUserId");
 
                     b.HasOne("AccountingSystem.Models.Inventory.Unit", "Unit")
                         .WithMany()
@@ -1787,9 +1705,7 @@ namespace AccountingSystem.Migrations
                 {
                     b.HasOne("AccountingSystem.Models.Identity.User", "CreatedByUser")
                         .WithMany()
-                        .HasForeignKey("CreatedByUserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("CreatedByUserId");
 
                     b.HasOne("AccountingSystem.Models.Inventory.Item", "Item")
                         .WithMany()
@@ -1806,9 +1722,7 @@ namespace AccountingSystem.Migrations
                 {
                     b.HasOne("AccountingSystem.Models.Identity.User", "CreatedByUser")
                         .WithMany()
-                        .HasForeignKey("CreatedByUserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("CreatedByUserId");
 
                     b.HasOne("AccountingSystem.Models.Inventory.Item", "Item")
                         .WithMany()
@@ -1833,9 +1747,7 @@ namespace AccountingSystem.Migrations
                 {
                     b.HasOne("AccountingSystem.Models.Identity.User", "CreatedByUser")
                         .WithMany()
-                        .HasForeignKey("CreatedByUserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("CreatedByUserId");
 
                     b.HasOne("AccountingSystem.Models.Inventory.StockBalance", "StockBalance")
                         .WithMany()
@@ -1868,9 +1780,7 @@ namespace AccountingSystem.Migrations
                 {
                     b.HasOne("AccountingSystem.Models.Identity.User", "CreatedByUser")
                         .WithMany()
-                        .HasForeignKey("CreatedByUserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("CreatedByUserId");
 
                     b.Navigation("CreatedByUser");
                 });
@@ -1879,9 +1789,7 @@ namespace AccountingSystem.Migrations
                 {
                     b.HasOne("AccountingSystem.Models.Identity.User", "CreatedByUser")
                         .WithMany()
-                        .HasForeignKey("CreatedByUserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("CreatedByUserId");
 
                     b.HasOne("AccountingSystem.Models.Inventory.Item", "Item")
                         .WithMany()
@@ -1914,9 +1822,7 @@ namespace AccountingSystem.Migrations
                 {
                     b.HasOne("AccountingSystem.Models.Identity.User", "CreatedByUser")
                         .WithMany()
-                        .HasForeignKey("CreatedByUserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("CreatedByUserId");
 
                     b.Navigation("CreatedByUser");
                 });
@@ -1931,9 +1837,7 @@ namespace AccountingSystem.Migrations
 
                     b.HasOne("AccountingSystem.Models.Identity.User", "CreatedByUser")
                         .WithMany()
-                        .HasForeignKey("CreatedByUserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("CreatedByUserId");
 
                     b.HasOne("AccountingSystem.Models.Settings.Currency", "Currency")
                         .WithMany()
@@ -1952,9 +1856,7 @@ namespace AccountingSystem.Migrations
                 {
                     b.HasOne("AccountingSystem.Models.Identity.User", "CreatedByUser")
                         .WithMany()
-                        .HasForeignKey("CreatedByUserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("CreatedByUserId");
 
                     b.HasOne("AccountingSystem.Models.Inventory.Item", "Item")
                         .WithMany()
@@ -1995,9 +1897,7 @@ namespace AccountingSystem.Migrations
                 {
                     b.HasOne("AccountingSystem.Models.Identity.User", "CreatedByUser")
                         .WithMany()
-                        .HasForeignKey("CreatedByUserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("CreatedByUserId");
 
                     b.HasOne("AccountingSystem.Models.Purchase.Purchase", "Purchase")
                         .WithMany()
@@ -2014,9 +1914,7 @@ namespace AccountingSystem.Migrations
                 {
                     b.HasOne("AccountingSystem.Models.Identity.User", "CreatedByUser")
                         .WithMany()
-                        .HasForeignKey("CreatedByUserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("CreatedByUserId");
 
                     b.HasOne("AccountingSystem.Models.Purchase.PurchaseDetails", "PurchaseDetails")
                         .WithMany()
@@ -2047,9 +1945,7 @@ namespace AccountingSystem.Migrations
 
                     b.HasOne("AccountingSystem.Models.Identity.User", "CreatedByUser")
                         .WithMany()
-                        .HasForeignKey("CreatedByUserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("CreatedByUserId");
 
                     b.Navigation("Account");
 
@@ -2060,9 +1956,7 @@ namespace AccountingSystem.Migrations
                 {
                     b.HasOne("AccountingSystem.Models.Identity.User", "CreatedByUser")
                         .WithMany()
-                        .HasForeignKey("CreatedByUserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("CreatedByUserId");
 
                     b.HasOne("AccountingSystem.Models.Inventory.Item", "Item")
                         .WithMany()
@@ -2093,9 +1987,7 @@ namespace AccountingSystem.Migrations
 
                     b.HasOne("AccountingSystem.Models.Identity.User", "CreatedByUser")
                         .WithMany()
-                        .HasForeignKey("CreatedByUserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("CreatedByUserId");
 
                     b.HasOne("AccountingSystem.Models.Settings.Currency", "Currency")
                         .WithMany()
@@ -2122,9 +2014,7 @@ namespace AccountingSystem.Migrations
                 {
                     b.HasOne("AccountingSystem.Models.Identity.User", "CreatedByUser")
                         .WithMany()
-                        .HasForeignKey("CreatedByUserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("CreatedByUserId");
 
                     b.HasOne("AccountingSystem.Models.Inventory.Item", "Item")
                         .WithMany()
@@ -2171,9 +2061,7 @@ namespace AccountingSystem.Migrations
 
                     b.HasOne("AccountingSystem.Models.Identity.User", "CreatedByUser")
                         .WithMany()
-                        .HasForeignKey("CreatedByUserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("CreatedByUserId");
 
                     b.Navigation("Account");
 
@@ -2184,9 +2072,7 @@ namespace AccountingSystem.Migrations
                 {
                     b.HasOne("AccountingSystem.Models.Identity.User", "CreatedByUser")
                         .WithMany()
-                        .HasForeignKey("CreatedByUserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("CreatedByUserId");
 
                     b.HasOne("AccountingSystem.Models.Inventory.Item", "Item")
                         .WithMany()
@@ -2217,9 +2103,7 @@ namespace AccountingSystem.Migrations
 
                     b.HasOne("AccountingSystem.Models.Identity.User", "CreatedByUser")
                         .WithMany()
-                        .HasForeignKey("CreatedByUserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("CreatedByUserId");
 
                     b.HasOne("AccountingSystem.Models.Settings.Currency", "Currency")
                         .WithMany()
@@ -2238,9 +2122,7 @@ namespace AccountingSystem.Migrations
                 {
                     b.HasOne("AccountingSystem.Models.Identity.User", "CreatedByUser")
                         .WithMany()
-                        .HasForeignKey("CreatedByUserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("CreatedByUserId");
 
                     b.Navigation("CreatedByUser");
                 });
@@ -2249,11 +2131,25 @@ namespace AccountingSystem.Migrations
                 {
                     b.HasOne("AccountingSystem.Models.Identity.User", "CreatedByUser")
                         .WithMany()
-                        .HasForeignKey("CreatedByUserId")
+                        .HasForeignKey("CreatedByUserId");
+
+                    b.HasOne("AccountingSystem.Models.Settings.Currency", "MainCurrency")
+                        .WithMany()
+                        .HasForeignKey("MainCurrencyID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("AccountingSystem.Models.Settings.Currency", "SubCurrency")
+                        .WithMany()
+                        .HasForeignKey("SubCurrencyID")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("CreatedByUser");
+
+                    b.Navigation("MainCurrency");
+
+                    b.Navigation("SubCurrency");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>

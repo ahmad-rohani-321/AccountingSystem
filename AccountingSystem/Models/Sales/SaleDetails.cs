@@ -13,7 +13,7 @@ public class SaleDetails : BaseEntity
     public decimal TotalPrice { get; set; }
     public decimal Profit { get; set; }
     public int WarehouseID { get; set; }
-    public string Remarks { get; set; }
+    public string Remarks { get; set; } = default!;
     public int UnitConversionID { get; set; }
 
     [ForeignKey(nameof(ItemID))]

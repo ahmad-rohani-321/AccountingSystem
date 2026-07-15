@@ -1,0 +1,389 @@
+﻿@{
+    ViewData["title"] = "تنظیمات";
+    ViewData["settings"] = "active";
+    ViewData["SettingsIndex"] = "active";
+}
+<div class="row row-deck row-cards">
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="h3">اسعار</h3>
+            </div>
+            <div class="card-body">
+                <button class="btn btn-primary mb-3" data-bs-toggle="modal" data-bs-target="#add-currency-modal">نوي اسعار <i class="fas fa-plus ps-2"></i></button>
+                <table class="table table-responsive table-bordered table-hover">
+                    <thead >
+                        <tr>
+                            <th>شمېره</th>
+                            <th>نوم</th>
+                            <th>سمبول</th>
+                            <th>اسعارو ډول</th>
+                            <th>فعالیت</th>
+                            <th>عملیه</th>
+                        </tr>
+                    </thead>
+                    <tbody id="currencies-table-head">
+                        
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="h3">د اسعارو نرخونه <span class="text-muted">(ټول نرخونه عمومي اسعارو نه تبادله کیږي)</span></h3>
+            </div>
+            <form class="card-body" id="save-currency-exchange-form">
+                <button class="btn btn-primary mb-3" id="btn-save-currnecy-prices">
+                    ثبت
+                    <i class="fas fa-save ps-2"></i>
+                </button>
+                <table class="table table-responsive table-bordered table-hover">
+                    <thead>
+                        <tr>
+                            <th class="d-none">#</th>
+                            <th> اسعار</th>
+                            <th>د عمومي اسعارو قیمت</th>
+                            <th>د فرعي اسعارو قیمت</th>
+                        </tr>
+                    </thead>
+                    <tbody id="currencies-prices">
+                        
+                    </tbody>
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+
+
+
+<div class="modal fade" id="add-currency-modal" tabindex="-1">
+    <div class="modal-dialog modal-sm" role="document">
+        <div class="modal-content">
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            <form id="new-currency-form">
+                <div class="modal-body py-4">
+                    <h2>نوي اسعار</h2>
+                    <div class="mb-3">
+                        <label class="form-label" for="currencyname">اسعارو نوم</label>
+                        <input type="text" class="form-control" id="currencyname" name="newCurrencyName" />
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label" for="currencysymbole">اسعارو نښه</label>
+                        <input type="text" class="form-control" id="currencysymbole" name="newCurrencySymbole" />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <div class="w-100">
+                        <div class="row">
+                            <div class="col">
+                                <button id="save-new-currency" type="submit" class="btn btn-primary w-100"> تائید </button>
+                            </div>
+                            <div class="col">
+                                <button class="btn w-100" type="reset" data-bs-dismiss="modal"> لغوه </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="edit-currency-modal" tabindex="0">
+    <div class="modal-dialog modal-sm" role="document">
+        <div class="modal-content">
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            <form id="edit-currency-form">
+                <div class="modal-body py-4">
+                    <h2 >د اسعارو تغیر</h2>
+                    <input type="hidden" id="currencyId" />
+                    <div class="mb-3">
+                        <label class="form-label" for="editcurrencyname">اسعارو نوم</label>
+                        <input type="text" class="form-control" id="editcurrencyname" />
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label" for="editcurrencysymbole">اسعارو نښه</label>
+                        <input type="text" class="form-control" id="editcurrencysymbole" />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <div class="w-100">
+                        <div class="row">
+                            <div class="col">
+                                <button id="save-edited-currency" type="submit"  class="btn btn-primary w-100"> تائید </button>
+                            </div>
+                            <div class="col">
+                                <button class="btn w-100" type="reset" data-bs-dismiss="modal"> لغوه </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+
+@section Scripts{
+    <script src="~/lib/just-validate/dist/just-validate.production.min.js"></script>
+    @* load currencies, new currency, update currency, change currency activation and change to main currency *@
+    <script>
+         // currencies Initial load
+        getCurrenciesList();
+            
+            // create new currency
+            var validation = new JustValidate("#new-currency-form");
+            validation
+                .addField("#currencyname", [
+                    {
+                        rule: "required",
+                        errorMessage: "اسعارو نوم اړین دی",
+                    },
+                    {
+                        rule: "minLength",
+                        value: 4,
+                        errorMessage: "اسعارو نوم باید لږترلږه ۴ توري ولري",
+                    },
+                ])
+                .addField("#currencysymbole", [
+                    {
+                        rule: "required",
+                        errorMessage: "اسعارو نښه اړین دی",
+                    },
+                    {
+                        rule: "minLength",
+                        value:2,
+                        errorMessage: "اسعارو نښه باید لږترلږه ۲ توري ولري",
+                    },
+                ])
+                .onSuccess((event) => {
+                    event.preventDefault();
+                    var formData = {
+                        "name" : $("#currencyname").val(),
+                        "symbole" : $("#currencysymbole").val()
+                    };
+                    $.ajax({
+                        url: "/api/Currency/Create",
+                        type: "POST",
+                        contentType: "application/json",
+                        data : JSON.stringify(formData),
+                        success : function(response){
+                            showToast("success", "اسعار اضافه سو");
+                            $("#new-currency-form")[0].reset();
+                            $("#add-currency-modal").modal("hide");
+                            getCurrenciesList();
+                        },
+                        error : function(response){
+                            showToast("warning", response.responseText);
+                        }
+                    });
+                });
+
+        // change currency activation
+        $(document).on("click", ".btn-change-activation", function () {
+
+            const id = $(this).data("id");
+
+             Swal.fire({
+                title: "تاسو اطمناني یاست؟",
+                text: "تاسو اطمناني یاست، ترڅو انتخاب سوي اسعار غیر فعال کړئ؟",
+                icon: "warning",
+                showCancelButton: true,
+                confirmButtonText: "هو",
+                cancelButtonText: "نه"
+            }).then((result) => {
+
+                if (result.isConfirmed) {
+
+                    $.ajax({
+                        url: "/api/Currency/ChangeActivation/" + id,   // Your API endpoint
+                        type: "PUT",
+
+                        success: function (response) {
+
+                            showToast("success", "د انتخاب سوي اسعارو فعالیت تغیر کړل سو.");
+
+                            getCurrenciesList();
+                        },
+
+                        error: function (responsive) {
+                            showToast("warning", responsive.responseText);
+                        }
+                    });
+
+                }
+
+            });
+        });
+
+        // change currency to main
+        $(document).on("click", ".btn-to-main", function () {
+
+            const id = $(this).data("id");
+            console.log(id);
+            $.ajax({
+                url: "/api/Currency/ChangeToMain/" + id,   // Your API endpoint
+                type: "PUT",
+
+                success: function (response) {
+
+                    showToast("success", "د انتخاب سوي اسعارو کیفیت تغیر کړل سو.");
+
+                    getCurrenciesList();
+                },
+
+                error: function (responsive) {
+                    showToast("warning", responsive.responseText);
+                }
+            });
+
+        });
+
+        
+            // edit currency information
+                var validation = new JustValidate("#edit-currency-form");
+            validation
+                .addField("#editcurrencyname", [
+                    {
+                        rule: "required",
+                        errorMessage: "اسعارو نوم اړین دی",
+                    },
+                    {
+                        rule: "minLength",
+                        value: 4,
+                        errorMessage: "اسعارو نوم باید لږترلږه ۴ توري ولري",
+                    },
+                ])
+                .addField("#editcurrencysymbole", [
+                    {
+                        rule: "required",
+                        errorMessage: "اسعارو نښه اړین دی",
+                    },
+                    {
+                        rule: "minLength",
+                        value:2,
+                        errorMessage: "اسعارو نښه باید لږترلږه ۲ توري ولري",
+                    },
+                ])
+                .onSuccess((event) => {
+                    event.preventDefault();
+                    var formData = {
+                        "id" : $("#currencyId").val(),
+                        "name" : $("#editcurrencyname").val(),
+                        "symbole" : $("#editcurrencysymbole").val()
+                    };
+                    $.ajax({
+                        url: "/api/Currency/Update",
+                        type: "PUT",
+                        contentType: "application/json",
+                        data : JSON.stringify(formData),
+                        success : function(response){
+                            showToast("success", "اسعار تغیر کړل سو");
+                            $("#edit-currency-form")[0].reset();
+                            $("#edit-currency-modal").modal("hide");
+                            getCurrenciesList();
+                        },
+                        error : function(response){
+                            showToast("warning", response.responseText);
+                        }
+                    });
+                });
+
+        //  show to selected currency data to modal
+        $(document).on("click", ".btn-edit", function () {
+
+            const data = $(this).data("row");
+            $("#editcurrencyname").val(data.currencyName);
+            $("#editcurrencysymbole").val(data.currencySymbole);
+            $("#currencyId").val(data.currencyId);
+            $("#edit-currency-modal").modal("show");
+        });
+
+        // load currency function
+        function getCurrenciesList(){
+            fetch('/api/Currency/Currencies')
+            .then(response => response.json())
+            .then(data => {
+                let html = '';
+                $.each(data, function (_, currency) {
+                    var toMainButton = (currency.isActive && !currency.isMainCurrency) == true ? `<button class="btn btn-sm btn-primary btn-to-main" data-id="${currency.currencyId}">عمومي کول</button>` : ''
+                    html += `
+                            <tr>
+                                <td>${currency.currencyId}</td>
+                                <td>${currency.currencyName}</td>
+                                <td>${currency.currencySymbole}</td>
+                                <td>${currency.isMainCurrency == true ? 'عمومي' : 'فرعي'}</td>
+                                <td>${currency.isActive == true ? 'فعال' : 'غیر فعال'}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-primary btn-edit" data-row='${JSON.stringify(currency)}'>تغییر</button>
+                                    <button class="btn btn-sm ${currency.isActive == true ? "btn-danger" : "btn-success" } btn-change-activation" data-id="${currency.currencyId}">${currency.isActive == false ? 'فعال' : 'غیر فعال'}</button>
+                                    ${toMainButton}
+                                </td>
+                            </tr>`;
+                });
+                $('#currencies-table-head').html(html);
+            })
+            .catch(error => {
+                console.log(error);
+            });
+        }
+
+    </script>
+    @* load currency exchange, Save currency exchange *@
+    <script>
+        loadCurrencyExchange();
+        function loadCurrencyExchange(){
+            fetch('/api/Currency/CurrencyConversion/Load')
+            .then(response => response.json())
+            .then(data => {
+                let rows = '';
+                $.each(data, function (_, currency) {
+                    rows += `
+                    <tr>
+                        <td class="d-none">${currency.currencyId}</td>
+                        <td>${currency.subCurrencyName}</td>
+                        <td><input type="number" step="any" class="form-control currency-value-input" value="${currency.mainCurrencyPrice}" /></td>
+                        <td><input type="number" step="any" class="form-control currency-value-input" value="${currency.subCurrencyPrice}" /></td>
+                    </tr>
+                    `;
+                });
+                $('#currencies-prices').html(rows);
+            })
+            .catch(error => {
+                console.log(error);
+            });
+        }
+
+
+        $("#save-currency-exchange-form").on("submit", function(e){
+            e.preventDefault();
+            const formData = [];
+                $("#currencies-prices tr").each(function(){
+                    const row = {
+                        currencyId : $(this).find("td:eq(0)").text().trim(),
+                        subCurrencyName : $(this).find("td:eq(1)").text().trim(),
+                        mainCurrencyPrice : $(this).find("td:eq(2) input").val(),
+                        subCurrencyPrice : $(this).find("td:eq(3) input").val()
+                    };
+                    formData.push(row);
+                });
+                console.log(formData);
+            $.ajax({
+                url: "/api/Currency/CurrencyConversion/Create",
+                type: "POST",
+                contentType: "application/json",
+                data : JSON.stringify(formData),
+                success : function(response){
+                    showToast("success", "د اسعارو نرخونه ثبت سو");
+                    loadCurrencyExchange();
+                },
+                error : function(response){
+                    showToast("warning", response.responseText);
+                }
+            });
+        });
+    </script>
+}

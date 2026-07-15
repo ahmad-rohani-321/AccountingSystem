@@ -1,4 +1,5 @@
-﻿using AccountingSystem.Models.Identity;
+﻿using AccountingSystem.Data;
+using AccountingSystem.Models.Identity;
 using AccountingSystem.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -6,8 +7,9 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace AccountingSystem.Controllers
 {
-    public class AuthController(SignInManager<User> signInManager) : Controller
+    public class AuthController(SignInManager<User> signInManager, ApplicationDbContext dbContext) : Controller
     {
+        private readonly ApplicationDbContext _dbContext = dbContext;
         private readonly SignInManager<User> _signInManager = signInManager;
 
         [AllowAnonymous]
@@ -46,6 +48,15 @@ namespace AccountingSystem.Controllers
             else
             {
                 await _signInManager.PasswordSignInAsync(loginModel.UserName, loginModel.Password, loginModel.RememberMe, lockoutOnFailure: false);
+
+                await _dbContext.UserHistories.AddAsync(new UserHistory()
+                {
+                    CreatedByUserId = user.Id,
+                    CreationDate = DateTime.UtcNow,
+                    ModelName = "سیسټم ته ننوتل",
+                    Details = "یوزر سیسټم ته داخل سو."
+                });
+                await _dbContext.SaveChangesAsync();
                 return RedirectToAction("Index", "Home");
             }
         }
