@@ -25,12 +25,14 @@
     border: 1px solid var(--tblr-border-color);
     border-radius: var(--tblr-border-radius);
     box-shadow: var(--tblr-shadow-lg);
+    background-color: #fff !important;
+    opacity: 1 !important;
 }
 
-.ts-dropdown .option.active {
-    background-color: var(--tblr-primary-lt);
+.ts-dropdown .option.active {    
+    background-color: #e9ecef;
 }
 
-.ts-control input {
-    font-size: inherit;
+.ts-dropdown .option {
+    background-color: #fff;
 }

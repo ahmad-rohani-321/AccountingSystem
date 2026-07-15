@@ -30,7 +30,7 @@
                             <th>ادرس</th>
                             <th>حساب ډول</th>
                             <th>فعالیت</th>
-                            <th>کړني</th>
+                            <th style="width: 100px;">کړني</th>
                         </tr>
                     </thead>
                     <tbody id="load-people-accounts-list">
@@ -42,7 +42,7 @@
     </div>
 </div>
 
-
+@* start of new account form/modal *@
 <div class="modal fade" id="createNewPersonAccount" tabindex="-1">
     <div class="modal-dialog modal-lg" role="document">
         <form id="newPersonAccountForm" class="modal-content overflow-auto">
@@ -119,7 +119,7 @@
                     <thead>
                         <tr>
                             <th class="d-none">#</th>
-                            <th>بلانس ډول</th>
+                            <th>اسعارو نوم</th>
                             <th>مقدار</th>
                         </tr>
                     </thead>
@@ -141,172 +141,444 @@
         </form>
     </div>
 </div>
+@* end of new account form/modal *@
 
+@* start of edit person account form/modal *@
+<div class="modal fade" id="editPersonAccount" tabindex="-1">
+    <div class="modal-dialog modal-lg" role="document">
+        <form id="editPersonAccountForm" class="modal-content overflow-auto">
+            <div class="modal-header">
+                <h5 class="modal-title">نوی شخص</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-header">
+                <h3 class="h3">د شخص معلومات</h3>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="edit-person-id" />
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label" for="edit-name">نوم</label>
+                            <input type="text" class="form-control" id="edit-name" placeholder="نوم" />
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label" for="edit-code">کوډ</label>
+                            <input type="text" class="form-control" id="edit-code" placeholder="کوډ، مثلاً: ACC001" />
+                        </div>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label" for="edit-tazkira">تذکره</label>
+                            <input type="text" class="form-control" id="edit-tazkira" placeholder="تذکره" />
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label" for="edit-first-phone">لومړی شمېره</label>
+                            <input type="text" class="form-control" id="edit-first-phone" placeholder="لومړی شمېره" />
+                        </div>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label" for="edit-second-phone">دوهم شمېره</label>
+                            <input type="text" class="form-control" id="edit-second-phone" placeholder="دوهم شمېره" />
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label" for="edit-email">ایمېل</label>
+                            <input type="text" class="form-control" id="edit-email" placeholder="ایمېل" />
+                        </div>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label" for="edit-address">آدرس</label>
+                            <input type="text" class="form-control" id="edit-address" placeholder="آدرس" />
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label" for="edit-person-type">حساب ډول</label>
+                            <select id="edit-person-type" class="form-control" placeholder="شخص ډول"></select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer align-items-end">
+                <button class="btn btn-primary" id="btnSaveEditedPersonAccount" type="submit">
+                    ثبت
+                    <i class="fas fa-save ms-2"></i>
+                </button>
+                <button class="btn btn-danger" type="reset" data-bs-dismiss="modal">
+                    لغوه
+                    <i class="fas fa-times ms-2"></i>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+@* end of edit person account form/modal *@
+
+
+@* start of account balance *@
+<div class="modal fade" id="personBalancesModal" tabindex="-1">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content overflow-auto">
+            <div class="modal-header">
+                <h5 class="modal-title">نوی شخص</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-header">
+                <h3 class="h3">د شخص معلومات <span Id="new-person-name" class="text-primary"></span></h3>
+            </div>
+            <div class="modal-body">
+                <h3 class="h3">د شخص بلانسونه</h3>
+                <table class="table table-bordered table-hover">
+                    <thead>
+                        <tr>
+                            <th>اسعار</th>
+                            <th>مقدار</th>
+                        </tr>
+                    </thead>
+                    <tbody id="person-balances">
+                        <!-- Balance rows will be populated here -->
+                    </tbody>
+                </table>
+            </div>
+            <div class="modal-footer align-items-end">
+                <button class="btn btn-danger" type="reset" data-bs-dismiss="modal">
+                    لغوه
+                    <i class="fas fa-times ms-2"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+@* end of account balance *@
 
 @section Scripts {
-    <script src="~/lib/tom-select/dist/js/tom-select.complete.min.js"></script>
-    <script src="~/lib/just-validate/dist/just-validate.production.min.js"></script>
+<script src="~/lib/tom-select/dist/js/tom-select.complete.min.js"></script>
+<script src="~/lib/just-validate/dist/just-validate.production.min.js"></script>
 
-    <script>
-        $("#createNewPersonAccountBtn").click(function(){
-            $.ajax({
-                url: "/api/Accounts/NextCode",
-                type: "GET",
-                success: function(data){
-                    $("#new-code").val(data);
-                },
-                error : function(response){
-                    showToast("warning", response.responseText);
-                }
-            });
-            $("#createNewPersonAccount").modal('show');
-        });
-    </script>
-    
-    <script>
-        var ts = new TomSelect("#new-person-type", {
-            valueField: "id",
-            labelField: "name",
-            searchField: "name"
-        });
-        $.get("/api/Accounts/GetPeopleAccountTypes", function(data) {
-            ts.addOptions(data);
-            ts.refreshOptions(false);
-        });
-
+<script>
+$(document).ready(function() {
+    // show new person account modal
+    $("#createNewPersonAccountBtn").click(function(){
         $.ajax({
-            url: "/api/Currency/Currencies/Simple",
+            url: "/api/Accounts/NextCode",
             type: "GET",
-            success: function(data) {
-                var listCurrencies = $("#listCurrencies");
-                data.forEach(function(currency) {
-                    var row = $("<tr>");
-                    row.append($("<td>").addClass("d-none").text(currency.id));
-                    row.append($("<td>").text(currency.name));
-                    row.append($("<td>").append($("<input>").attr("type", "number").attr("step", "any").attr("value", "0").addClass("form-control new-person-balance-validator").attr("placeholder", "مقدار")));
-                    listCurrencies.append(row);
-                });
+            success: function(data){
+                $("#new-code").val(data);
             },
+            error : function(response){
+                showToast("warning", response.responseText);
+            }
         });
+        $("#createNewPersonAccount").modal('show');
+    });
 
-        var newPersonAccountFormValidator = new JustValidate("#newPersonAccountForm");
-        newPersonAccountFormValidator
-        .addField("#new-name", [
-            {
-                rule: "required",
-                errorMessage: "نوم اړین دی"
-            }
-        ])
-        .addField("#new-code", [
-            {
-                rule: "required",
-                errorMessage: "کوډ اړین دی"
-            }
-        ])
-        .addField("#new-first-phone", [
-            {
-                rule: "required",
-                errorMessage: "لومړی موبایل نمبر اړین دی"
-            }
-        ])
-        .addField("#new-person-type", [
-            {
-                rule: "required",
-                errorMessage: "حساب ډول اړین دی"
-            }
-        ]);
-        newPersonAccountFormValidator.onSuccess(function(event) {
-            event.preventDefault();
-            var formData = {
-                name: $("#new-name").val(),
-                code: $("#new-code").val(),
-                nic: $("#new-tazkira").val(),
-                firstPhone: $("#new-first-phone").val(),
-                secondPhone: $("#new-second-phone").val(),
-                email: $("#new-email").val(),
-                address: $("#new-address").val(),
-                accountTypeId: ts.getValue(),
-                balance: []
-            };
-            $("#listCurrencies tr").each(function() {
-                var currencyId = $(this).find("td:first").text();
-                var amount = $(this).find("input").val();
-                if (amount) {
-                    formData.balance.push({ currencyID: currencyId, balance: parseFloat(amount) });
-                }
+
+    var ts = new TomSelect("#new-person-type", {
+        valueField: "id",
+        labelField: "name",
+        searchField: "name"
+    });
+    
+    var edit_ts = new TomSelect("#edit-person-type", {
+        valueField: "id",
+        labelField: "name",
+        searchField: "name"
+    });
+    // load account types 
+    $.get("/api/Accounts/GetPeopleAccountTypes", function(data) {
+        ts.addOptions(data);
+        ts.refreshOptions(false);
+
+        edit_ts.addOptions(data);
+        edit_ts.refreshOptions(false);
+    });
+    // load currencies 
+    $.ajax({
+        url: "/api/Currency/Currencies/Simple",
+        type: "GET",
+        success: function(data) {
+            var listCurrencies = $("#listCurrencies");
+            data.forEach(function(currency) {
+                var row = $("<tr>");
+                row.append($("<td>").addClass("d-none").text(currency.id));
+                row.append($("<td>").text(currency.name));
+                row.append($("<td>").append($("<input>").attr("type", "number").attr("step", "any").attr("value", "0").addClass("form-control new-person-balance-validator").attr("placeholder", "مقدار")));
+                listCurrencies.append(row);
             });
-            console.log(JSON.stringify(formData));
-            $.ajax({
-                url: "/api/Accounts/CreatePersonAccount",
-                type: "POST",
-                contentType: "application/json",
-                data: JSON.stringify(formData),
-                success: function(response) {
-                    showToast("شخص حساب په بریالیتوب سره جوړ سو!");
-                    $("#newPersonAccountForm")[0].reset();
-                    $("#createNewPersonAccount").modal("hide");
-                    loadPeoplAccountList();
-                },
-                error: function(xhr, status, error) {
-                    showToast("د شخص حساب جوړولو کې ستونزه رامنځته شوه.");
-                }
-            });
+        },
+    });
+    // validate new person account form
+    var newPersonAccountFormValidator = new JustValidate("#newPersonAccountForm");
+    newPersonAccountFormValidator
+    .addField("#new-name", [
+        {
+            rule: "required",
+            errorMessage: "نوم اړین دی"
+        }
+    ])
+    .addField("#new-code", [
+        {
+            rule: "required",
+            errorMessage: "کوډ اړین دی"
+        }
+    ])
+    .addField("#new-first-phone", [
+        {
+            rule: "required",
+            errorMessage: "لومړی موبایل نمبر اړین دی"
+        }
+    ])
+    .addField("#new-person-type", [
+        {
+            rule: "required",
+            errorMessage: "حساب ډول اړین دی"
+        }
+    ]);
+    // submit new person account form 
+    newPersonAccountFormValidator.onSuccess(function(event) {
+        event.preventDefault();
+        var formData = {
+            name: $("#new-name").val(),
+            code: $("#new-code").val(),
+            nic: $("#new-tazkira").val(),
+            firstPhone: $("#new-first-phone").val(),
+            secondPhone: $("#new-second-phone").val(),
+            email: $("#new-email").val(),
+            address: $("#new-address").val(),
+            accountTypeId: ts.getValue(),
+            balance: []
+        };
+        $("#listCurrencies tr").each(function() {
+            var currencyId = $(this).find("td:first").text();
+            var amount = $(this).find("input").val();
+            if (amount) {
+                formData.balance.push({ currencyID: currencyId, balance: parseFloat(amount) });
+            }
         });
+        console.log(JSON.stringify(formData));
+        $.ajax({
+            url: "/api/Accounts/CreatePersonAccount",
+            type: "POST",
+            contentType: "application/json",
+            data: JSON.stringify(formData),
+            success: function(response) {
+                showToast("success", "شخص حساب په بریالیتوب سره جوړ سو!");
+                $("#newPersonAccountForm")[0].reset();
+                $("#createNewPersonAccount").modal("hide");
+                loadPeoplAccountList();
+            },
+            error: function(xhr, status, error) {
+                showToast("warning", "د شخص حساب جوړولو کې ستونزه رامنځته شوه.");
+            }
+        });
+    });
 
-        // load people list 
-        loadPeoplAccountList();
-        function loadPeoplAccountList(){
-            $.ajax({
-                url : "/api/Accounts/PeopleAccount",
-                type : "GET",
-                success: function (data) {
-                    var dataTable = $("#load-people-accounts-list");
-                    dataTable.empty();
+    // load people list 
+    loadPeoplAccountList();
+    function loadPeoplAccountList(){
+        $.ajax({
+            url : "/api/Accounts/PeopleAccount",
+            type : "GET",
+            success: function (data) {
+                var dataTable = $("#load-people-accounts-list");
+                dataTable.empty();
 
-                    data.forEach(function (rows) {
-                        var row = $("<tr>");
+                data.forEach(function (rows) {
+                    var row = $("<tr>");
 
-                        $("<td>").text(rows.id).appendTo(row);
-                        $("<td>").text(rows.name).appendTo(row);
-                        $("<td>").text(rows.code).appendTo(row);
-                        $("<td>").text(rows.nic).appendTo(row);
-                        $("<td>").text(rows.firstPhone).appendTo(row);
-                        $("<td>").text(rows.secondPhone).appendTo(row);
-                        $("<td>").text(rows.email).appendTo(row);
-                        $("<td>").text(rows.address).appendTo(row);
-                        $("<td>").text(rows.accountTypeName).appendTo(row);
-                        $("<td>").text(rows.isActive ? "فعال" : "غیر فعال").appendTo(row);
+                    $("<td>").text(rows.id).appendTo(row);
+                    $("<td>").text(rows.name).appendTo(row);
+                    $("<td>").text(rows.code).appendTo(row);
+                    $("<td>").text(rows.nic).appendTo(row);
+                    $("<td>").text(rows.firstPhone).appendTo(row);
+                    $("<td>").text(rows.secondPhone).appendTo(row);
+                    $("<td>").text(rows.email).appendTo(row);
+                    $("<td>").text(rows.address).appendTo(row);
+                    $("<td>").text(rows.accountTypeName).appendTo(row);
+                    $("<td>").text(rows.isActive ? "فعال" : "غیر فعال").css("width", "100px").appendTo(row);
 
-                        var actions = $("<td>");
+                    var actions = $("<td>");
+                    if(rows.accountTypeId != 10){
                         var buttonGroup = $("<div>").addClass("btn-group");
 
                         $("<button>")
                             .text("تغیر")
-                            .addClass("btn btn-sm btn-primary")
-                            .attr("data-id", rows.id)
+                            .addClass("btn btn-sm btn-primary btn-edit-person-account")
+                            .attr("data-row", JSON.stringify(rows))
                             .appendTo(buttonGroup);
 
                         $("<button>")
                             .text("بلانس")
-                            .addClass("btn btn-sm btn-primary")
-                            .attr("data-id", rows.id)
+                            .addClass("btn btn-sm btn-primary btn-view-person-account-balance")
+                            .attr("data-info", JSON.stringify({ id: rows.id, name: rows.name }))
                             .appendTo(buttonGroup);
 
                         $("<button>")
                             .text(rows.isActive ? "غیر فعال" : "فعال")
-                            .addClass(rows.isActive ? "btn btn-sm btn-danger" : "btn btn-sm btn-success")
+                            .addClass(rows.isActive ? "btn btn-sm btn-danger btn-toggle-person-account-activation" : "btn btn-sm btn-success btn-toggle-person-account-activation")
                             .attr("data-id", rows.id)
                             .appendTo(buttonGroup);
 
                         actions.append(buttonGroup);
+                    }
                         row.append(actions);
                         dataTable.append(row);
-                    });
-                },
-                error : function(response){
-                    showToast("warning", response.responseText);
-                }
-            });
+                    
+                });
+            },
+            error : function(response){
+                showToast("warning", response.responseText);
+            }
+        });
+    }
+    // validate edit person account form
+    var editPersonAccountFormValidator = new JustValidate("#editPersonAccountForm");
+    editPersonAccountFormValidator
+    .addField("#edit-name", [
+        {
+            rule: "required",
+            errorMessage: "نوم اړین دی"
         }
-    </script>
+    ])
+    .addField("#edit-code", [
+        {
+            rule: "required",
+            errorMessage: "کوډ اړین دی"
+        }
+    ])
+    .addField("#edit-first-phone", [
+        {
+            rule: "required",
+            errorMessage: "لومړی موبایل نمبر اړین دی"
+        }
+    ])
+    .addField("#edit-person-type", [
+        {
+            rule: "required",
+            errorMessage: "حساب ډول اړین دی"
+        }
+    ]);
+    // submit edit person account form
+    editPersonAccountFormValidator.onSuccess(function(event) {
+        event.preventDefault();
+        var formData = {
+            id: $("#edit-person-id").val(),
+            name: $("#edit-name").val(),
+            code: $("#edit-code").val(),
+            nic: $("#edit-tazkira").val(),
+            firstPhone: $("#edit-first-phone").val(),
+            secondPhone: $("#edit-second-phone").val(),
+            email: $("#edit-email").val(),
+            address: $("#edit-address").val(),
+            accountTypeId: edit_ts.getValue()
+        };
+        console.log(JSON.stringify(formData));
+        $.ajax({
+            url: "/api/Accounts/UpdatePersonAccount",
+            type: "PUT",
+            contentType: "application/json",
+            data: JSON.stringify(formData),
+            success: function(response) {
+                showToast("success", "شخص حساب په بریالیتوب سره تازه سو!");
+                $("#editPersonAccountForm")[0].reset();
+                $("#editPersonAccount").modal("hide");
+                loadPeoplAccountList();
+            },
+            error: function(xhr, status, error) {
+                showToast("warning", "د شخص حساب تازه کولو کې ستونزه رامنځته سوه.");
+            }
+        });
+    });
+    // edit person account information
+    $(document).on("click", ".btn-edit-person-account", function(){
+        var row = $(this).data("row");
+        console.log(row);
+        $("#edit-address").val(row.address);
+        $("#edit-code").val(row.code);
+        $("#edit-email").val(row.email);
+        $("#edit-first-phone").val(row.firstPhone);
+        $("#edit-second-phone").val(row.secondPhone);
+        $("#edit-name").val(row.name);
+        $("#edit-tazkira").val(row.nic);
+        $("#edit-person-id").val(row.id);
+        //$("#edit-person-type").val(row.accountTypeId).trigger("change");
+        
+        const tom = $("#edit-person-type")[0].tomselect;
+        tom.setValue(row.accountTypeId);
+
+        $("#editPersonAccount").modal("show");
+    });
+    // view person account balance
+    $(document).on("click", ".btn-view-person-account-balance", function(){
+        var info = $(this).data("info");
+        $.ajax({
+            url: "/api/Accounts/GetAccountBalance/" + info.id,
+            type: "GET",
+            success: function(response) {
+                $("#new-person-name").text(info.name);
+                var personBalances = $("#person-balances");
+                personBalances.empty();
+                response.forEach(function(balance) {
+                    var row = $("<tr>");
+                    row.append($("<td>").text(balance.currencyName));
+                    row.append($("<td>").text(balance.balance));
+                    personBalances.append(row);
+                });
+                $("#personBalancesModal").modal("show");
+            },
+            error: function(xhr, status, error) {
+                showToast("warning", "د حساب بیلانس وچولو کې ستونزه رامنځته سوه.");
+            }
+        });
+    });
+    // change account activation
+    $(document).on("click", ".btn-toggle-person-account-activation", function(){
+        var id = $(this).data("id");
+        Swal.fire({
+                title: "تاسو اطمناني یاست؟",
+                text: "تاسو اطمناني یاست، ترڅو انتخاب سوي حساب غیر فعال کړئ؟",
+                icon: "warning",
+                showCancelButton: true,
+                confirmButtonText: "هو",
+                cancelButtonText: "نه"
+            }).then((result) => {
+
+                if (result.isConfirmed) {
+
+                    $.ajax({
+                        url: "/api/Accounts/UpdateAccountActivation/" + id,   // Your API endpoint
+                        type: "PUT",
+
+                        success: function (response) {
+
+                            showToast("success", "د انتخاب سوي حساب فعالیت تغیر کړل سو.");
+
+                            loadPeoplAccountList();
+                        },
+
+                        error: function (responsive) {
+                            showToast("warning", responsive.responseText);
+                        }
+                    });
+
+                }
+
+            });
+    });
+});
+</script>
 }

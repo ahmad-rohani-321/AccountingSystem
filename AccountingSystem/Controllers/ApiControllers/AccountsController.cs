@@ -35,6 +35,23 @@ namespace AccountingSystem.Controllers.ApiControllers
             return Ok($"{prefix}{(maxNumber + 1).ToString($"D{3}")}");
         }
 
+        [HttpGet("GetAccountBalance/{id}")]
+        public async Task<ActionResult> GetAccountBalance(int id)
+        {
+            var balance = await _context.AccountBalances
+                .Include(ab => ab.Currency)
+                .Where(ab => ab.AccountID == id)
+                .Select(ab => new AccountBalanceViewModel
+                {
+                    CurrencyName = ab.Currency.CurrencyName,
+                    Balance = ab.Balance,
+                    CurrencyID = ab.CurrencyID,
+                    Id = ab.ID
+                })
+                .ToListAsync();
+            return Ok(balance);
+        }
+
         [HttpGet("PeopleAccount")]
         public async Task<ActionResult> GetPeopleAccount()
         {
@@ -57,6 +74,26 @@ namespace AccountingSystem.Controllers.ApiControllers
                             NIC = a.NIC,
                             SecondPhone = a.SecondPhone,
                             IsActive = a.Account.IsActive,
+                            Balance = null
+                        }).ToList();
+            return Ok(data);
+        }
+
+        [HttpGet("NormalAccounts")]
+        public async Task<ActionResult> GetNormalAccounts()
+        {
+            int[] accountTypeLimits = [ 1, 2, 6, 7 ];
+            var data = (await _context.Accounts
+                        .Include(x => x.AccountType)
+                        .Where(a => accountTypeLimits.Contains(a.AccountTypeID)).ToArrayAsync())
+                        .Select(a => new AccountsViewModel()
+                        {
+                            AccountTypeId = a.AccountTypeID,
+                            AccountTypeName = a.AccountType.Name,
+                            Name = a.Name,
+                            Code = a.Code,
+                            IsActive = a.IsActive,
+                            Id = a.ID,
                             Balance = null
                         }).ToList();
             return Ok(data);
@@ -179,6 +216,216 @@ namespace AccountingSystem.Controllers.ApiControllers
                 catch (Exception ex)
                 {
                     await transaction.RollbackAsync();
+                    return BadRequest(ex.Message);
+                }
+            }
+        }
+
+        [HttpPost("CreateAccount")]
+        public async Task<ActionResult> CreateAccount(AccountsViewModel model)
+        {
+            string user = _contextAccessor.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier).Value;
+            if (model.Name == null || model.Name == string.Empty)
+            {
+                return BadRequest("نوم حتمی دی.");
+            }
+            else if (model.Code == null || model.Code == string.Empty)
+            {
+                return BadRequest("کوډ حتمی دی.");
+            }
+            else if (model.AccountTypeId == 0 )
+            {
+                return BadRequest("د حساب ډول حتمی دی.");
+            }
+            else if (await _context.Accounts.AnyAsync(n => n.Name == model.Name))
+            {
+                return BadRequest("لیکل سوی نوم تکراری دی.");
+            }
+            else if (await _context.Accounts.AnyAsync(c => c.Code == model.Name))
+            {
+                return BadRequest("لیکل سوی کوډ تکراری دی.");
+            }
+            else
+            {
+                using var transaction = await _context.Database.BeginTransactionAsync();
+                try
+                {
+                    var person = await _context.Accounts.AddAsync(
+                        new Models.Accounts.Account()
+                        {
+                            Name = model.Name,
+                            CreatedByUserId = user,
+                            AccountTypeID = model.AccountTypeId,
+                            Code = model.Code,
+                            CreationDate = DateTime.Now,
+                            IsActive = true
+                        }
+                        );
+                    await _context.SaveChangesAsync();
+                    if (model.Balance != null || model.Balance.Count < 0)
+                    {
+                        foreach (var balance in model.Balance)
+                        {
+                            await _context.AccountBalances.AddAsync(
+                                new Models.Accounts.AccountBalance()
+                                {
+                                    Balance = balance.Balance,
+                                    AccountID = person.Entity.ID,
+                                    CreatedByUserId = user,
+                                    CreationDate = DateTime.Now,
+                                    CurrencyID = balance.CurrencyID
+                                }
+                                );
+                            if (balance.Balance > 0)
+                            {
+                                // do credit
+                                await _context.JournalEntries.AddAsync(
+                                    new Models.Accounting.JournalEntry()
+                                    {
+                                        Credit = balance.Balance,
+                                        Balance = balance.Balance,
+                                        AccountBalanceID = person.Entity.ID,
+                                        CreatedByUserId = user,
+                                        Remarks = string.Empty,
+                                        TransactionTypeID = 1,
+                                        Debit = 0,
+                                        ChequePhoto = string.Empty,
+                                        CreationDate = DateTime.Now
+                                    }
+                                    );
+                            }
+                            else
+                            {
+                                // do debit
+                                await _context.JournalEntries.AddAsync(
+                                    new Models.Accounting.JournalEntry()
+                                    {
+                                        Credit = 0,
+                                        Balance = balance.Balance,
+                                        AccountBalanceID = person.Entity.ID,
+                                        CreatedByUserId = user,
+                                        Remarks = string.Empty,
+                                        TransactionTypeID = 1,
+                                        Debit = balance.Balance,
+                                        ChequePhoto = string.Empty,
+                                        CreationDate = DateTime.Now
+                                    }
+                                    );
+                            }
+                        }
+                    }
+                    await _context.SaveChangesAsync();
+                    await transaction.CommitAsync();
+                    return Ok();
+                }
+                catch (Exception ex)
+                {
+                    await transaction.RollbackAsync();
+                    return BadRequest(ex.Message);
+                }
+            }
+        }
+
+        [HttpPut("UpdateAccountActivation/{id}")]
+        public async Task<ActionResult> UpdateAccountActivation(int id)
+        {
+            var account = await _context.Accounts.FindAsync(id);
+            if (account == null)
+            {
+                return BadRequest("حساب ونه موندل سو.");
+            }
+            account.IsActive = !account.IsActive;
+            await _context.SaveChangesAsync();
+            return Ok();
+        }
+
+        [HttpPut("UpdatePersonAccount")]
+        public async Task<ActionResult> UpdatePersonAccount(PeopleAccountViewModel personModel)
+        {
+            string user = _contextAccessor.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier).Value;
+            var account = await _context.Accounts.FindAsync(personModel.Id);
+            if (account == null)
+            {
+                return BadRequest("حساب ونه موندل سو.");
+            }
+            else if (personModel.Name == null || personModel.Name == string.Empty)
+            {
+                return BadRequest("نوم حتمی دی.");
+            }
+            else if (personModel.Code == null || personModel.Code == string.Empty)
+            {
+                return BadRequest("کوډ حتمی دی.");
+            }
+            else if (personModel.FirstPhone == null || personModel.FirstPhone == string.Empty)
+            {
+                return BadRequest("لومړی شمېره حتمی ده.");
+            }
+            else if (personModel.AccountTypeId == 0)
+            {
+                return BadRequest("د حساب ډول حتمی دی.");
+            }
+            else
+            {
+                using var transaction = await _context.Database.BeginTransactionAsync();
+                try
+                {
+                    account.Name = personModel.Name;
+                    account.AccountTypeID = personModel.AccountTypeId;
+                    account.Code = personModel.Code;
+                    await _context.SaveChangesAsync();
+
+                    var contact = await _context.AccountContacts.FirstOrDefaultAsync(c => c.AccountID == account.ID);
+                    contact.FirstPhone = personModel.FirstPhone;
+                    contact.SecondPhone = personModel.SecondPhone;
+                    contact.Address = personModel.Address;
+                    contact.Email = personModel.Email;
+                    contact.NIC = personModel.NIC;
+                    await _context.SaveChangesAsync();
+                    await transaction.CommitAsync();
+                    return Ok();
+                }
+                catch (Exception ex)
+                {
+                    await transaction.RollbackAsync();
+                    return BadRequest(ex.Message);
+                }
+            }
+        }
+
+        [HttpPut("UpdateAccount")]
+        public async Task<ActionResult> UpdateAccount(AccountsViewModel model)
+        {
+            string user = _contextAccessor.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier).Value;
+            var account = await _context.Accounts.FindAsync(model.Id);
+            if (account == null)
+            {
+                return BadRequest("حساب ونه موندل سو.");
+            }
+            else if (model.Name == null || model.Name == string.Empty)
+            {
+                return BadRequest("نوم حتمی دی.");
+            }
+            else if (model.Code == null || model.Code == string.Empty)
+            {
+                return BadRequest("کوډ حتمی دی.");
+            }
+            else if (model.AccountTypeId == 0)
+            {
+                return BadRequest("د حساب ډول حتمی دی.");
+            }
+            else
+            {
+                try
+                {
+                    account.Name = model.Name;
+                    account.AccountTypeID = model.AccountTypeId;
+                    account.Code = model.Code;
+
+                    await _context.SaveChangesAsync();
+                    return Ok();
+                }
+                catch (Exception ex)
+                {
                     return BadRequest(ex.Message);
                 }
             }
