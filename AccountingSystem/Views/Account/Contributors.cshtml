@@ -13,10 +13,12 @@
                 @ViewData["title"]
             </div>
             <div class="card-body">
-                <button class="btn btn-primary mb-3" id="createNewPersonAccountBtn">
+                <div class="mb-3">
+                    <button class="btn btn-primary" id="createNewPersonAccountBtn">
                     نوی شخص
                     <i class="fas fa-plus ms-3"></i>
-                </button>
+                    </button>
+                </div>
                 <table class="table table-bordered table-hover">
                     <thead>
                         <tr>
@@ -106,7 +108,7 @@
                     <div class="col-md-6">
                         <div class="mb-3">
                             <label class="form-label" for="new-person-type">حساب ډول</label>
-                            <select id="new-person-type" class="form-control" placeholder="شخص ډول"></select>
+                            <select id="new-person-type" disabled class="form-control" placeholder="شخص ډول"></select>
                         </div>
                     </div>
                 </div>
@@ -208,7 +210,7 @@
                     <div class="col-md-6">
                         <div class="mb-3">
                             <label class="form-label" for="edit-person-type">حساب ډول</label>
-                            <select id="edit-person-type" class="form-control" placeholder="شخص ډول"></select>
+                            <select id="edit-person-type" disabled class="form-control" placeholder="شخص ډول"></select>
                         </div>
                     </div>
                 </div>
@@ -246,7 +248,7 @@
                     <thead>
                         <tr>
                             <th>اسعار</th>
-                            <th>مقدار</th>
+                            <th>مبلغ</th>
                         </tr>
                     </thead>
                     <tbody id="person-balances">
@@ -283,6 +285,9 @@ $(document).ready(function() {
                 showToast("warning", response.responseText);
             }
         });
+        
+        const tom = $("#new-person-type")[0].tomselect;
+        tom.setValue(8);
         $("#createNewPersonAccount").modal('show');
     });
 
@@ -299,7 +304,7 @@ $(document).ready(function() {
         searchField: "name"
     });
     // load account types 
-    $.get("/api/Accounts/GetPeopleAccountTypes", function(data) {
+    $.get("/api/Accounts/GetContributorAccountTypes", function(data) {
         ts.addOptions(data);
         ts.refreshOptions(false);
 
@@ -391,7 +396,7 @@ $(document).ready(function() {
     loadPeoplAccountList();
     function loadPeoplAccountList(){
         $.ajax({
-            url : "/api/Accounts/PeopleAccount",
+            url : "/api/Accounts/ContributorAccounts",
             type : "GET",
             success: function (data) {
                 var dataTable = $("#load-people-accounts-list");
@@ -493,13 +498,13 @@ $(document).ready(function() {
             contentType: "application/json",
             data: JSON.stringify(formData),
             success: function(response) {
-                showToast("success", "شخص حساب په بریالیتوب سره تازه سو!");
+                showToast("success", "شخص حساب په بریالیتوب سره تغیر سو!");
                 $("#editPersonAccountForm")[0].reset();
                 $("#editPersonAccount").modal("hide");
                 loadPeoplAccountList();
             },
             error: function(xhr, status, error) {
-                showToast("warning", "د شخص حساب تازه کولو کې ستونزه رامنځته سوه.");
+                showToast("warning", "د شخص حساب تغیر کولو کې ستونزه رامنځته سوه.");
             }
         });
     });
@@ -548,14 +553,9 @@ $(document).ready(function() {
     // change account activation
     $(document).on("click", ".btn-toggle-person-account-activation", function(){
         var id = $(this).data("id");
-        Swal.fire({
-                title: "تاسو اطمناني یاست؟",
-                text: "تاسو اطمناني یاست، ترڅو انتخاب سوي حساب غیر فعال کړئ؟",
-                icon: "warning",
-                showCancelButton: true,
-                confirmButtonText: "هو",
-                cancelButtonText: "نه"
-            }).then((result) => {
+        
+            sweetAlert("تاسو اطمناني یاست؟", "تاسو اطمناني یاست، ترڅو انتخاب سوي حساب غیر فعال کړئ؟")
+            .then((result) => {
 
                 if (result.isConfirmed) {
 

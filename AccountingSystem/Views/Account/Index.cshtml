@@ -13,30 +13,32 @@
                 د اشخاصو حسابونه
             </div>
             <div class="card-body">
-                <button class="btn btn-primary mb-3" id="createNewPersonAccountBtn">
-                    نوی شخص
-                    <i class="fas fa-plus ms-3"></i>
+            <div class="mb-3">
+                <button class="btn btn-primary" id="createNewPersonAccountBtn">
+                نوی شخص
+                <i class="fas fa-plus ms-3"></i>
                 </button>
-                <table class="table table-bordered table-hover">
-                    <thead>
-                        <tr>
-                            <th>#</th>
-                            <th>نوم</th>
-                            <th>کوډ</th>
-                            <th>تذکره</th>
-                            <th>لومړی شمېره</th>
-                            <th>دوهم شمېره</th>
-                            <th>ایمیل</th>
-                            <th>ادرس</th>
-                            <th>حساب ډول</th>
-                            <th>فعالیت</th>
-                            <th style="width: 100px;">کړني</th>
-                        </tr>
-                    </thead>
-                    <tbody id="load-people-accounts-list">
-                        
-                    </tbody>
-                </table>
+            </div>
+            <table class="table table-bordered table-hover">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>نوم</th>
+                        <th>کوډ</th>
+                        <th>تذکره</th>
+                        <th>لومړی شمېره</th>
+                        <th>دوهم شمېره</th>
+                        <th>ایمیل</th>
+                        <th>ادرس</th>
+                        <th>حساب ډول</th>
+                        <th>فعالیت</th>
+                        <th style="width: 100px;">کړني</th>
+                    </tr>
+                </thead>
+                <tbody id="load-people-accounts-list">
+                    
+                </tbody>
+            </table>
             </div>
         </div>
     </div>
@@ -548,14 +550,8 @@ $(document).ready(function() {
     // change account activation
     $(document).on("click", ".btn-toggle-person-account-activation", function(){
         var id = $(this).data("id");
-        Swal.fire({
-                title: "تاسو اطمناني یاست؟",
-                text: "تاسو اطمناني یاست، ترڅو انتخاب سوي حساب غیر فعال کړئ؟",
-                icon: "warning",
-                showCancelButton: true,
-                confirmButtonText: "هو",
-                cancelButtonText: "نه"
-            }).then((result) => {
+        sweetAlert("تاسو اطمناني یاست؟", "تاسو اطمناني یاست، ترڅو انتخاب سوي حساب غیر فعال کړئ؟")
+            .then((result) => {
 
                 if (result.isConfirmed) {
 

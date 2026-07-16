@@ -84,7 +84,7 @@
                             </ul>
                         </li>
 
-                        <li class="nav-item dropdown">
+                        <li class="nav-item dropdown @ViewData["Inventory"]">
                             <a class="nav-link dropdown-toggle"
                                id="navbarDropdown"
                                role="button"
@@ -105,9 +105,9 @@
                                 </li>
 
                                 <li>
-                                    <a class="dropdown-item">
+                                    <a class="dropdown-item @ViewData["Stocks"]" asp-controller="Inventory" asp-action="Stocks">
                                         <i class="fa-solid fa-boxes-stacked"></i>
-                                        د ګدام موجودي
+                                        ګدامونه
                                     </a>
                                 </li>
 
@@ -128,7 +128,7 @@
 
                         </li>
 
-                        <li class="nav-item dropdown">
+                        <li class="nav-item dropdown  @ViewData["Accounting"]">
                             <a class="nav-link dropdown-toggle"
                                id="navbarDropdown"
                                role="button"
@@ -141,6 +141,12 @@
                             </a>
 
                             <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
+                                <li>
+                                    <a class="dropdown-item @ViewData["SettingsIndex"]" asp-controller="Accounting" asp-action="Index">
+                                        <i class="fa-solid fa-dollar"></i>
+                                        اسعار
+                                    </a>
+                                </li>
                                 <li>
                                     <a class="dropdown-item">
                                         <i class="fa-solid fa-clipboard-list"></i>
@@ -263,7 +269,7 @@
 
                             <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
                                 <li>
-                                    <a class="dropdown-item @ViewData["SettingsIndex"]" asp-controller="Settings" asp-action="Index">
+                                    <a class="dropdown-item">
                                         <i class="fa-solid fa-gear"></i>
                                         تنظیمات
                                     </a>
@@ -423,12 +429,23 @@
                                 toast.onmouseleave = Swal.resumeTimer;
                             }
                         });
-            function showToast(icon, message) {
+        function showToast(icon, message) {
             Toast.fire({
                 icon: icon,
                 title: message
             });
-}
+        }
+
+        function sweetAlert(title, text){
+            return Swal.fire({
+                    title: title,
+                    text: text,
+                    icon: "warning",
+                    showCancelButton: true,
+                    confirmButtonText: "هو",
+                    cancelButtonText: "نه"
+                });
+        }
     </script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>

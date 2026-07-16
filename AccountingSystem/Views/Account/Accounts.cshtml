@@ -14,10 +14,12 @@
                 @ViewData["title"]
             </div>
             <div class="card-body">
-                <button class="btn btn-primary mb-3" id="createNewAccountBtn">
+                <div class="mb-3">
+                    <button class="btn btn-primary" id="createNewAccountBtn">
                     نوی حساب
                     <i class="fas fa-plus ms-3"></i>
-                </button>
+                    </button>
+                </div>
                 <table class="table table-bordered table-hover">
                     <thead>
                         <tr>
@@ -444,14 +446,9 @@ $(document).ready(function() {
     // change account activation
     $(document).on("click", ".btn-toggle-account-activation", function(){
         var id = $(this).data("id");
-        Swal.fire({
-                title: "تاسو اطمناني یاست؟",
-                text: "تاسو اطمناني یاست، ترڅو انتخاب سوي حساب غیر فعال کړئ؟",
-                icon: "warning",
-                showCancelButton: true,
-                confirmButtonText: "هو",
-                cancelButtonText: "نه"
-            }).then((result) => {
+
+            sweetAlert("تاسو اطمناني یاست؟", "تاسو اطمناني یاست، ترڅو انتخاب سوي حساب غیر فعال کړئ؟")
+            .then((result) => {
 
                 if (result.isConfirmed) {
 

@@ -1,4 +1,5 @@
 ﻿using AccountingSystem.Data;
+using AccountingSystem.Models.Identity;
 using AccountingSystem.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -61,6 +62,32 @@ namespace AccountingSystem.Controllers.ApiControllers
                         .Include(x => x.Account)
                         .ThenInclude(c => c.AccountType)
                         .Where(a => accountTypeLimits.Contains(a.Account.AccountTypeID)).ToArrayAsync())
+                        .Select(a => new PeopleAccountViewModel()
+                        {
+                            AccountTypeId = a.Account.AccountTypeID,
+                            AccountTypeName = a.Account.AccountType.Name,
+                            Address = a.Address,
+                            Code = a.Account.Code,
+                            Email = a.Email,
+                            FirstPhone = a.FirstPhone,
+                            Id = a.Account.ID,
+                            Name = a.Account.Name,
+                            NIC = a.NIC,
+                            SecondPhone = a.SecondPhone,
+                            IsActive = a.Account.IsActive,
+                            Balance = null
+                        }).ToList();
+            return Ok(data);
+        }
+
+        [HttpGet("ContributorAccounts")]
+        public async Task<ActionResult> GetContributorAccounts()
+        {
+            var data = (await _context
+                        .AccountContacts
+                        .Include(x => x.Account)
+                        .ThenInclude(c => c.AccountType)
+                        .Where(a => a.Account.AccountTypeID == 8).ToArrayAsync())
                         .Select(a => new PeopleAccountViewModel()
                         {
                             AccountTypeId = a.Account.AccountTypeID,
@@ -209,6 +236,15 @@ namespace AccountingSystem.Controllers.ApiControllers
                             }
                         }
                     }
+                    await _context.UserHistories.AddAsync(
+                        new Models.Identity.UserHistory()
+                        {
+                            CreatedByUserId = user,
+                            CreationDate = DateTime.Now,
+                            Details = $"د {personModel.Name} په نوم حساب جوړ سو.",
+                            ModelName = "حسابونه"
+                        }
+                        );
                     await _context.SaveChangesAsync();
                     await transaction.CommitAsync();
                     return Ok();
@@ -314,6 +350,15 @@ namespace AccountingSystem.Controllers.ApiControllers
                             }
                         }
                     }
+                    await _context.UserHistories.AddAsync(
+                        new Models.Identity.UserHistory()
+                        {
+                            CreatedByUserId = user,
+                            CreationDate = DateTime.Now,
+                            Details = $"د {model.Name} په نوم حساب جوړ سو.",
+                            ModelName = "حسابونه"
+                        }
+                        );
                     await _context.SaveChangesAsync();
                     await transaction.CommitAsync();
                     return Ok();
@@ -335,6 +380,17 @@ namespace AccountingSystem.Controllers.ApiControllers
                 return BadRequest("حساب ونه موندل سو.");
             }
             account.IsActive = !account.IsActive;
+            string activeStatus = account.IsActive ? "فعال" : "غیر فعال";
+            string user = _contextAccessor.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier).Value;
+            await _context.UserHistories.AddAsync(
+                new Models.Identity.UserHistory()
+                {
+                    CreatedByUserId = user,
+                    CreationDate = DateTime.Now,
+                    Details = $"د {account.Name} په نوم حساب {activeStatus} سو.",
+                    ModelName = "حسابونه"
+                }
+                );
             await _context.SaveChangesAsync();
             return Ok();
         }
@@ -380,6 +436,18 @@ namespace AccountingSystem.Controllers.ApiControllers
                     contact.Address = personModel.Address;
                     contact.Email = personModel.Email;
                     contact.NIC = personModel.NIC;
+
+
+                    await _context.UserHistories.AddAsync(
+                        new Models.Identity.UserHistory()
+                        {
+                            CreatedByUserId = user,
+                            CreationDate = DateTime.Now,
+                            Details = $"د {personModel.Name} په نوم حساب تغیر سو.",
+                            ModelName = "حسابونه"
+                        }
+                        );
+
                     await _context.SaveChangesAsync();
                     await transaction.CommitAsync();
                     return Ok();
@@ -420,6 +488,17 @@ namespace AccountingSystem.Controllers.ApiControllers
                     account.Name = model.Name;
                     account.AccountTypeID = model.AccountTypeId;
                     account.Code = model.Code;
+
+
+                    await _context.UserHistories.AddAsync(
+                        new Models.Identity.UserHistory()
+                        {
+                            CreatedByUserId = user,
+                            CreationDate = DateTime.Now,
+                            Details = $"د {model.Name} په نوم حساب تغیر سو.",
+                            ModelName = "حسابونه"
+                        }
+                        );
 
                     await _context.SaveChangesAsync();
                     return Ok();

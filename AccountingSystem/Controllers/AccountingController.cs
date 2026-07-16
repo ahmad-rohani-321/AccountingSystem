@@ -2,7 +2,7 @@
 
 namespace AccountingSystem.Controllers
 {
-    public class SettingsController : Controller
+    public class AccountingController : Controller
     {
         public IActionResult Index()
         {

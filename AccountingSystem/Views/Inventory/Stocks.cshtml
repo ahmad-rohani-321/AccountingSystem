@@ -1,0 +1,105 @@
+﻿@{
+    ViewData["title"] = "ګدامونه";
+    ViewData["Inventory"] = "active";
+    ViewData["Stocks"] = "active";
+}
+
+<div class="row row-deck row-cards">
+    <div class="card">
+        <div class="card-header">
+            <h3 class="h3">@ViewData["title"]</h3>
+        </div>
+        <div class="card-body">
+            <button class="btn btn-primary mb-3">نوی ګدام
+                <i class="fas fa-plus ms-3"></i>
+            </button>
+            <table class="table table-hover table-bordered">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>نوم</th>
+                        <th>ملاحظات</th>
+                        <th>فعالیت</th>
+                        <th>کړني</th>
+                    </tr>
+                </thead>
+                <tbody id="stocksList">
+                    
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts{
+<script>
+$(document).ready(function(){
+    loadStocksList();
+    function loadStocksList(){
+            $.ajax({
+            url : "/api/Inventory/GetStockList",
+            type : "GET",
+            success : function(response){
+                var tableData = $("#stocksList");
+                tableData.empty();
+                
+                response.forEach(function (data){
+                    var row = $("<tr>");
+                    $("<td>").text(data.id).appendTo(row);
+                    $("<td>").text(data.name).appendTo(row);
+                    $("<td>").text(data.description).appendTo(row);
+                    $("<td>").text(data.isActive ? "فعال" : "غیر فعال").appendTo(row);
+
+                    var actions = $("<td>");
+                    var buttonGroup = $("<div>").addClass("btn-group");
+                    $("<button>")
+                        .addClass("btn btn-primary btn-edit-stock")
+                        .text("تغیر")
+                        .attr("data-row", JSON.stringify(data))
+                        .appendTo(buttonGroup);
+
+                    $("<button>")
+                        .addClass(!data.isActive ? "btn btn-success btn-change-activation" : "btn btn-danger btn-change-activation")
+                        .text(!data.isActive ? "فعال" : "غیر فعال")
+                        .attr("data-id", data.id)
+                        .appendTo(buttonGroup);
+                    
+                    buttonGroup.appendTo(actions);
+                    actions.appendTo(row);
+                    row.appendTo(tableData);
+                });
+            },
+            error : function(response){
+                showToast("warning", response.responseText);
+            }
+        });
+    }
+
+    $(document).on("click", ".btn-change-activation", function(event){
+        var id = $(this).data("id");
+        sweetAlert("تاسو اطمناني یاست؟", "تاسو اطمناني یاست، غواړی د ګدام فعالیت تغیر کړی؟")
+            .then((result) => {
+                if (result.isConfirmed) {
+
+                    $.ajax({
+                        url: "/api/Inventory/ChangeStockActivation/" + id,  
+                        type: "PUT",
+
+                        success: function (response) {
+
+                            showToast("success", "د انتخاب سوي ګدام فعالیت تغیر کړل سو.");
+
+                            loadStocksList();
+                        },
+
+                        error: function (responsive) {
+                            showToast("warning", responsive.responseText);
+                        }
+                    });
+
+                }
+            });
+    });
+});
+</script>
+}
