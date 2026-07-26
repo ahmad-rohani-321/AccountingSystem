@@ -19,7 +19,7 @@
                 <i class="fas fa-plus ms-3"></i>
                 </button>
             </div>
-            <table class="table table-bordered table-hover">
+            <table class="table table-bordered table-hover table-responsive">
                 <thead>
                     <tr>
                         <th>#</th>
@@ -415,7 +415,7 @@ $(document).ready(function() {
 
                     var actions = $("<td>");
                     if(rows.accountTypeId != 10){
-                        var buttonGroup = $("<div>").addClass("btn-group");
+                        var buttonGroup = $("<div>").addClass("btn-group-vertical");
 
                         $("<button>")
                             .text("تغیر")

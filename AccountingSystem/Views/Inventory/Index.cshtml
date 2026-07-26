@@ -1,0 +1,667 @@
+﻿@{
+    ViewData["title"] = "اجناس";
+    ViewData["Inventory"] = "active";
+    ViewData["Items"] = "active";
+}
+@section Styles {
+    <link href="~/lib/tom-select/dist/css/tom-select.bootstrap5.css" rel="stylesheet" />
+    <style>
+        .item-image {
+            width: 90px;
+        }
+    </style>
+}
+<div class="row row-deck row-cards">
+    <div class="card">
+        <div class="card-header">
+            <h3 class="h3">@ViewData["title"]</h3>
+        </div>
+        <div class="card-body">
+            <button class="btn btn-primary mb-3" id="createNewItem">
+                نوی جنس
+                <i class="fas fa-plus ms-3"></i>
+            </button>
+            <table class="table table-hover table-bordered table-responsive">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>عکس</th>
+                        <th>نوم</th>
+                        <th>دوهم نوم</th>
+                        <th>جنس کوډ</th>
+                        <th>سیریل نمبر</th>
+                        <th>تشریح</th>
+                        <th>فعالیت</th>
+                        <th>د کمښت خبرتیا</th>
+                        <th>کټیګوري</th>
+                        <th>عمومي واحد</th>
+                        <th>کړني</th>
+                    </tr>
+                </thead>
+                <tbody id="itemsList">
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@* start of create new Item modal *@
+<div class="modal fade" id="createItemModal">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <h2>نوی جنس</h2>
+            </div>
+            <form id="createItemForm">
+                <div class="modal-body py-4">
+                    <h3 class="h3">جنس معلومات</h3>
+                    <div class="row">
+                        <div class="col">
+                            <div class="mb-3">
+                                <label class="form-label" for="newName">جنس نوم</label>
+                                <input type="text" class="form-control" id="newName" />
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="mb-3">
+                                <label class="form-label" for="newSecondName">دوهم نوم</label>
+                                <input type="text" class="form-control" id="newSecondName" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col">
+                            <div class="mb-3">
+                                <label class="form-label" for="newItemCode">جنس کوډ</label>
+                                <input type="text" class="form-control" id="newItemCode" />
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="mb-3">
+                                <label class="form-label" for="newSerialNo">سیریل نمبر</label>
+                                <input type="text" class="form-control" id="newSerialNo" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col">
+                            <div class="mb-3">
+                                <label class="form-label" for="newDescription">تشریح</label>
+                                <input type="text" class="form-control" id="newDescription" />
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="mb-3">
+                                <label class="form-label" for="newMinItems">د کمښت خبرتیا</label>
+                                <input type="number" class="form-control" id="newMinItems" value="0" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col">
+                            <div class="mb-3">
+                                <label class="form-label" for="newCategory"> کټیګوري</label>
+                                <select class="form-control" id="newCategory"></select>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="mb-3">
+                                <label class="form-label" for="newUnit">عمومي واحد</label>
+                                <select class="form-control" id="newUnit"></select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col">
+                            <div class="mb-3">
+                                <label class="form-label" for="newCategory"> کټیګوري</label>
+                                <input type="file" class="form-control" id="newImage" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-body py-4">
+                    <h3 class="h3">فرعي واحدونه</h3>
+                    <table class="table table-bordered table-responsive table-hover">
+                        <thead>
+                            <tr>
+                                <th class="d-none">#</th>
+                                <th>واحد</th>
+                                <th>عمومي واحد اندازه</th>
+                                <th>فرعي واحد اندازه</th>
+                                <th>ملاحظات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="newSubUnits"></tbody>
+                    </table>
+                </div>
+                <div class="modal-footer">
+                    <div class="w-100">
+                        <div class="row">
+                            <div class="col">
+                                <button id="save-edited-unit" type="submit" class="btn btn-primary w-100"> تائید </button>
+                            </div>
+                            <div class="col">
+                                <button class="btn w-100" type="reset" data-bs-dismiss="modal"> لغوه </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+@* end of create new Item modal *@
+
+@* start of edit Item modal *@
+<div class="modal fade" id="editItemModal">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <h2>تغیر جنس</h2>
+            </div>
+            <form id="editItemForm">
+                <div class="modal-body py-4">
+                    <h3 class="h3">جنس معلومات</h3>
+                    <input type="hidden" id="itemId"/>
+                    <div class="row">
+                        <div class="col">
+                            <div class="mb-3">
+                                <label class="form-label" for="editName">جنس نوم</label>
+                                <input type="text" class="form-control" id="editName" />
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="mb-3">
+                                <label class="form-label" for="editSecondName">دوهم نوم</label>
+                                <input type="text" class="form-control" id="editSecondName" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col">
+                            <div class="mb-3">
+                                <label class="form-label" for="editItemCode">جنس کوډ</label>
+                                <input type="text" class="form-control" id="editItemCode" />
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="mb-3">
+                                <label class="form-label" for="editSerialNo">سیریل نمبر</label>
+                                <input type="text" class="form-control" id="editSerialNo" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col">
+                            <div class="mb-3">
+                                <label class="form-label" for="editDescription">تشریح</label>
+                                <input type="text" class="form-control" id="editDescription" />
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="mb-3">
+                                <label class="form-label" for="editMinItems">د کمښت خبرتیا</label>
+                                <input type="number" class="form-control" id="editMinItems" value="0" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col">
+                            <div class="mb-3">
+                                <label class="form-label" for="editCategory"> کټیګوري</label>
+                                <select class="form-control" id="editCategory"></select>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="mb-3">
+                                <label class="form-label" for="editUnit">عمومي واحد</label>
+                                <select class="form-control" id="editUnit"></select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col">
+                            <div class="mb-3">
+                                <label class="form-label" for="editImage"> عکس</label>
+                                <input type="file" class="form-control" id="editImage" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-body py-4">
+                    <h3 class="h3">فرعي واحدونه</h3>
+                    <table class="table table-bordered table-responsive table-hover">
+                        <thead>
+                            <tr>
+                                <th class="d-none">id</th>
+                                <th>واحد</th>
+                                <th>عمومي واحد اندازه</th>
+                                <th>فرعي واحد اندازه</th>
+                                <th>ملاحظات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="editSubUnits"></tbody>
+                    </table>
+                </div>
+                <div class="modal-footer">
+                    <div class="w-100">
+                        <div class="row">
+                            <div class="col">
+                                <button type="submit" class="btn btn-primary w-100"> تائید </button>
+                            </div>
+                            <div class="col">
+                                <button class="btn w-100" type="reset" data-bs-dismiss="modal"> لغوه </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+@* end of edit Item modal *@
+
+<!-- Example split danger button -->
+
+@section Scripts{
+<script src="~/lib/tom-select/dist/js/tom-select.complete.min.js"></script>
+<script src="~/lib/just-validate/dist/just-validate.production.min.js"></script>
+<script src=""></script>
+<script>
+$(document).ready(function(){
+    getItemsList();
+});
+
+$.ajax({
+    url: "/api/Inventory/GetActiveUnitsList",
+    type : "GET",
+    success : function(data){
+        var dataTable = $("#newSubUnits");
+        data.forEach(function(eachRow){
+            var tr = $("<tr>");
+            $("<td>").addClass("d-none").text(eachRow.id).appendTo(tr);
+            $("<td>").text(eachRow.name).appendTo(tr);
+
+            var mainUnit = $("<td>");
+            var maiUnitControl = $("<input>").attr("type", "number").attr("value", "0").addClass("form-control");
+            maiUnitControl.appendTo(mainUnit);
+            mainUnit.appendTo(tr);
+
+            var subUnit = $("<td>");
+            var subUnitControl = $("<input>").attr("type", "number").attr("value", "0").addClass("form-control");
+            subUnitControl.appendTo(subUnit);
+            subUnit.appendTo(tr);
+
+            var remarkTd = $("<td>");
+            var remarksControl = $("<input>").attr("type", "text").addClass("form-control");
+            remarksControl.appendTo(remarkTd);
+            remarkTd.appendTo(tr);
+
+            tr.appendTo(dataTable);
+        });
+    },
+    error : function(response){
+        showToast("success", response);
+    }
+});
+
+// new item modal
+createTomSelect("#newCategory", "GetActiveCatsList");
+createTomSelect("#newUnit", "GetActiveUnitsList");
+
+// edit item modal
+createTomSelect("#editUnit", "GetActiveUnitsList");
+createTomSelect("#editCategory", "GetActiveCatsList");
+
+
+function createTomSelect(selectId, endPointName){
+    var select = new TomSelect(selectId, {
+        valueField: "id",
+        labelField: "name",
+        searchField: "name"
+    });
+    $.get("/api/Inventory/" + endPointName, function(data) {
+    select.addOptions(data);
+    select.refreshOptions(false);
+    });
+}
+
+var newItemFormData = {
+    name: "#newName",
+    code : "#newItemCode",
+    minQuantity: "#newMinItems",
+    category: "#newCategory",
+    mainUnit: "#newUnit",
+    image: "#newImage"
+}
+itemFormValidator("#createItemForm", newItemFormData)
+.onSuccess(function (event) {
+    event.preventDefault();
+
+    const item = {
+        unitConversions: $("#newSubUnits tr").map(function () {
+            const cells = $(this).find("td");
+
+            return {
+                subUnitId: Number(cells.eq(0).text().trim()),
+                mainUnitQuantity: Number(cells.eq(2).find("input").val() || 0),
+                subUnitQuantity: Number(cells.eq(3).find("input").val() || 0),
+                remarks: cells.eq(4).find("input").val()
+            };
+        }).get()
+    };
+    var formData = new FormData();
+
+    // Append primary fields
+    formData.append("Name", $("#newName").val().trim());
+    formData.append("SecondName", $("#newSecondName").val().trim());
+    formData.append("Code", $("#newItemCode").val().trim());
+    formData.append("SerialNo", $("#newSerialNo").val().trim());
+    formData.append("Description", $("#newDescription").val().trim());
+    formData.append("MinQuantity", Number($("#newMinItems").val()));
+    formData.append("CategoryId", Number($("#newCategory")[0].tomselect.getValue()));
+    formData.append("MainUnitId", Number($("#newUnit")[0].tomselect.getValue()));
+
+    // Append the nested list using indexed notation
+    item.unitConversions.forEach((conversion, index) => {
+        formData.append(`UnitConversions[${index}].SubUnitId`, conversion.subUnitId);
+        formData.append(`UnitConversions[${index}].MainUnitQuantity`, conversion.mainUnitQuantity);
+        formData.append(`UnitConversions[${index}].SubUnitQuantity`, conversion.subUnitQuantity);
+        formData.append(`UnitConversions[${index}].Remarks`, conversion.remarks || "");
+    });
+
+    // Append the file
+    if ($("#newImage")[0].files[0]) {
+        formData.append("ImageFile", $("#newImage")[0].files[0]);
+    }
+
+    $.ajax({
+        url: "/api/Inventory/CreateItem",
+        type: "POST",
+        data: formData,
+        processData: false,
+        contentType: false, 
+        success: function (result) {
+            showToast("success", "جنس ثبت سو");
+            getItemsList();
+            $("#createItemForm")[0].reset();
+            $("#createItemModal").modal("hide");
+        },
+        error: function (xhr) {
+            showToast("warning", xhr.responseText);
+            console.error(xhr.responseText);
+        }
+    });
+});
+
+var editItemFormData = {
+    name: "#editName",
+    code : "#editItemCode",
+    minQuantity: "#editMinItems",
+    category: "#editCategory",
+    mainUnit: "#editUnit",
+    image : "#editImage"
+}
+
+itemFormValidator("#editItemForm", editItemFormData)
+.onSuccess(function (event) {
+    event.preventDefault();
+
+    const item = {
+        unitConversions: $("#editSubUnits tr").map(function () {
+            const cells = $(this).find("td");
+
+            return {
+                subUnitId: Number(cells.eq(0).text().trim()),
+                mainUnitQuantity: Number(cells.eq(2).find("input").val() || 0),
+                subUnitQuantity: Number(cells.eq(3).find("input").val() || 0),
+                remarks: cells.eq(4).find("input").val()
+            };
+        }).get()
+    };
+    var formData = new FormData();
+
+    // Append primary fields
+    formData.append("Name", $("#editName").val().trim());
+    formData.append("SecondName", $("#editSecondName").val().trim());
+    formData.append("Code", $("#editItemCode").val().trim());
+    formData.append("SerialNo", $("#editSerialNo").val().trim());
+    formData.append("Description", $("#editDescription").val().trim());
+    formData.append("MinQuantity", Number($("#editMinItems").val()));
+    formData.append("CategoryId", Number($("#editCategory")[0].tomselect.getValue()));
+    formData.append("MainUnitId", Number($("#editUnit")[0].tomselect.getValue()));
+
+    // Append the nested list using indexed notation
+    item.unitConversions.forEach((conversion, index) => {
+        formData.append(`UnitConversions[${index}].SubUnitId`, conversion.subUnitId);
+        formData.append(`UnitConversions[${index}].MainUnitQuantity`, conversion.mainUnitQuantity);
+        formData.append(`UnitConversions[${index}].SubUnitQuantity`, conversion.subUnitQuantity);
+        formData.append(`UnitConversions[${index}].Remarks`, conversion.remarks || "");
+    });
+
+    // Append the file
+    if ($("#editImage")[0].files[0]) {
+        formData.append("ImageFile", $("#editImage")[0].files[0]);
+    }
+
+    $.ajax({
+        url: "/api/Inventory/UpdateItem",
+        type: "PUT",
+        data: formData,
+        processData: false,
+        contentType: false, 
+        success: function (result) {
+            showToast("success", "جنس ثبت سو");
+            getItemsList();
+            $("#editItemForm")[0].reset();
+            $("#editItemModal").modal("hide");
+        },
+        error: function (xhr) {
+            showToast("warning", xhr.responseText);
+            console.error(xhr.responseText);
+        }
+    });
+});
+
+
+
+function itemFormValidator(formId, form){
+    var newFormValidator = new JustValidate(formId);
+    newFormValidator.addField(form.name, [
+    {
+        rule : "required",
+        errorMessage : "نوم اړین دی"
+    }
+    ])
+    .addField(form.code, [
+    {
+        rule: "required",
+        errorMessage: "کوډ حتمی دی"
+    }])
+    .addField(form.minQuantity, [
+    {
+        rule: "minNumber",
+        value: 0,
+        errorMessage: "د کمښت خبرتیا نمبر باید له صفر کم نه وي."
+    }])
+    .addField(form.category, [
+    {
+        rule: "required",
+        errorMessage: "کټیګوري حتمی دی"
+    }])
+    .addField(form.mainUnit, [
+    {
+        rule: "required",
+        errorMessage: "عمومي واحد حتمی دی"
+    }])
+    .addField(form.image, [
+    {
+      rule: 'files',
+      value: {
+        files: {
+          extensions: ['jpeg', 'jpg', 'png'],
+          maxSize: 500000,
+          types: ['image/jpeg', 'image/jpg', 'image/png'],
+        },
+        errorMessage : "یوازي عکس آپلوډ کړی"
+      },
+      errorMessage : "تر 500 KB اضافه عکس نه آپلوډکیږي"
+    }])
+    return newFormValidator;
+}
+
+$("#createNewItem").click(function(){
+    $.ajax({
+        url: "/api/Inventory/Next-Code",
+        type: "GET",
+        success: function(response){
+            $("#newItemCode").val(response);
+        },
+        error : function(response){
+            showToast("warning", response);
+        }
+    });
+    $("#createItemModal").modal("show");
+});
+// for change activation
+$(document).on("click", ".btn-change-activation", function(event){
+    var id = $(this).data("id");
+    sweetAlert("تاسو اطمناني یاست؟", "تاسو اطمناني یاست، غواړی د جنس فعالیت تغیر کړی؟")
+    .then((result) => {
+        if (result.isConfirmed) {
+
+            $.ajax({
+                url: "/api/Inventory/ChangeItemActivation/" + id,  
+                type: "PUT",
+
+                success: function (response) {
+
+                    showToast("success", "د انتخاب سوي جنس فعالیت تغیر کړل سو.");
+
+                    getItemsList();
+                },
+
+                error: function (responsive) {
+                    showToast("warning", responsive.responseText);
+                }
+            });
+
+        }
+    });
+})
+
+$(document).on("click", ".btn-edit", function(event){
+    var data = $(this).data("row");
+
+    $("#itemId").val(data.id);
+    $("#editName").val(data.name);
+    $("#editSecondName").val(data.secondName);
+    $("#editItemCode").val(data.code);
+    $("#editSerialNo").val(data.serialNo);
+    $("#editDescription").val(data.description);
+    $("#editMinItems").val(data.minQuantity);
+    $("#editCategory")[0].tomselect.setValue(data.categoryId);
+    $("#editUnit")[0].tomselect.setValue(data.mainUnitId);
+
+    $.ajax({
+        url: "/api/Inventory/GetUnitConversions/" + data.id,
+        type: "GET",
+        success : function(response){
+            var dataTable = $("#editSubUnits");
+            dataTable.empty();
+            response.forEach(function(row){
+                var tr = $("<tr>");
+                $("<td>").addClass("d-none").text(row.id).appendTo(tr);
+                $("<td>").text(row.subUnitName).appendTo(tr);
+
+                var mainAmountTD = $("<td>");
+                var mainAmountTDControl = $("<input>").attr("type", "number").addClass("form-control").val(row.mainUnitQuantity);
+                mainAmountTDControl.appendTo(mainAmountTD);
+                mainAmountTD.appendTo(tr);
+                
+                var subAmountTD = $("<td>");
+                var subAmountTDControl = $("<input>").attr("type", "number").addClass("form-control").val(row.subUnitQuantity);
+                subAmountTDControl.appendTo(subAmountTD);
+                subAmountTD.appendTo(tr);
+                
+                var remarksTD = $("<td>");
+                var remarksTDControl = $("<input>").addClass("form-control").val(row.remarks);
+                remarksTDControl.appendTo(remarksTD);
+                remarksTD.appendTo(tr);
+
+                tr.appendTo(dataTable);
+            });
+        }
+    });
+
+    $("#editItemModal").modal("show");
+})
+
+function getItemsList(){
+    $.ajax({
+        url: "/api/Inventory/GetItemsList",
+        type: "GET",
+        success : function(respondedData){
+            var dataTable = $("#itemsList");
+            dataTable.empty();
+            respondedData.forEach(function(data){
+                var tr = $("<tr>");
+                $("<td>").text(data.id).appendTo(tr);
+                var imageCell = $("<td>");
+                var imageThumb = $("<img>").addClass("item-image").attr("src", "Items/"+ data.image);
+                imageThumb.appendTo(imageCell);
+                imageCell.appendTo(tr);
+                $("<td>").text(data.name).appendTo(tr);
+                $("<td>").text(data.secondName).appendTo(tr);
+                $("<td>").text(data.code).appendTo(tr);
+                $("<td>").text(data.serialNo).appendTo(tr);
+                $("<td>").text(data.description).appendTo(tr);
+                var activation = $("<td>").appendTo(tr);
+                $("<span>").addClass(data.isActive ? "badge bg-blue text-blue-fg" : "badge bg-red text-red-fg").text(data.isActive ? "فعال" : "غیر فعال").appendTo(activation);
+                $("<td>").text(data.minQuantity).appendTo(tr);
+                $("<td>").text(data.categoryName).appendTo(tr);
+                $("<td>").text(data.mainUnitName).appendTo(tr);
+                var actionsCell = $("<td>");
+                var dropDown = $("<div>").addClass("btn-group");
+                
+                $("<button>").addClass("btn btn-primary btn-edit").attr("data-row", JSON.stringify(data)).text("تغیر").appendTo(dropDown);
+
+                var drowDownToggle = $("<button>").addClass("btn btn-primary dropdown-toggle dropdown-toggle-split").attr("data-bs-toggle", "dropdown").attr("aria-expanded", "false").appendTo(dropDown);
+
+                $("<span>").addClass("visually-hidden").appendTo(dropDown);
+
+                var ul = $("<ul>").addClass("dropdown-menu");
+
+                var firstUl = $("<li>");
+                $("<button>").addClass(data.isActive ? "dropdown-item btn-change-activation" : "dropdown-item btn-change-activation").text(data.isActive ? "غیر فعال" : "فعال").attr("data-id", data.id).appendTo(firstUl);
+                firstUl.appendTo(ul);
+
+                var secondUl = $("<li>");
+                $("<button>").addClass("dropdown-item btn-units").attr("data-nameandsecondname", JSON.stringify({id : data.id, name : data.name, secondName : data.secondName})).text("واحدونه").appendTo(secondUl);
+                secondUl.appendTo(secondUl);
+
+                var thirdUl = $("<li>");
+                $("<button>").addClass("dropdown-item btn-new-stock").attr("data-nameandsecondname", JSON.stringify({id : data.id, name : data.name, secondName : data.secondName})).text("نوی موجودي").appendTo(thirdUl);
+                thirdUl.appendTo(ul);
+
+                var fourthUl = $("<li>");
+                $("<button>").addClass("dropdown-item btn-currency-stock").attr("data-nameandsecondname", JSON.stringify({id : data.id, name : data.name, secondName : data.secondName})).text("موجودي").appendTo(fourthUl);
+                fourthUl.appendTo(ul);
+                
+                ul.appendTo(dropDown);
+                dropDown.appendTo(actionsCell);
+                actionsCell.appendTo(tr);
+                tr.appendTo(dataTable);
+
+            });
+        },
+        error : function(error){
+            console.error(error);
+        }
+    });
+}
+</script>
+}

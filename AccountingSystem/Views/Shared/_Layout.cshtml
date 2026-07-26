@@ -1,10 +1,7 @@
 ﻿@using AccountingSystem.Models.Identity
 @using Microsoft.AspNetCore.Identity
-@inject UserManager<User> _userManager;
 @{
-    var user = await _userManager.GetUserAsync(User);
-    IList<string> userRoles = await _userManager.GetRolesAsync(user!);
-    string roles = string.Join(',', userRoles);
+    
 }
 <!DOCTYPE html>
 <html lang="ps-AF" data-bs-theme="light">
@@ -98,7 +95,7 @@
 
                             <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
                                 <li>
-                                    <a class="dropdown-item">
+                                    <a class="dropdown-item @ViewData["Items"]" asp-controller="Inventory" asp-action="Index">
                                         <i class="fa-solid fa-box"></i>
                                         اجناس
                                     </a>
@@ -303,8 +300,8 @@
                            aria-label="Open user menu">
                             <span class="avatar avatar-sm"></span>
                             <div class="d-none d-xl-block ps-2">
-                                <div>@user!.FirstName @user!.LastName</div>
-                                <div class="mt-1 small text-secondary">@roles</div>
+                                <div id="userInfo"></div>
+                                <div class="mt-1 small text-secondary" id="userRoles"></div>
                             </div>
                         </a>
                         <div class="dropdown-menu dropdown-menu-end dropdown-menu-arrow">
@@ -391,18 +388,41 @@
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/sweetalert2/dist/sweetalert2.all.min.js"></script>
     <script>
+
+        $.ajax({
+            url: "/api/Users/GetCurrencyUser",
+            type: "GET",
+            success: function(data){
+                $("#userInfo").text(data.firstName + " " + data.lastName);
+            },
+            error: function(response){
+                console.log(response);
+            }
+        });
+
+        $.ajax({
+            url: "/api/Users/GetCurrenctUserRoles",
+            type: "GET",
+            success: function(data){
+                $("#userRoles").text(data);
+            },
+            error: function(response){
+                console.log(response);
+            }
+        });
+
         document.getElementById("logoutYesButton").onclick = function(){
             var logoutform = document.getElementById("logoutForm");
             logoutform.submit();
         }
-
-
 
         const html = document.documentElement;
 
         // Load saved theme
         const savedTheme = localStorage.getItem("theme") || "light";
         html.setAttribute("data-bs-theme", savedTheme);
+
+        var globalTheme = localStorage.getItem("theme");
 
         var toggleThemeButton = document.getElementById("theme-toggle");
 
@@ -416,11 +436,13 @@
             html.setAttribute("data-bs-theme", theme);
         toggleThemeButton.innerHTML = (theme === "dark" ? "<i class='fa-solid fa-sun'></i> روښان شکل" : "<i class='fa-solid fa-moon'></i> تاریک شکل");
             localStorage.setItem("theme", theme);
+            globalTheme = localStorage.getItem("theme");
         });
 
          const Toast = Swal.mixin({
                             toast: true,
                             position: "top-end",
+                            theme: globalTheme,
                             showConfirmButton: false,
                             timer: 3000,
                             timerProgressBar: true,
@@ -432,7 +454,8 @@
         function showToast(icon, message) {
             Toast.fire({
                 icon: icon,
-                title: message
+                title: message,
+                theme: globalTheme
             });
         }
 
@@ -440,6 +463,7 @@
             return Swal.fire({
                     title: title,
                     text: text,
+                    theme: globalTheme,
                     icon: "warning",
                     showCancelButton: true,
                     confirmButtonText: "هو",

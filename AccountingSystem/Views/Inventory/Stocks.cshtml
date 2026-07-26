@@ -4,13 +4,14 @@
     ViewData["Stocks"] = "active";
 }
 
+@* start of stock code *@
 <div class="row row-deck row-cards">
     <div class="card">
         <div class="card-header">
             <h3 class="h3">@ViewData["title"]</h3>
         </div>
         <div class="card-body">
-            <button class="btn btn-primary mb-3">نوی ګدام
+            <button class="btn btn-primary mb-3" data-bs-toggle="modal" data-bs-target="#add-stock-modal">نوی ګدام
                 <i class="fas fa-plus ms-3"></i>
             </button>
             <table class="table table-hover table-bordered">
@@ -18,7 +19,7 @@
                     <tr>
                         <th>#</th>
                         <th>نوم</th>
-                        <th>ملاحظات</th>
+                        <th>تشریح</th>
                         <th>فعالیت</th>
                         <th>کړني</th>
                     </tr>
@@ -31,65 +32,394 @@
     </div>
 </div>
 
+
+<div class="modal fade" id="add-stock-modal" tabindex="-1">
+    <div class="modal-dialog modal-sm" role="document">
+        <div class="modal-content">
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            <form id="new-stock-form">
+                <div class="modal-body py-4">
+                    <h2>نوي ګدام</h2>
+                    <div class="mb-3">
+                        <label class="form-label" for="stockname">ګدام نوم</label>
+                        <input type="text" class="form-control" id="stockname" name="newStockName" />
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label" for="stockdescription">تشریح</label>
+                        <input type="text" class="form-control" id="stockdescription" name="newStockDescription" />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <div class="w-100">
+                        <div class="row">
+                            <div class="col">
+                                <button id="save-new-stock" type="submit" class="btn btn-primary w-100"> تائید </button>
+                            </div>
+                            <div class="col">
+                                <button class="btn w-100" type="reset" data-bs-dismiss="modal"> لغوه </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="edit-stock-modal" tabindex="0">
+    <div class="modal-dialog modal-sm" role="document">
+        <div class="modal-content">
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            <form id="edit-stock-form">
+                <div class="modal-body py-4">
+                    <h2 >د ګدام تغیر</h2>
+                    <input type="hidden" id="stockId" />
+                    <div class="mb-3">
+                        <label class="form-label" for="editstockname">ګدام نوم</label>
+                        <input type="text" class="form-control" id="editstockname" />
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label" for="editstockdescription">تشریح</label>
+                        <input type="text" class="form-control" id="editstockdescription" />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <div class="w-100">
+                        <div class="row">
+                            <div class="col">
+                                <button id="save-edited-stock" type="submit"  class="btn btn-primary w-100"> تائید </button>
+                            </div>
+                            <div class="col">
+                                <button class="btn w-100" type="reset" data-bs-dismiss="modal"> لغوه </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+@* end of stock html *@
+<hr />
+@* start of cateogry html *@
+
+<div class="row row-deck row-cards">
+    <div class="card">
+        <div class="card-header">
+            <h3 class="h3">کټیګوري</h3>
+        </div>
+        <div class="card-body">
+            <button class="btn btn-primary mb-3" data-bs-toggle="modal" data-bs-target="#add-cat-modal">
+                نوې کټیګوري
+                <i class="fas fa-plus ms-3"></i>
+            </button>
+            <table class="table table-hover table-bordered">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>نوم</th>
+                        <th>تشریح</th>
+                        <th>فعالیت</th>
+                        <th>کړني</th>
+                    </tr>
+                </thead>
+                <tbody id="catslist">
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="add-cat-modal" tabindex="-1">
+    <div class="modal-dialog modal-sm" role="document">
+        <div class="modal-content">
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            <form id="new-cat-form">
+                <div class="modal-body py-4">
+                    <h2>نوې کټیکوري</h2>
+                    <div class="mb-3">
+                        <label class="form-label" for="catname">کټیګوري نوم</label>
+                        <input type="text" class="form-control" id="catname" name="newCatName" />
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label" for="catdescription">تشریح</label>
+                        <input type="text" class="form-control" id="catdescription" name="newCatDescription" />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <div class="w-100">
+                        <div class="row">
+                            <div class="col">
+                                <button id="save-new-cat" type="submit" class="btn btn-primary w-100"> تائید </button>
+                            </div>
+                            <div class="col">
+                                <button class="btn w-100" type="reset" data-bs-dismiss="modal"> لغوه </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="edit-cat-modal" tabindex="0">
+    <div class="modal-dialog modal-sm" role="document">
+        <div class="modal-content">
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            <form id="edit-cat-form">
+                <div class="modal-body py-4">
+                    <h2>د کټیګوري تغیر</h2>
+                    <input type="hidden" id="catId" />
+                    <div class="mb-3">
+                        <label class="form-label" for="editcatname">کټیګوري نوم</label>
+                        <input type="text" class="form-control" id="editcatname" />
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label" for="editstockdescription">تشریح</label>
+                        <input type="text" class="form-control" id="editcatdescription" />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <div class="w-100">
+                        <div class="row">
+                            <div class="col">
+                                <button id="save-edited-cat" type="submit" class="btn btn-primary w-100"> تائید </button>
+                            </div>
+                            <div class="col">
+                                <button class="btn w-100" type="reset" data-bs-dismiss="modal"> لغوه </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+@* end of category html *@
+<hr/>
+@* start of unit html *@
+<div class="row row-deck row-cards">
+    <div class="card">
+        <div class="card-header">
+            <h3 class="h3">واحدونه</h3>
+        </div>
+        <div class="card-body">
+            <button class="btn btn-primary mb-3" data-bs-toggle="modal" data-bs-target="#add-unit-modal">
+                نوی واحد
+                <i class="fas fa-plus ms-3"></i>
+            </button>
+            <table class="table table-hover table-bordered">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>نوم</th>
+                        <th>تشریح</th>
+                        <th>فعالیت</th>
+                        <th>کړني</th>
+                    </tr>
+                </thead>
+                <tbody id="unitslist">
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="add-unit-modal" tabindex="-1">
+    <div class="modal-dialog modal-sm" role="document">
+        <div class="modal-content">
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            <form id="new-unit-form">
+                <div class="modal-body py-4">
+                    <h2>نوی واحد</h2>
+                    <div class="mb-3">
+                        <label class="form-label" for="unitname">واحد نوم</label>
+                        <input type="text" class="form-control" id="unitname" name="newunitName" />
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label" for="unitdescription">تشریح</label>
+                        <input type="text" class="form-control" id="unitdescription" name="newunitDescription" />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <div class="w-100">
+                        <div class="row">
+                            <div class="col">
+                                <button id="save-new-unit" type="submit" class="btn btn-primary w-100"> تائید </button>
+                            </div>
+                            <div class="col">
+                                <button class="btn w-100" type="reset" data-bs-dismiss="modal"> لغوه </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="edit-unit-modal" tabindex="0">
+    <div class="modal-dialog modal-sm" role="document">
+        <div class="modal-content">
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            <form id="edit-unit-form">
+                <div class="modal-body py-4">
+                    <h2>د واحد تغیر</h2>
+                    <input type="hidden" id="unitId" />
+                    <div class="mb-3">
+                        <label class="form-label" for="editunitname">واحد نوم</label>
+                        <input type="text" class="form-control" id="editunitname" />
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label" for="editstockdescription">تشریح</label>
+                        <input type="text" class="form-control" id="editunitdescription" />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <div class="w-100">
+                        <div class="row">
+                            <div class="col">
+                                <button id="save-edited-unit" type="submit" class="btn btn-primary w-100"> تائید </button>
+                            </div>
+                            <div class="col">
+                                <button class="btn w-100" type="reset" data-bs-dismiss="modal"> لغوه </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+@* end of unit html *@
+
 @section Scripts{
+<script src="~/lib/just-validate/dist/just-validate.production.min.js"></script>
+@* start of unit code *@
 <script>
-$(document).ready(function(){
-    loadStocksList();
-    function loadStocksList(){
-            $.ajax({
-            url : "/api/Inventory/GetStockList",
-            type : "GET",
-            success : function(response){
-                var tableData = $("#stocksList");
-                tableData.empty();
+function generalContentLoader(endpointName, tbodyId, editButtonClass, changeActivationClass){
+    $.ajax({
+        url : "/api/Inventory/" + endpointName,
+        type : "GET",
+        success : function(response){
+            var tableData = $(tbodyId);
+            tableData.empty();
+            
+            response.forEach(function (data){
+                var row = $("<tr>");
+                $("<td>").text(data.id).appendTo(row);
+                $("<td>").text(data.name).appendTo(row);
+                $("<td>").text(data.description).appendTo(row);
+                $("<td>").text(data.isActive ? "فعال" : "غیر فعال").appendTo(row);
+
+                var actions = $("<td>");
+                var buttonGroup = $("<div>").addClass("btn-group");
+                $("<button>")
+                    .addClass("btn btn-primary btn-sm " + editButtonClass)
+                    .text("تغیر")
+                    .attr("data-row", JSON.stringify(data))
+                    .appendTo(buttonGroup);
+
+                $("<button>")
+                    .addClass(!data.isActive ? ("btn btn-success btn-sm " + changeActivationClass) : ("btn btn-danger btn-sm " + changeActivationClass))
+                    .text(!data.isActive ? "فعال" : "غیر فعال")
+                    .attr("data-id", data.id)
+                    .appendTo(buttonGroup);
                 
-                response.forEach(function (data){
-                    var row = $("<tr>");
-                    $("<td>").text(data.id).appendTo(row);
-                    $("<td>").text(data.name).appendTo(row);
-                    $("<td>").text(data.description).appendTo(row);
-                    $("<td>").text(data.isActive ? "فعال" : "غیر فعال").appendTo(row);
+                buttonGroup.appendTo(actions);
+                actions.appendTo(row);
+                row.appendTo(tableData);
+            });
+        },
+        error : function(response){
+            showToast("warning", response.responseText);
+        }
+    });
+}
+function generalContentCreator(formId, nameFieldId, descriptionFieldId, endPointName, createModalId, successMessage, contentLoaderObject){
+    var formvalidator = new JustValidate(formId);
+        formvalidator.
+        addField(nameFieldId, [
+        {
+            rule : "required",
+            errorMessage : "نوم حتمي دی"
+        }
+        ]);
 
-                    var actions = $("<td>");
-                    var buttonGroup = $("<div>").addClass("btn-group");
-                    $("<button>")
-                        .addClass("btn btn-primary btn-edit-stock")
-                        .text("تغیر")
-                        .attr("data-row", JSON.stringify(data))
-                        .appendTo(buttonGroup);
-
-                    $("<button>")
-                        .addClass(!data.isActive ? "btn btn-success btn-change-activation" : "btn btn-danger btn-change-activation")
-                        .text(!data.isActive ? "فعال" : "غیر فعال")
-                        .attr("data-id", data.id)
-                        .appendTo(buttonGroup);
-                    
-                    buttonGroup.appendTo(actions);
-                    actions.appendTo(row);
-                    row.appendTo(tableData);
-                });
+    formvalidator.onSuccess((event) => {
+        event.preventDefault();
+        
+        var category = {
+            name : $(nameFieldId).val(),
+            description : $(descriptionFieldId).val()
+        };
+        $.ajax({
+            url  : ("/api/Inventory/" + endPointName),
+            type : "POST",
+            contentType: "application/json",
+            data : JSON.stringify(category),
+            success : function(response){
+                $(formId)[0].reset();
+                $(createModalId).modal("hide");
+                showToast("success", successMessage);
+                generalContentLoader(contentLoaderObject.endPointName, contentLoaderObject.tbodyId, contentLoaderObject.editButtonClass, contentLoaderObject.changeActivationClass);
             },
             error : function(response){
                 showToast("warning", response.responseText);
             }
         });
-    }
-
-    $(document).on("click", ".btn-change-activation", function(event){
+    });
+}
+function generalContentUpdater(formId, idFieldId, nameFieldId, descriptionFieldId, endPointName, updateModalId, successMessage, contentLoaderObject){
+    var editCatModalValidator = new JustValidate(formId);
+        editCatModalValidator.
+        addField(nameFieldId, [
+        {
+            rule : "required",
+            errorMessage : "نوم حتمي دی"
+        }
+        ]);
+        editCatModalValidator.onSuccess((event) => {
+        event.preventDefault();
+        var category = {
+            id: $(idFieldId).val(),
+            name : $(nameFieldId).val(),
+            description : $(descriptionFieldId).val()
+        };
+        $.ajax({
+            url  : ("/api/Inventory/" + endPointName),
+            type : "PUT",
+            contentType: "application/json",
+            data : JSON.stringify(category),
+            success : function(response){
+                $(formId)[0].reset();
+                $(updateModalId).modal("hide");
+                showToast("success", successMessage);
+                generalContentLoader(contentLoaderObject.endPointName, contentLoaderObject.tbodyId, contentLoaderObject.editButtonClass, contentLoaderObject.changeActivationClass);
+            },
+            error : function(response){
+                showToast("warning", response.responseText);
+            }
+        });
+    });
+}
+function generalContentActivationChanger(activationClass, modalName, activationModel, contentLoaderObject){
+    $(document).on("click", activationClass, function(event){
         var id = $(this).data("id");
-        sweetAlert("تاسو اطمناني یاست؟", "تاسو اطمناني یاست، غواړی د ګدام فعالیت تغیر کړی؟")
+        sweetAlert("تاسو اطمناني یاست؟", "تاسو اطمناني یاست، غواړی د " + modalName + " فعالیت تغیر کړی؟")
             .then((result) => {
                 if (result.isConfirmed) {
 
                     $.ajax({
-                        url: "/api/Inventory/ChangeStockActivation/" + id,  
+                        url: "/api/Inventory/" + activationModel + "/" + id,  
                         type: "PUT",
 
                         success: function (response) {
 
-                            showToast("success", "د انتخاب سوي ګدام فعالیت تغیر کړل سو.");
+                            showToast("success", "د انتخاب سوي " + modalName + " فعالیت تغیر کړل سو.");
 
-                            loadStocksList();
+                            generalContentLoader(contentLoaderObject.endPointName, contentLoaderObject.tbodyId, contentLoaderObject.editButtonClass, contentLoaderObject.changeActivationClass);
                         },
 
                         error: function (responsive) {
@@ -100,6 +430,134 @@ $(document).ready(function(){
                 }
             });
     });
-});
+}
 </script>
+<script>
+var unitContentLoaderObject = {
+    endPointName : "GetUnitsList", 
+    tbodyId :  "#unitslist", 
+    editButtonClass : "btn-edit-unit", 
+    changeActivationClass : "btn-change-unit-activation"
+}
+generalContentLoader(unitContentLoaderObject.endPointName, 
+    unitContentLoaderObject.tbodyId, 
+    unitContentLoaderObject.editButtonClass, 
+    unitContentLoaderObject.changeActivationClass);
+
+generalContentCreator("#new-unit-form", "#unitname", "#unitdescription", "CreateUnit", "#add-unit-modal", "کټیګوری ثبت سو", unitContentLoaderObject);
+
+generalContentUpdater("#edit-unit-form", 
+    "#unitId", 
+    "#editunitname", 
+    "#editunitdescription", 
+    "UpdateUnit", 
+    "#edit-unit-modal", 
+    "واحد تغیر سو", unitContentLoaderObject);
+    
+$(document).on("click", ".btn-edit-unit", function(event){
+    var row = $(this).data("row");
+    $("#unitId").val(row.id);
+    $("#editunitname").val(row.name);
+    $("#editunitdescription").val(row.description);
+
+    $("#edit-unit-modal").modal("show");
+});
+generalContentActivationChanger(".btn-change-unit-activation", 
+    "واحد", 
+    "ChangeUnitActivation", 
+    unitContentLoaderObject);
+
+    $(document).on("click", ".btn-edit-cat", function(event){
+        var row = $(this).data("row");
+        $("#catId").val(row.id);
+        $("#editcatname").val(row.name);
+        $("#editcatdescription").val(row.description);
+
+        $("#edit-cat-modal").modal("show");
+    });
+</script>
+@* end of unit code *@
+
+@* start of cat code *@
+<script>
+var catContentLoaderObject = {
+    endPointName : "GetCatsList", 
+    tbodyId :  "#catslist", 
+    editButtonClass : "btn-edit-cat", 
+    changeActivationClass : "btn-change-cat-activation"
+}
+generalContentLoader(catContentLoaderObject.endPointName, 
+    catContentLoaderObject.tbodyId, 
+    catContentLoaderObject.editButtonClass, 
+    catContentLoaderObject.changeActivationClass);
+
+generalContentCreator("#new-cat-form", "#catname", "#catdescription", "CreateCategory", "#add-cat-modal", "کټیګوری ثبت سو", catContentLoaderObject);
+
+generalContentUpdater("#edit-cat-form", 
+    "#catId", 
+    "#editcatname", 
+    "#editcatdescription", 
+    "UpdateCategory", 
+    "#edit-cat-modal", 
+    "کټیګوري تغیر سو", catContentLoaderObject);
+    
+$(document).on("click", ".btn-edit-cat", function(event){
+    var row = $(this).data("row");
+    $("#catId").val(row.id);
+    $("#editcatname").val(row.name);
+    $("#editcatdescription").val(row.description);
+
+    $("#edit-cat-modal").modal("show");
+});
+generalContentActivationChanger(".btn-change-cat-activation", 
+    "کټیګوري", 
+    "ChangeCategoryActivation", 
+    catContentLoaderObject);
+</script>
+@* end of cats code *@
+
+@* start of stock code *@
+<script>
+var stockContentLoaderObject = {
+    endPointName : "GetStockList", 
+    tbodyId :  "#stocksList", 
+    editButtonClass : "btn-edit-stock", 
+    changeActivationClass : "btn-change-stock-activation"
+}
+generalContentLoader(stockContentLoaderObject.endPointName, 
+    stockContentLoaderObject.tbodyId, 
+    stockContentLoaderObject.editButtonClass, 
+    stockContentLoaderObject.changeActivationClass);
+
+generalContentCreator("#new-stock-form", 
+    "#stockname", 
+    "#stockdescription", 
+    "CreateStock", 
+    "#add-stock-modal", 
+    "ګدام ثبت سو", 
+    stockContentLoaderObject);
+
+generalContentUpdater("#edit-stock-form", 
+    "#stockId", 
+    "#editstockname", 
+    "#editstockdescription", 
+    "UpdateStock", 
+    "#edit-stock-modal", 
+    "ګدام تغیر سو", 
+    stockContentLoaderObject);
+    
+$(document).on("click", ".btn-edit-stock", function(event){
+    var row = $(this).data("row");
+    $("#stockId").val(row.id);
+    $("#editstockname").val(row.name);
+    $("#editstockdescription").val(row.description);
+
+    $("#edit-stock-modal").modal("show");
+});
+generalContentActivationChanger(".btn-change-stock-activation", 
+    "ګدام", 
+    "ChangeStockActivation", 
+    stockContentLoaderObject);
+</script>
+@* end of stock code *@
 }
