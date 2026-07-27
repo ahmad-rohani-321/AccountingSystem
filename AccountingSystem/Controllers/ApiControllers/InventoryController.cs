@@ -170,6 +170,18 @@ namespace AccountingSystem.Controllers.ApiControllers
                         }).ToList();
             return Ok(list);
         }
+
+        [HttpGet("GetActiveStockList")]
+        public async Task<ActionResult> GetActiveStockList()
+        {
+            var list = (await _context.WareHouses.Where(x => x.IsActive).ToArrayAsync())
+                        .Select(s => new StockViewModel()
+                        {
+                            Id = s.ID,
+                            Name = s.Name
+                        }).ToList();
+            return Ok(list);
+        }
         #endregion
 
         #region categories
@@ -483,26 +495,6 @@ namespace AccountingSystem.Controllers.ApiControllers
         {
             var allUnits = await _context.Units.Where(x => x.IsActive).ToListAsync();
             var itemUnits = await _context.UnitConversion.Where(x => x.ItemID == id).ToListAsync();
-            // var data = allUnits.Select(x => new UnitConversionViewModel()
-            // {
-            //     Id = 0
-            // }).ToList();
-            // var data = await (
-            //     from unit in _context.Units
-            //     where unit.IsActive
-            //     join conversion in _context.UnitConversion.Where(x => x.ItemID == id)
-            //         on unit.ID equals conversion.SubUnitID into conversions
-            //     from conversion in conversions.DefaultIfEmpty()
-            //     select new UnitConversionViewModel
-            //     {
-            //         Id = conversion != null ? conversion.ID : 0,
-            //         SubUnitId = unit.ID,
-            //         SubUnitName = unit.Name,
-            //         MainUnitQuantity = conversion != null ? conversion.MainAmount : 0,
-            //         SubUnitQuantity = conversion != null ? conversion.SubAmount : 0,
-            //         Remarks = conversion != null ? conversion.Remarks : null
-            //     }
-            // ).AsNoTracking().ToListAsync();
 
             var data = allUnits.Select(unit =>
                 {
@@ -526,6 +518,28 @@ namespace AccountingSystem.Controllers.ApiControllers
                     };
                 }).ToList();
             return Ok(data);
+        }
+
+        [HttpGet("GetUnitConversionsOnly/{id}")]
+        public async Task<ActionResult> GetUnitConversionsOnly(int id)
+        {
+            if (!await _context.Items.AnyAsync(x => x.ID == id))
+            {
+                return BadRequest("جنس نه دی موجود!");
+            }
+            else
+            {
+                var units = (await _context.UnitConversion
+                        .Include(x => x.SubUnit)
+                        .Where(x => x.ItemID == id && x.MainAmount > 0)
+                        .ToArrayAsync())
+                        .Select(x => new UnitConversionViewModel()
+                        {
+                            Id = x.ID,
+                            SubUnitName = x.SubUnit.Name
+                        }).ToList();
+                return Ok(units);
+            }
         }
         #endregion
 
@@ -741,7 +755,7 @@ namespace AccountingSystem.Controllers.ApiControllers
             {
                 return BadRequest("یوازي عکس قبول کیږي!");
             }
-            else if (await _context.Items.AnyAsync(x => x.NativeName == request.Name))
+            else if (await _context.Items.AnyAsync(x => x.ID != request.Id && x.NativeName == request.Name))
             {
                 return BadRequest($"جنس نوم تکراري دی.");
             }
@@ -759,8 +773,8 @@ namespace AccountingSystem.Controllers.ApiControllers
                         unit.SubUnitQuantity < 0 ||
 
                         // Exactly one is zero while the other is positive.
-                        (unit.MainUnitQuantity == 0 && unit.SubUnitQuantity > 0) ||
-                        (unit.MainUnitQuantity > 0 && unit.SubUnitQuantity == 0)
+                        (unit.MainUnitQuantity >= 0 && unit.SubUnitQuantity > 0) ||
+                        (unit.MainUnitQuantity > 0 && unit.SubUnitQuantity >= 0)
                     ))
             {
                 return BadRequest("واحدونه اصلاح کړئ");
@@ -770,6 +784,8 @@ namespace AccountingSystem.Controllers.ApiControllers
                 using var transaction = await _context.Database.BeginTransactionAsync();
                 try
                 {
+                    var getItem = await _context.Items.FindAsync(request.Id);
+
                     string fileName = "default.png";
                     if (request.ImageFile != null)
                     {
@@ -780,64 +796,73 @@ namespace AccountingSystem.Controllers.ApiControllers
                         await request.ImageFile.CopyToAsync(stream);
                     }
 
-                    var newItem = await _context.Items.AddAsync(new Item()
-                    {
-                        NativeName = request.Name,
-                        AliasName = request.SecondName,
-                        CategoryId = request.CategoryId,
-                        CreatedByUserId = user,
-                        CreationDate = DateTime.Now,
-                        Description = request.Description,
-                        ImageName = fileName,
-                        IsActive = true,
-                        MinimumQuantity = request.MinQuantity,
-                        SerialNumber = request.SerialNo,
-                        SKU = request.Code,
-                        UnitId = request.MainUnitId
-                    });
+
+                    getItem.NativeName = request.Name;
+                    getItem.AliasName = request.SecondName;
+                    getItem.CategoryId = request.CategoryId;
+                    getItem.CreatedByUserId = user;
+                    getItem.CreationDate = DateTime.Now;
+                    getItem.Description = request.Description;
+                    getItem.ImageName = fileName;
+                    getItem.IsActive = true;
+                    getItem.MinimumQuantity = request.MinQuantity;
+                    getItem.SerialNumber = request.SerialNo;
+                    getItem.SKU = request.Code;
+                    getItem.UnitId = request.MainUnitId;
+                    
                     await _context.SaveChangesAsync();
 
                     foreach (var unit in request.UnitConversions)
                     {
-                        if (unit.SubUnitId == newItem.Entity.UnitId)
+                        // Find this conversion only for the current item.
+                        var conversion = await _context.UnitConversion
+                            .FirstOrDefaultAsync(x =>
+                                x.ID == unit.Id &&
+                                x.ItemID == request.Id);
+
+                        // Main unit must always be 1 : 1.
+                        var isMainUnit = unit.SubUnitId == request.MainUnitId;
+
+                        if (conversion == null)
                         {
-                            await _context.UnitConversion.AddAsync(new UnitConversion()
+                            // No existing record: add a new one when needed.
+                            conversion = new UnitConversion
                             {
+                                ItemID = request.Id,
+                                SubUnitID = unit.SubUnitId,
+                                MainUnitId = request.MainUnitId,
                                 CreatedByUserId = user,
-                                CreationDate = DateTime.Now,
-                                ItemID = newItem.Entity.ID,
-                                MainUnitId = newItem.Entity.UnitId,
-                                SubUnitID = newItem.Entity.UnitId,
-                                MainAmount = 1,
-                                SubAmount = 1,
-                                ExchangedAmount = 1,
-                                Remarks = string.Empty
-                            });
+                                CreationDate = DateTime.Now
+                            };
+
+                            await _context.UnitConversion.AddAsync(conversion);
+                        }
+
+                        // Existing record or new record: update its values.
+                        conversion.MainUnitId = request.MainUnitId;
+                        conversion.Remarks = unit.Remarks;
+
+                        if (isMainUnit)
+                        {
+                            conversion.MainAmount = 1;
+                            conversion.SubAmount = 1;
+                            conversion.ExchangedAmount = 1;
                         }
                         else
                         {
-                            if (unit.MainUnitQuantity > 0 && unit.SubUnitQuantity > 0)
-                            {
-                                await _context.UnitConversion.AddAsync(new UnitConversion()
-                                {
-                                    CreatedByUserId = user,
-                                    CreationDate = DateTime.Now,
-                                    ItemID = newItem.Entity.ID,
-                                    MainAmount = unit.MainUnitQuantity,
-                                    SubAmount = unit.SubUnitQuantity,
-                                    SubUnitID = unit.SubUnitId,
-                                    MainUnitId = newItem.Entity.UnitId,
-                                    Remarks = unit.Remarks,
-                                    ExchangedAmount = unit.SubUnitQuantity / unit.MainUnitQuantity
-                                });
-                            }
+                            conversion.MainAmount = unit.MainUnitQuantity;
+                            conversion.SubAmount = unit.SubUnitQuantity;
+
+                            conversion.ExchangedAmount = unit.MainUnitQuantity == 0
+                                ? 0
+                                : unit.SubUnitQuantity / unit.MainUnitQuantity;
                         }
                     }
                     await _context.UserHistories.AddAsync(new Models.Identity.UserHistory()
                     {
                         CreatedByUserId = user,
                         CreationDate = DateTime.Now,
-                        Details = $"د {newItem.Entity.NativeName} په نوم جنس اضافه سو.",
+                        Details = $"د {getItem.NativeName} په نوم جنس تغیر سو.",
                         ModelName = "اجناس"
                     });
                     await _context.SaveChangesAsync();
@@ -883,7 +908,7 @@ namespace AccountingSystem.Controllers.ApiControllers
         public async Task<ActionResult> ChangeItemActivation(int id)
         {
             var user = _accessor.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier).Value;
-            if (!(await _context.Items.AnyAsync(x => x.ID == id)))
+            if (!await _context.Items.AnyAsync(x => x.ID == id))
             {
                 return BadRequest("جنس نه دی موجود!");
             }
@@ -909,6 +934,26 @@ namespace AccountingSystem.Controllers.ApiControllers
                 {
                     await transaction.RollbackAsync();
                     return BadRequest(ex.Message);
+                }
+            }
+        }
+
+        [HttpGet("HasStock/{id}")]
+        public async Task<ActionResult> HasStock(int id)
+        {
+            if (!await _context.Items.AnyAsync(x => x.ID == id))
+            {
+                return BadRequest("جنس نه دی موجود");
+            }
+            else
+            {
+                if (await _context.StockBalances.AnyAsync(x => x.ItemID == id))
+                {
+                    return Ok(true);
+                }
+                else
+                {
+                    return BadRequest(false);
                 }
             }
         }

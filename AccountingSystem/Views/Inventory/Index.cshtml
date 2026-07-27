@@ -237,6 +237,7 @@
                         <thead>
                             <tr>
                                 <th class="d-none">id</th>
+                                <th class="d-none">unitid</th>
                                 <th>واحد</th>
                                 <th>عمومي واحد اندازه</th>
                                 <th>فرعي واحد اندازه</th>
@@ -266,6 +267,54 @@
 
 <!-- Example split danger button -->
 
+<div class="modal fade" id="newStock">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <h2>نوی جنس</h2>
+            </div>
+            <form id="newStockForm">
+                <input type="hidden" id="newStockItemId">
+                <div class="modal-body py-4">
+                    <h3 class="h3 text-muted" id="itemname"></h3>
+                </div>
+                <div class="modal-body py-4">
+                    <h3 class="h3">فرعي واحدونه 
+                        <button class="btn btn-sm m-4" id="addNewStockRow">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </h3>
+                    
+                    <table class="table table-bordered table-responsive table-hover">
+                        <thead>
+                            <tr>
+                                <th>واحد</th>
+                                <th>تعداد</th>
+                                <th>ګدام</th>
+                                <th>ملاحظات</th>
+                                <th>حذف</th>
+                            </tr>
+                        </thead>
+                        <tbody id="newStockRows"></tbody>
+                    </table>
+                </div>
+                <div class="modal-footer">
+                    <div class="w-100">
+                        <div class="row">
+                            <div class="col">
+                                <button type="submit" class="btn btn-primary w-100"> تائید </button>
+                            </div>
+                            <div class="col">
+                                <button class="btn w-100" type="reset" data-bs-dismiss="modal"> لغوه </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 @section Scripts{
 <script src="~/lib/tom-select/dist/js/tom-select.complete.min.js"></script>
 <script src="~/lib/just-validate/dist/just-validate.production.min.js"></script>
@@ -308,26 +357,45 @@ $.ajax({
     }
 });
 
-// new item modal
-createTomSelect("#newCategory", "GetActiveCatsList");
-createTomSelect("#newUnit", "GetActiveUnitsList");
-
-// edit item modal
-createTomSelect("#editUnit", "GetActiveUnitsList");
-createTomSelect("#editCategory", "GetActiveCatsList");
-
-
-function createTomSelect(selectId, endPointName){
-    var select = new TomSelect(selectId, {
+var newCategory = new TomSelect("#newCategory", {
         valueField: "id",
         labelField: "name",
         searchField: "name"
     });
-    $.get("/api/Inventory/" + endPointName, function(data) {
-    select.addOptions(data);
-    select.refreshOptions(false);
+var newUnit = new TomSelect("#newUnit", {
+        valueField: "id",
+        labelField: "name",
+        searchField: "name"
     });
-}
+
+var editCategory = new TomSelect("#editCategory", {
+        valueField: "id",
+        labelField: "name",
+        searchField: "name"
+    });
+var editUnit = new TomSelect("#editUnit", {
+        valueField: "id",
+        labelField: "name",
+        searchField: "name"
+    });
+
+var units = $.get("/api/Inventory/GetActiveCatsList", function(data) {
+        newUnit.addOptions(data);
+        newUnit.refreshOptions(false);
+
+        editUnit.addOptions(data);
+        editUnit.refreshOptions(false);
+    });
+
+
+var cats = $.get("/api/Inventory/GetActiveUnitsList", function(data) {
+        newCategory.addOptions(data);
+        newCategory.refreshOptions(false);
+
+        editCategory.addOptions(data);
+        editCategory.refreshOptions(false);
+    });
+
 
 var newItemFormData = {
     name: "#newName",
@@ -415,16 +483,18 @@ itemFormValidator("#editItemForm", editItemFormData)
             const cells = $(this).find("td");
 
             return {
-                subUnitId: Number(cells.eq(0).text().trim()),
-                mainUnitQuantity: Number(cells.eq(2).find("input").val() || 0),
-                subUnitQuantity: Number(cells.eq(3).find("input").val() || 0),
-                remarks: cells.eq(4).find("input").val()
+                id: Number(cells.eq(0).text().trim()),
+                subUnitId: Number(cells.eq(1).text().trim()),
+                mainUnitQuantity: Number(cells.eq(3).find("input").val() || 0),
+                subUnitQuantity: Number(cells.eq(4).find("input").val() || 0),
+                remarks: cells.eq(5).find("input").val()
             };
         }).get()
     };
     var formData = new FormData();
 
     // Append primary fields
+    formData.append("id", $("#itemId").val());
     formData.append("Name", $("#editName").val().trim());
     formData.append("SecondName", $("#editSecondName").val().trim());
     formData.append("Code", $("#editItemCode").val().trim());
@@ -436,6 +506,7 @@ itemFormValidator("#editItemForm", editItemFormData)
 
     // Append the nested list using indexed notation
     item.unitConversions.forEach((conversion, index) => {
+        formData.append(`UnitConversions[${index}].Id`, conversion.id);
         formData.append(`UnitConversions[${index}].SubUnitId`, conversion.subUnitId);
         formData.append(`UnitConversions[${index}].MainUnitQuantity`, conversion.mainUnitQuantity);
         formData.append(`UnitConversions[${index}].SubUnitQuantity`, conversion.subUnitQuantity);
@@ -575,6 +646,7 @@ $(document).on("click", ".btn-edit", function(event){
             response.forEach(function(row){
                 var tr = $("<tr>");
                 $("<td>").addClass("d-none").text(row.id).appendTo(tr);
+                $("<td>").addClass("d-none").text(row.subUnitId).appendTo(tr);
                 $("<td>").text(row.subUnitName).appendTo(tr);
 
                 var mainAmountTD = $("<td>");
@@ -598,8 +670,149 @@ $(document).on("click", ".btn-edit", function(event){
     });
 
     $("#editItemModal").modal("show");
-})
+});
 
+$(document).on("click", ".btn-new-stock", function(event){
+    event.preventDefault();
+    //newStock
+    var data = $(this).data("nameandsecondname");
+    var hasBalance = false;
+    $.ajax({
+        url: "/api/Inventory/HasStock/" + data.id,
+        type: "GET",
+        success: function(response){
+            hasBalance = response;
+        },
+        error : function(error){
+            hasBalance = error.responseJSON;
+        }
+    });
+
+
+   if(!hasBalance){
+        $("#newStockItemId").val(data.id);
+
+        $("#itemname").text(data.name + (data.secondName == null || data.secondName == "" ? "" : `(${data.secondName})`));
+        $("#newStock").modal("show");
+   }
+   else{
+        showToast("info", "د انتخاب سوي جنس ابتدایئ موجودي نه ثبت کیږي.");
+   }
+});
+
+var newStockValidator = new JustValidate("#newStockForm");
+
+$("#addNewStockRow").click(async function(event){
+    event.preventDefault();
+
+    if ($("#newStockRows tr").length > 0) {
+        var currentRowsAreValid = await newStockValidator.revalidate();
+
+        if (!currentRowsAreValid) {
+            return;
+        }
+    }
+
+    var rowTemplate = $("<tr>");
+    var unitsCell = $("<td>");
+    var unitsField = $("<select>").addClass("unit-conversions form-control");
+    unitsField.appendTo(unitsCell);
+    unitsCell.appendTo(rowTemplate);
+
+    var quantityCell = $("<td>");
+    var quantityField = $("<input>").attr("type", "number").addClass("form-control");
+    quantityField.appendTo(quantityCell);
+    quantityCell.appendTo(rowTemplate);
+
+    var stockCell = $("<td>");
+    var stockField = $("<select>").addClass("stocks-list form-control");
+    stockField.appendTo(stockCell);
+    stockCell.appendTo(rowTemplate);
+
+    var remarksCell = $("<td>");
+    var remarksField = $("<input>").attr("type", "text").addClass("form-control");
+    remarksField.appendTo(remarksCell);
+    remarksCell.appendTo(rowTemplate);
+
+    var remarksCell = $("<td>");
+    var remarksbutton = $("<button>").addClass("btn btn-danger btn-remove-row");
+    var remarksButtonIcon = $("<i>").addClass("fas fa-trash-can");
+    remarksButtonIcon.appendTo(remarksbutton);
+    remarksbutton.appendTo(remarksCell);
+    remarksCell.appendTo(rowTemplate);
+
+    var dataTable = $("#newStockRows");
+    rowTemplate.appendTo(dataTable);
+
+    var unitSelect = new TomSelect(unitsField[0], {
+        valueField: "id",
+        labelField: "subUnitName",
+        searchField: "subUnitName"
+    });
+
+    var stockSelect = new TomSelect(stockField[0], {
+        valueField: "id",
+        labelField: "name",
+        searchField: "name"
+    });
+
+    $.get("/api/Inventory/GetUnitConversionsOnly/" + $("#newStockItemId").val(), function(rows) {
+        unitSelect.addOptions(rows);
+    });
+
+    $.get("/api/Inventory/GetActiveStockList/", function(rows) {
+        stockSelect.addOptions(rows);
+    });
+
+    newStockValidator.addField(unitsField[0], [
+        {
+            rule: "required",
+            errorMessage: "واحد اړین دی"
+        }
+    ]);
+
+    newStockValidator.addField(stockField[0], [
+        {
+            rule: "required",
+            errorMessage: "ګدام اړین دی"
+        }
+    ]);
+
+    newStockValidator.addField(quantityField[0], [
+        {
+            rule: "required",
+            errorMessage: "تعداد اړین دی"
+        },
+        {
+            validator: function(value) {
+                return Number(value) > 0;
+            },
+            errorMessage: "تعداد باید له صفر څخه زیات وي"
+        }
+    ]);
+
+});
+
+newStockValidator.onSuccess(function(event){
+
+    const item = {
+        unitConversions: $("#newStockRows tr").map(function () {
+            const cells = $(this).find("td");
+
+            return {
+                subUnitId: Number(cells.eq(0).text().trim()),
+                mainUnitQuantity: Number(cells.eq(2).find("input").val() || 0),
+                subUnitQuantity: Number(cells.eq(3).find("input").val() || 0),
+                remarks: cells.eq(4).find("input").val()
+            };
+        }).get()
+    };
+});
+
+$(document).on("click", ".btn-remove-row", function (event) {
+    event.preventDefault();
+    $(this).closest("tr").remove();
+});
 function getItemsList(){
     $.ajax({
         url: "/api/Inventory/GetItemsList",
