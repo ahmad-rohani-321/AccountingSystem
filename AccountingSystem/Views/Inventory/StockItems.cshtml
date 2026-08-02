@@ -3,7 +3,11 @@
     ViewData["StockItems"] = "active";
     ViewData["Inventory"] = "active";
 }
-
+@section Styles {
+<link href="~/lib/flatpickr-jalali-support/dist/flatpickr.min.css" rel="stylesheet" />
+<link href="~/lib/flatpickr-jalali-support/dist/themes/soft-card.css" rel="stylesheet" />
+<link href="~/lib/tom-select/dist/css/tom-select.bootstrap5.css" rel="stylesheet" />
+}
 <div class="row row-deck row-cards">
     <div class="card">
         <div class="card-header">
@@ -82,21 +86,96 @@
 </div>
 
 @section Scripts {
+<script src="~/lib/flatpickr-jalali-support/dist/flatpickr.min.js"></script>
+<script src="~/lib/flatpickr-jalali-support/dist/l10n/fa.js"></script>
+<script src="~/lib/tom-select/dist/js/tom-select.complete.min.js"></script>
+<script src="~/lib/just-validate/dist/just-validate.production.min.js"></script>
 <script>
+$(document).ready(function(){
+$(".control-date").flatpickr({
+    locale: "fa"
+});
+});
+var stocks = null;
+$.get("/api/Inventory/GetActiveStockList/", function(rows) {
+    stocks = rows;
+});
+var activeItems = null;
+$.get("/api/Inventory/GetActiveItemsList/", function(rows) {
+    activeItems = rows;
+});
 $(document).on("click", "#addNewStockItemRow", function(event){
     event.preventDefault();
     var newRow = $("<tr>");
-    $("<td>").html('<input type="date" class="form-control" name="date">').appendTo(newRow);
-    $("<td>").html('<select class="form-select" name="itemId"><option value="">جنس انتخاب کړئ</option></select>').appendTo(newRow);
+    var dateCell = $("<td>").html('<input type="text" class="form-control control-date" placeholder="نېټه">');
+    flatpickr(dateCell.find("input")[0], {
+        locale: "fa",
+        defaultDate: new Date(),
+        allowInput: true
+    });
+    dateCell.appendTo(newRow);
+    
+    $("<td>").html('<select class="form-select select-item" name="itemId"><option value="">جنس انتخاب کړئ</option></select>').appendTo(newRow);
+    var itemsCell = newRow.find('select[name="itemId"]');
+
     $("<td>").html('<select class="form-select" name="unitId"><option value="">واحد انتخاب کړئ</option></select>').appendTo(newRow);
+
+    var unitSelect = new TomSelect(newRow.find('select[name="unitId"]')[0], {
+        valueField: "id",
+        labelField: "subUnitName",
+        searchField: "subUnitName"
+    });
+
     $("<td>").html('<select class="form-select" name="stockId"><option value="">ګدام انتخاب کړئ</option></select>').appendTo(newRow);
+    var stocksCell = newRow.find('select[name="stockId"]');
+
     $("<td>").html('<input type="number" class="form-control" name="quantity">').appendTo(newRow);
     $("<td>").html('<input type="text" class="form-control" name="remarks">').appendTo(newRow);
     var deleteCell = $("<td>");
-    var deleteBtn = $("<button>").addClass("btn btn-sm btn-danger btn-delete-row").text("حذف");
+    var deleteBtn = $("<button>").addClass("btn btn-sm btn-danger btn-remove-row").html("<i class='fas fa-trash-can'></i>");
+
+    var stocksSelect = new TomSelect(stocksCell[0], {
+        valueField: "id",
+        labelField: "name",
+        searchField: "name"
+    });
+    stocksSelect.addOptions(stocks);
+
+    var itemsSelect = new TomSelect(itemsCell[0], {
+        valueField: "id",
+        labelField: "name",
+        searchField: "name"
+    });
+    itemsSelect.addOptions(activeItems);
+
     deleteBtn.appendTo(deleteCell);
     deleteCell.appendTo(newRow);
     newRow.appendTo("#newStockItemsRows");
+});
+
+$(document).on("change", ".select-item", function () {
+    var currentRow = $(this).closest("tr");
+    var itemId = this.tomselect.getValue();
+
+    var unitElement = currentRow.find('select[name="unitId"]')[0];
+    var unitTomSelect = unitElement.tomselect;
+
+    unitTomSelect.clear(true);
+    unitTomSelect.clearOptions();
+
+    if (!itemId) {
+        return;
+    }
+
+    $.get("/api/Inventory/GetUnitConversionsOnly/" + itemId, function (units) {
+        unitTomSelect.addOptions(units);
+        unitTomSelect.refreshOptions(false);
+    });
+});
+
+$(document).on("click", ".btn-remove-row", function (event) {
+    event.preventDefault();
+    $(this).closest("tr").remove();
 });
 
 $(document).ready(function(){

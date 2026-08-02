@@ -703,6 +703,10 @@ $(document).on("click", ".btn-new-stock", function(event){
 
 var newStockValidator = new JustValidate("#newStockForm");
 
+var stocks = null;
+$.get("/api/Inventory/GetActiveStockList/", function(rows) {
+    stocks = rows;
+});
 $("#addNewStockRow").click(async function(event){
     event.preventDefault();
 
@@ -750,20 +754,18 @@ $("#addNewStockRow").click(async function(event){
         labelField: "subUnitName",
         searchField: "subUnitName"
     });
-
+    $.get("/api/Inventory/GetUnitConversionsOnly/" + $("#newStockItemId").val(), function(rows) {
+        unitSelect.addOptions(rows);
+    });
+    
     var stockSelect = new TomSelect(stockField[0], {
         valueField: "id",
         labelField: "name",
         searchField: "name"
     });
+    stockSelect.addOptions(stocks);
 
-    $.get("/api/Inventory/GetUnitConversionsOnly/" + $("#newStockItemId").val(), function(rows) {
-        unitSelect.addOptions(rows);
-    });
 
-    $.get("/api/Inventory/GetActiveStockList/", function(rows) {
-        stockSelect.addOptions(rows);
-    });
 
     newStockValidator.addField(unitsField[0], [
         {

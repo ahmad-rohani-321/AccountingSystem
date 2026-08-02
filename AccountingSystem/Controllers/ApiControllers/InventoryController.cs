@@ -907,6 +907,22 @@ namespace AccountingSystem.Controllers.ApiControllers
             return Ok(getData);
         }
 
+        [HttpGet("GetActiveItemsList")]
+        public async Task<ActionResult> GetActiveItemsList()
+        {
+            var getData = (await _context.Items
+                .Include(x => x.Category)
+                .Include(x => x.Unit)
+                .Where(x => x.IsActive)
+                .ToArrayAsync())
+                    .Select(i => new 
+                    {
+                        Id = i.ID,
+                        Name = i.NativeName
+                    }).ToList();
+            return Ok(getData);
+        }
+
         [HttpPut("ChangeItemActivation/{id}")]
         public async Task<ActionResult> ChangeItemActivation(int id)
         {
