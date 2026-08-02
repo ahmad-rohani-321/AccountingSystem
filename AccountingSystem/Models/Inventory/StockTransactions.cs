@@ -9,7 +9,7 @@ public class StockTransactions : BaseEntity
 
     public int UnitID { get; set; }
     [ForeignKey(nameof(UnitID))]
-    public Unit Unit { get; set; }
+    public UnitConversion Unit { get; set; }
 
     public int TransactionID { get; set; }
     [ForeignKey(nameof(TransactionID))]

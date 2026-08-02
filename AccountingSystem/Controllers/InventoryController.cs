@@ -4,14 +4,10 @@ namespace AccountingSystem.Controllers
 {
     public class InventoryController : Controller
     {
-        public IActionResult Stocks()
-        {
-            return View();
-        }
+        public IActionResult Stocks() => View();
 
-        public IActionResult Index()
-        {
-            return View();
-        }
+        public IActionResult Index() => View();
+
+        public IActionResult StockItems() => View();
     }
 }

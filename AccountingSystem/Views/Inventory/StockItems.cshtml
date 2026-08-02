@@ -1,0 +1,146 @@
+@{
+    ViewData["title"] = "د اجناسو موجودي";
+    ViewData["StockItems"] = "active";
+    ViewData["Inventory"] = "active";
+}
+
+<div class="row row-deck row-cards">
+    <div class="card">
+        <div class="card-header">
+            <h3 class="h3">@ViewData["title"]</h3>
+        </div>
+        <div class="card-body">
+            <button class="btn btn-primary mb-3" data-bs-toggle="modal" data-bs-target="#newStockItem">
+                نوې موجودي
+                <i class="fas fa-plus ms-3"></i>
+            </button>
+        <table class="table table-hover table-bordered table-responsive">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>جنس</th>
+                    <th>عمومي واحد</th>
+                    <th>ګدام</th>
+                    <th>موجودي</th>
+                    <th>کړني</th>
+                </tr>
+            </thead>
+            <tbody id="stockItemsList">
+            </tbody>
+        </table>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="newStockItem">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <h2>نوې موجودي</h2>
+            </div>
+            <form id="newStockForm">
+                <input type="hidden" id="newStockItemId">
+                <div class="modal-body py-4">
+                    <h3 class="h3 text-muted" id="itemname"></h3>
+                </div>
+                <div class="modal-body py-4">
+                        <button class="btn btn-sm btn-primary my-1" id="addNewStockItemRow">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    
+                    <table class="table table-bordered table-responsive table-hover">
+                        <thead>
+                            <tr>
+                                <th>نېټه</th>
+                                <th>جنس</th>
+                                <th>واحد</th>
+                                <th>ګدام</th>
+                                <th>تعداد</th>
+                                <th>ملاحظات</th>
+                                <th style="width: 80px;">حذف</th>
+                            </tr>
+                        </thead>
+                        <tbody id="newStockItemsRows"></tbody>
+                    </table>
+                </div>
+                <div class="modal-footer">
+                    <div class="w-100">
+                        <div class="row">
+                            <div class="col-auto">
+                                <button type="submit" class="btn btn-primary w-100"> تائید </button>
+                            </div>
+                            <div class="col-auto">
+                                <button class="btn w-100" type="reset" data-bs-dismiss="modal"> لغوه </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+$(document).on("click", "#addNewStockItemRow", function(event){
+    event.preventDefault();
+    var newRow = $("<tr>");
+    $("<td>").html('<input type="date" class="form-control" name="date">').appendTo(newRow);
+    $("<td>").html('<select class="form-select" name="itemId"><option value="">جنس انتخاب کړئ</option></select>').appendTo(newRow);
+    $("<td>").html('<select class="form-select" name="unitId"><option value="">واحد انتخاب کړئ</option></select>').appendTo(newRow);
+    $("<td>").html('<select class="form-select" name="stockId"><option value="">ګدام انتخاب کړئ</option></select>').appendTo(newRow);
+    $("<td>").html('<input type="number" class="form-control" name="quantity">').appendTo(newRow);
+    $("<td>").html('<input type="text" class="form-control" name="remarks">').appendTo(newRow);
+    var deleteCell = $("<td>");
+    var deleteBtn = $("<button>").addClass("btn btn-sm btn-danger btn-delete-row").text("حذف");
+    deleteBtn.appendTo(deleteCell);
+    deleteCell.appendTo(newRow);
+    newRow.appendTo("#newStockItemsRows");
+});
+
+$(document).ready(function(){
+stockItemsList();
+});
+function stockItemsList(){
+    $.ajax({
+        url: "/api/Inventory/GetStockItems",
+        type: "GET",
+        success : function(respondedData){
+            var dataTable = $("#stockItemsList");
+            dataTable.empty();
+            respondedData.forEach(function(data){
+                var tr = $("<tr>");
+                $("<td>").text(data.id).appendTo(tr);
+                $("<td>").text(data.itemName).appendTo(tr);
+                $("<td>").text(data.unitName).appendTo(tr);
+                $("<td>").text(data.stockName).appendTo(tr);
+                $("<td>").text(data.quantity).appendTo(tr);
+                var actionsCell = $("<td>");
+                var actionsDiv = $("<div>").addClass("btn-group");
+                actionsDiv.appendTo(actionsCell);
+                exportBtn = $("<button>").addClass("btn btn-sm btn-primary btn-export").attr("data-row", JSON.stringify(data)).text("اخراج");
+                exportBtn.appendTo(actionsDiv);
+                exchangeBtn = $("<button>").addClass("btn btn-sm btn-success btn-exchange").attr("data-row", JSON.stringify(data)).text("تبادله");
+                exchangeBtn.appendTo(actionsDiv);
+                actionsCell.appendTo(tr);
+                tr.appendTo(dataTable);
+
+            });
+        },
+        error : function(error){
+            console.error(error);
+        }
+    });
+}
+$(document).on("click", ".btn-export", function(event){
+    var data = $(this).data("row");
+    console.log(data);
+});
+
+$(document).on("click", ".btn-exchange", function(event){
+    var data = $(this).data("row");
+    console.log(data);
+});
+</script>
+}

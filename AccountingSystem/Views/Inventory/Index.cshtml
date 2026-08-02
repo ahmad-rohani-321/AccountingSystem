@@ -379,22 +379,22 @@ var editUnit = new TomSelect("#editUnit", {
         searchField: "name"
     });
 
-var units = $.get("/api/Inventory/GetActiveCatsList", function(data) {
-        newUnit.addOptions(data);
-        newUnit.refreshOptions(false);
+var cats = $.get("/api/Inventory/GetActiveCatsList", function(data) {        
+    newCategory.addOptions(data);
+    newCategory.refreshOptions(false);
 
-        editUnit.addOptions(data);
-        editUnit.refreshOptions(false);
-    });
+    editCategory.addOptions(data);
+    editCategory.refreshOptions(false);
+});
 
 
-var cats = $.get("/api/Inventory/GetActiveUnitsList", function(data) {
-        newCategory.addOptions(data);
-        newCategory.refreshOptions(false);
+var units = $.get("/api/Inventory/GetActiveUnitsList", function(data) {
+    newUnit.addOptions(data);
+    newUnit.refreshOptions(false);
 
-        editCategory.addOptions(data);
-        editCategory.refreshOptions(false);
-    });
+    editUnit.addOptions(data);
+    editUnit.refreshOptions(false);
+});
 
 
 var newItemFormData = {
@@ -681,22 +681,23 @@ $(document).on("click", ".btn-new-stock", function(event){
         url: "/api/Inventory/HasStock/" + data.id,
         type: "GET",
         success: function(response){
-            hasBalance = response;
+            $("#newStockItemId").val(data.id);
+
+            $("#newStockRows").empty();
+            $("#itemname").text(data.name + (data.secondName == null || data.secondName == "" ? "" : `(${data.secondName})`));
+            $("#newStock").modal("show");
         },
         error : function(error){
-            hasBalance = error.responseJSON;
+            showToast("info", "د انتخاب سوي جنس ابتدایئ موجودي له مخکي ثبت سوې ده.");
         }
     });
 
 
    if(!hasBalance){
-        $("#newStockItemId").val(data.id);
-
-        $("#itemname").text(data.name + (data.secondName == null || data.secondName == "" ? "" : `(${data.secondName})`));
-        $("#newStock").modal("show");
+        
    }
    else{
-        showToast("info", "د انتخاب سوي جنس ابتدایئ موجودي نه ثبت کیږي.");
+        
    }
 });
 
@@ -794,19 +795,37 @@ $("#addNewStockRow").click(async function(event){
 });
 
 newStockValidator.onSuccess(function(event){
-
+    event.preventDefault();
+    var id = $("#newStockItemId").val();
     const item = {
-        unitConversions: $("#newStockRows tr").map(function () {
+        unitConversions: $("#newStockRows tr").map(function (){
             const cells = $(this).find("td");
 
             return {
-                subUnitId: Number(cells.eq(0).text().trim()),
-                mainUnitQuantity: Number(cells.eq(2).find("input").val() || 0),
-                subUnitQuantity: Number(cells.eq(3).find("input").val() || 0),
-                remarks: cells.eq(4).find("input").val()
+                itemId: id,
+                unitId: Number(cells.eq(0).find("select").val()),
+                quantity: Number(cells.eq(1).find("input").val() || 0),
+                stockId: Number(cells.eq(2).find("select").val()),
+                remarks: cells.eq(3).find("input").val()
             };
         }).get()
     };
+    
+    $.ajax({
+        url: "/api/Inventory/NewItemStockEntry",
+        type: "POST",
+        contentType: "application/json",
+        data: JSON.stringify(item.unitConversions),
+        success : function(response){
+            showToast("success", "ثبت سو.");
+            $("#newStockRows").empty();
+            $("#newStockForm")[0].reset();
+            $("#newStock").modal("hide");
+        },
+        error : function(error){
+            showToast("warning", error.responseText);
+        }
+    });
 });
 
 $(document).on("click", ".btn-remove-row", function (event) {
@@ -857,12 +876,8 @@ function getItemsList(){
                 secondUl.appendTo(secondUl);
 
                 var thirdUl = $("<li>");
-                $("<button>").addClass("dropdown-item btn-new-stock").attr("data-nameandsecondname", JSON.stringify({id : data.id, name : data.name, secondName : data.secondName})).text("نوی موجودي").appendTo(thirdUl);
+                $("<button>").addClass("dropdown-item btn-new-stock").attr("data-nameandsecondname", JSON.stringify({id : data.id, name : data.name, secondName : data.secondName})).text("ابتدایی موجودي").appendTo(thirdUl);
                 thirdUl.appendTo(ul);
-
-                var fourthUl = $("<li>");
-                $("<button>").addClass("dropdown-item btn-currency-stock").attr("data-nameandsecondname", JSON.stringify({id : data.id, name : data.name, secondName : data.secondName})).text("موجودي").appendTo(fourthUl);
-                fourthUl.appendTo(ul);
                 
                 ul.appendTo(dropDown);
                 dropDown.appendTo(actionsCell);

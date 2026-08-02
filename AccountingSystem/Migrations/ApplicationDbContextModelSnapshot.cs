@@ -175,7 +175,7 @@ namespace AccountingSystem.Migrations
                             AccountTypeID = 10,
                             Code = "Walkin",
                             CreatedByUserId = "f5b9b7e7-2d3a-4b4d-a1b5-1b3f2a7a9e01",
-                            CreationDate = new DateTime(2026, 7, 13, 18, 35, 6, 486, DateTimeKind.Local).AddTicks(9269),
+                            CreationDate = new DateTime(2026, 7, 28, 14, 59, 20, 733, DateTimeKind.Local).AddTicks(9667),
                             IsActive = true,
                             Name = "عادي"
                         });
@@ -258,7 +258,7 @@ namespace AccountingSystem.Migrations
                             AccountID = 1,
                             Address = "",
                             CreatedByUserId = "f5b9b7e7-2d3a-4b4d-a1b5-1b3f2a7a9e01",
-                            CreationDate = new DateTime(2026, 7, 13, 18, 35, 6, 487, DateTimeKind.Local).AddTicks(840),
+                            CreationDate = new DateTime(2026, 7, 28, 14, 59, 20, 734, DateTimeKind.Local).AddTicks(1891),
                             Email = "",
                             FirstPhone = "",
                             NIC = "",
@@ -497,7 +497,7 @@ namespace AccountingSystem.Migrations
                             LockoutEnabled = false,
                             NormalizedEmail = "ADMIN@ADMIN.COM",
                             NormalizedUserName = "ADMIN",
-                            PasswordHash = "AQAAAAIAAYagAAAAEH2wmwLk+vCFBGUI6gDPM9W6NuoA1o7Zf5Cocp8Va+HAEhKwdB/h612z8yQW4dyBqQ==",
+                            PasswordHash = "AQAAAAIAAYagAAAAEKZSiJ/Ud2uZpLa6rXAERmjOejzfLM1g6mDoVTUEm6AbubGp0W0yj/5unfGXwLaYeg==",
                             PhoneNumberConfirmed = false,
                             ProfilePhoto = "",
                             SecurityStamp = "2c9a4d9b-4f5a-4b8b-9a7c-2b1c3d4e5f61",
@@ -553,7 +553,7 @@ namespace AccountingSystem.Migrations
                         {
                             UserId = "f5b9b7e7-2d3a-4b4d-a1b5-1b3f2a7a9e01",
                             RoleId = "65a02658-9b8d-4505-95af-5edd8634bb35",
-                            CreationDate = new DateTime(2026, 7, 13, 18, 35, 6, 484, DateTimeKind.Local).AddTicks(8464)
+                            CreationDate = new DateTime(2026, 7, 28, 14, 59, 20, 731, DateTimeKind.Local).AddTicks(7443)
                         });
                 });
 
@@ -919,7 +919,7 @@ namespace AccountingSystem.Migrations
                         {
                             ID = 1,
                             CreatedByUserId = "f5b9b7e7-2d3a-4b4d-a1b5-1b3f2a7a9e01",
-                            CreationDate = new DateTime(2026, 7, 13, 18, 35, 6, 486, DateTimeKind.Local).AddTicks(4773),
+                            CreationDate = new DateTime(2026, 7, 28, 14, 59, 20, 733, DateTimeKind.Local).AddTicks(5755),
                             Description = "اصلي ګدام د ټولو موادو لپاره دی.",
                             IsActive = true,
                             Name = "عمومي ګدام"
@@ -1416,7 +1416,7 @@ namespace AccountingSystem.Migrations
                         {
                             ID = 1,
                             CreatedByUserId = "f5b9b7e7-2d3a-4b4d-a1b5-1b3f2a7a9e01",
-                            CreationDate = new DateTime(2026, 7, 13, 18, 35, 6, 487, DateTimeKind.Local).AddTicks(5414),
+                            CreationDate = new DateTime(2026, 7, 28, 14, 59, 20, 734, DateTimeKind.Local).AddTicks(6159),
                             CurrencyName = "افغانۍ",
                             CurrencySymbole = "AFN",
                             IsActive = true,
@@ -1426,7 +1426,7 @@ namespace AccountingSystem.Migrations
                         {
                             ID = 2,
                             CreatedByUserId = "f5b9b7e7-2d3a-4b4d-a1b5-1b3f2a7a9e01",
-                            CreationDate = new DateTime(2026, 7, 13, 18, 35, 6, 487, DateTimeKind.Local).AddTicks(5422),
+                            CreationDate = new DateTime(2026, 7, 28, 14, 59, 20, 734, DateTimeKind.Local).AddTicks(6167),
                             CurrencyName = "ډالر",
                             CurrencySymbole = "USD",
                             IsActive = true,
@@ -1761,7 +1761,7 @@ namespace AccountingSystem.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("AccountingSystem.Models.Inventory.Unit", "Unit")
+                    b.HasOne("AccountingSystem.Models.Inventory.UnitConversion", "Unit")
                         .WithMany()
                         .HasForeignKey("UnitID")
                         .OnDelete(DeleteBehavior.Cascade)

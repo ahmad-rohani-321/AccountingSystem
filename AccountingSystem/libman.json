@@ -25,6 +25,18 @@
     {
       "library": "tom-select@2.6.2",
       "destination": "wwwroot/lib/tom-select"
+    },
+    {
+      "library": "flatpickr@4.6.13",
+      "destination": "wwwroot/lib/flatpickr"
+    },
+    {
+      "library": "flatpickr-jalali-support@1.0.3",
+      "destination": "wwwroot/lib/flatpickr-jalali-support"
+    },
+    {
+      "library": "jalali-moment@3.3.11",
+      "destination": "wwwroot/lib/moment-jalali"
     }
   ]
 }

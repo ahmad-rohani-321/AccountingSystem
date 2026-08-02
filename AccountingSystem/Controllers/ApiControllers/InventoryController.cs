@@ -7,9 +7,12 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.VisualBasic;
+using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Eventing.Reader;
 using System.Net.NetworkInformation;
+using System.Reflection.Metadata.Ecma335;
+using System.Runtime.CompilerServices;
 using System.Security.Claims;
 using System.Text.Json;
 using static System.Net.Mime.MediaTypeNames;
@@ -633,8 +636,8 @@ namespace AccountingSystem.Controllers.ApiControllers
                         unit.SubUnitQuantity < 0 ||
 
                         // Exactly one is zero while the other is positive.
-                        (unit.MainUnitQuantity == 0 && unit.SubUnitQuantity > 0) ||
-                        (unit.MainUnitQuantity > 0 && unit.SubUnitQuantity == 0)
+                        (unit.MainUnitQuantity >= 0 && unit.SubUnitQuantity > 0) ||
+                        (unit.MainUnitQuantity > 0 && unit.SubUnitQuantity >= 0)
                     ))
             {
                 return BadRequest("واحدونه اصلاح کړئ");
@@ -947,7 +950,7 @@ namespace AccountingSystem.Controllers.ApiControllers
             }
             else
             {
-                if (await _context.StockBalances.AnyAsync(x => x.ItemID == id))
+                if (!await _context.StockBalances.AnyAsync(x => x.ItemID == id))
                 {
                     return Ok(true);
                 }
@@ -956,6 +959,111 @@ namespace AccountingSystem.Controllers.ApiControllers
                     return BadRequest(false);
                 }
             }
+        }
+
+        [HttpPost("NewItemStockEntry")]
+        public async Task<ActionResult> NewItemStockEntry(List<StockItemRequestViewModel> request)
+        {
+            string user = _accessor.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier).Value;
+            if (request == null || request.Count == 0)
+            {
+                return BadRequest("خالي لیست نه ثبت کیږي");
+            }
+            else if (!await _context.Items.AnyAsync(x => request.Select(i => i.ItemId).Contains( x.ID)))
+            {
+                return BadRequest("هیله ده اجناس اصلاح کړئ!");
+            }
+            else if (!await _context.UnitConversion
+                            .AnyAsync(u => 
+                            request.Select(x => x.UnitId).Contains(u.ID) && 
+                            request.Select(x => x.ItemId).Contains(u.ItemID)))
+            {
+                return BadRequest("هیله ده واحدونه اصلاح کړئ!");
+            }
+            else if (!await _context.WareHouses.AnyAsync(s => request.Select(w => w.StockId).Contains(s.ID)))
+            {
+                return BadRequest("هیله ده ګدامونه اصلاح کړی!");
+            }
+            else
+            {
+                using var transaction = await _context.Database.BeginTransactionAsync();
+                try
+                {
+                    foreach (var item in request)
+                    {
+                        var itemUnit = await _context.UnitConversion.FindAsync(item.UnitId);
+                        decimal calculatedQuantity = Math.Round(item.Quantity / itemUnit.ExchangedAmount, Defaults.DefaultDecimals);
+                        var currentStockItem = await _context.StockBalances.FirstOrDefaultAsync(x => x.ItemID == item.ItemId && x.WarehouseID == item.StockId);
+                        if (currentStockItem  == null)
+                        {
+                            var newEntry = await _context.StockBalances.AddAsync(new StockBalance()
+                            {
+                                CreatedByUserId = user,
+                                ItemID = item.ItemId,
+                                Quantity = calculatedQuantity,
+                                CreationDate = DateTime.Now,
+                                WarehouseID = item.StockId,
+                                Remarks = item.Remarks
+                            });
+                            await _context.SaveChangesAsync();
+                            currentStockItem = newEntry.Entity;
+                        }
+                        else
+                        {
+                            currentStockItem.Quantity += calculatedQuantity;
+                        }
+                        
+                        await _context.StockTransactions.AddAsync(new StockTransactions()
+                        {
+                            CreatedByUserId = user,
+                            CreationDate = DateTime.Now,
+                            Quantity = item.Quantity,
+                            Remarks = item.Remarks,
+                            StockBalanceID = currentStockItem.ID,
+                            TransactionID = 1,
+                            UnitID = item.UnitId
+                        });
+                    }
+                    
+                    await _context.UserHistories.AddAsync(new Models.Identity.UserHistory()
+                    {
+                        CreatedByUserId = user,
+                        CreationDate = DateTime.Now,
+                        Details = "د جنس لپاره ابتدائی موجودي، ثبت سوه.",
+                        ModelName = "اجناس"
+                    });
+                    await _context.SaveChangesAsync();
+                    await transaction.CommitAsync();
+                    return Ok();
+                }
+                catch (Exception ex)
+                {
+                    await transaction.RollbackAsync();
+                    return BadRequest(ex.Message);
+                }
+            }
+        }
+
+        [HttpGet("GetStockItems")]
+        public async Task<ActionResult> GetStockItems()
+        {
+            var data = (await _context.StockBalances
+                        .Include(x => x.Item)
+                        .ThenInclude(x => x.Unit)
+                        .Include(x => x.Warehouse)
+                        .ToArrayAsync())
+                        .Select(x => new StockItemsViewModel()
+                        {
+                            Id = x.ID,
+                            ItemID = x.Item.ID,
+                            ItemName = x.Item.NativeName,
+                            Quantity = x.Quantity,
+                            StockID = x.WarehouseID,
+                            StockName = x.Warehouse.Name,
+                            UnitID = x.Item.Unit.ID,
+                            UnitName = x.Item.Unit.Name
+                        }).ToList();
+            return Ok(data);
         }
         #endregion
 
