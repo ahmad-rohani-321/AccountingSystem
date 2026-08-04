@@ -7,5 +7,5 @@ public class StockItemRequestViewModel
     public decimal Quantity { get; set; }
     public int StockId { get; set; }
     public string Remarks { get; set; }
-
+    public DateTime CreationDate { get; set; } = DateTime.Now;
 }

@@ -797,6 +797,9 @@ $("#addNewStockRow").click(async function(event){
 });
 
 newStockValidator.onSuccess(function(event){
+    if(!event){
+        return;
+    }
     event.preventDefault();
     var id = $("#newStockItemId").val();
     const item = {

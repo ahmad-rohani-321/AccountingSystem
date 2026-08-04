@@ -1032,12 +1032,12 @@ namespace AccountingSystem.Controllers.ApiControllers
                         await _context.StockTransactions.AddAsync(new StockTransactions()
                         {
                             CreatedByUserId = user,
-                            CreationDate = DateTime.Now,
+                            CreationDate = item.CreationDate,
                             Quantity = item.Quantity,
                             Remarks = item.Remarks,
                             StockBalanceID = currentStockItem.ID,
                             TransactionID = 1,
-                            UnitID = item.UnitId
+                            UnitID = item.UnitId,
                         });
                     }
                     
@@ -1081,6 +1081,8 @@ namespace AccountingSystem.Controllers.ApiControllers
                         }).ToList();
             return Ok(data);
         }
+        
+        
         #endregion
 
     }

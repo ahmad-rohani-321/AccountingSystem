@@ -26,7 +26,7 @@
                     <th>عمومي واحد</th>
                     <th>ګدام</th>
                     <th>موجودي</th>
-                    <th>کړني</th>
+                    <th style="width: 100px;">کړني</th>
                 </tr>
             </thead>
             <tbody id="stockItemsList">
@@ -43,7 +43,7 @@
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 <h2>نوې موجودي</h2>
             </div>
-            <form id="newStockForm">
+            <form id="newStockItemsForm">
                 <input type="hidden" id="newStockItemId">
                 <div class="modal-body py-4">
                     <h3 class="h3 text-muted" id="itemname"></h3>
@@ -57,16 +57,86 @@
                         <thead>
                             <tr>
                                 <th>نېټه</th>
-                                <th>جنس</th>
-                                <th>واحد</th>
-                                <th>ګدام</th>
+                                <th style="width: 180px;">جنس</th>
+                                <th style="width: 180px;">واحد</th>
+                                <th style="width: 180px;">ګدام</th>
                                 <th>تعداد</th>
                                 <th>ملاحظات</th>
-                                <th style="width: 80px;">حذف</th>
+                                <th style="width: 50px;">حذف</th>
                             </tr>
                         </thead>
                         <tbody id="newStockItemsRows"></tbody>
                     </table>
+                </div>
+                <div class="modal-footer">
+                    <div class="w-100">
+                        <div class="row">
+                            <div class="col-auto">
+                                <button type="submit" class="btn btn-primary w-100"> تائید </button>
+                            </div>
+                            <div class="col-auto">
+                                <button class="btn w-100" type="reset" data-bs-dismiss="modal"> لغوه </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="stockExchangeModal">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <h2>نوې موجودي</h2>
+            </div>
+            <form id="stockExchangeForm">
+                <input type="hidden" id="stockExchangeItemId">
+                <div class="modal-body py-4">
+                    <h3 class="h3 text-dark">جنس / عمومي واحد او تعداد / ګدام</h3>
+                    <h3 class="h3 text-muted" id="stockExchangeItemName"></h3>
+                </div>
+                <div class="modal-body py-4">
+                    <div class="row">
+                        <div class="col">
+                            <div class="mb-3">
+                                <label class="form-label" for="stockExchangeDate">نېټه</label>
+                                <input type="text" class="form-control" id="stockExchangeDate" />
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="mb-3">
+                                <label class="form-label" for="stockExchangeUnit">واحد</label>
+                                <select class="form-control" id="stockExchangeUnit"></select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col">
+                            <div class="mb-3">
+                                <label class="form-label" for="stockExchangeToStock">ګدام ته</label>
+                                <select class="form-control" id="stockExchangeToStock"></select>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="mb-3">
+                                <label class="form-label" for="stockExchangeQuantity">تعداد</label>
+                                <input type="number" class="form-control" id="stockExchangeQuantity">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col">
+                            <div class="mb-3">
+                                <label class="form-label" for="stockExchangeRemarks">تشریح</label>
+                                <textarea class="form-control" id="stockExchangeRemarks"></textarea>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <div class="w-100">
@@ -90,6 +160,7 @@
 <script src="~/lib/flatpickr-jalali-support/dist/l10n/fa.js"></script>
 <script src="~/lib/tom-select/dist/js/tom-select.complete.min.js"></script>
 <script src="~/lib/just-validate/dist/just-validate.production.min.js"></script>
+<script src="~/lib/moment-jalali/dist/jalali-moment.browser.js"></script>
 <script>
 $(document).ready(function(){
 $(".control-date").flatpickr({
@@ -104,55 +175,153 @@ var activeItems = null;
 $.get("/api/Inventory/GetActiveItemsList/", function(rows) {
     activeItems = rows;
 });
-$(document).on("click", "#addNewStockItemRow", function(event){
+var stockItemsValidator = new JustValidate("#newStockItemsForm");
+
+$("#addNewStockItemRow").click(async function(event){
     event.preventDefault();
+
+    if ($("#newStockItemsRows tr").length > 0) {
+        var currentRowsAreValid = await stockItemsValidator.revalidate();
+
+        if (!currentRowsAreValid) {
+            return;
+        }
+    }
+
+
     var newRow = $("<tr>");
-    var dateCell = $("<td>").html('<input type="text" class="form-control control-date" placeholder="نېټه">');
-    flatpickr(dateCell.find("input")[0], {
-        locale: "fa",
-        defaultDate: new Date(),
-        allowInput: true
-    });
+    var dateCell = $("<td>");
+    var datefield = $("<input>").addClass("form-control").attr("placeholder", "نېټه");
+    datefield.appendTo(dateCell);
+    FlatPickerComponent(dateCell.find("input")[0]);
     dateCell.appendTo(newRow);
     
-    $("<td>").html('<select class="form-select select-item" name="itemId"><option value="">جنس انتخاب کړئ</option></select>').appendTo(newRow);
-    var itemsCell = newRow.find('select[name="itemId"]');
-
-    $("<td>").html('<select class="form-select" name="unitId"><option value="">واحد انتخاب کړئ</option></select>').appendTo(newRow);
-
-    var unitSelect = new TomSelect(newRow.find('select[name="unitId"]')[0], {
-        valueField: "id",
-        labelField: "subUnitName",
-        searchField: "subUnitName"
-    });
-
-    $("<td>").html('<select class="form-select" name="stockId"><option value="">ګدام انتخاب کړئ</option></select>').appendTo(newRow);
-    var stocksCell = newRow.find('select[name="stockId"]');
-
-    $("<td>").html('<input type="number" class="form-control" name="quantity">').appendTo(newRow);
-    $("<td>").html('<input type="text" class="form-control" name="remarks">').appendTo(newRow);
-    var deleteCell = $("<td>");
-    var deleteBtn = $("<button>").addClass("btn btn-sm btn-danger btn-remove-row").html("<i class='fas fa-trash-can'></i>");
-
-    var stocksSelect = new TomSelect(stocksCell[0], {
-        valueField: "id",
-        labelField: "name",
-        searchField: "name"
-    });
-    stocksSelect.addOptions(stocks);
-
-    var itemsSelect = new TomSelect(itemsCell[0], {
+    var itemCell = $("<td>");
+    var itemsField = $("<select>").addClass("form-select select-item").attr("name", "itemId");
+    itemsField.appendTo(itemCell);
+    itemCell.appendTo(newRow);
+    var itemsSelect = new TomSelect(itemsField[0], {
         valueField: "id",
         labelField: "name",
         searchField: "name"
     });
     itemsSelect.addOptions(activeItems);
 
+    var unitCell = $("<td>");
+    var unitField = $("<select>").addClass("form-select").attr("name", "unitId");
+    unitField.appendTo(unitCell);
+    unitCell.appendTo(newRow);
+    var unitSelect = new TomSelect(unitField[0], {
+        valueField: "id",
+        labelField: "subUnitName",
+        searchField: "subUnitName"
+    });
+
+    var stockCell = $("<td>");    
+    var stockField = $("<select>").addClass("form-select").attr("name", "stockId");
+    stockField.appendTo(stockCell);
+    stockCell.appendTo(newRow);
+    var stocksSelect = new TomSelect(stockField[0], {
+        valueField: "id",
+        labelField: "name",
+        searchField: "name"
+    });
+    stocksSelect.addOptions(stocks);
+
+    var quantityCell = $("<td>");
+    var quantityField = $("<input>").addClass("form-control").attr("type", "number");
+    quantityField.appendTo(quantityCell);
+    quantityCell.appendTo(newRow);
+
+    $("<td>").html('<input type="text" class="form-control" name="remarks">').appendTo(newRow);
+
+    var deleteCell = $("<td>");
+    var deleteBtn = $("<button>").addClass("btn btn-sm btn-danger btn-remove-row").html("<i class='fas fa-trash-can'></i>");
+
     deleteBtn.appendTo(deleteCell);
     deleteCell.appendTo(newRow);
     newRow.appendTo("#newStockItemsRows");
-});
 
+    stockItemsValidator.addField(datefield[0], [
+    {
+        rule: "required",
+        errorMessage: "نېټه اړین ده"
+    }]);
+    stockItemsValidator.addField(itemsField[0], [
+    {
+        rule: "required",
+        errorMessage: "جنس اړین دی"
+    }]);
+    stockItemsValidator.addField(unitField[0], [
+    {
+        rule: "required",
+        errorMessage: "واحد اړین دی"
+    }]);
+    stockItemsValidator.addField(stockField[0], [
+    {
+        rule: "required",
+        errorMessage: "ګدام اړین دی"
+    }]);
+    stockItemsValidator.addField(quantityField[0], [
+    {
+        rule: "required",
+        errorMessage: "تعداد اړین دی"
+    },{
+            validator: function(value) {
+                return Number(value) > 0;
+            },
+            errorMessage: "تعداد باید له صفر څخه زیات وي"
+    }]);
+    stocksSelect.on("change", function () {
+        stockItemsValidator.revalidateField(stockField[0]);
+    });
+    itemsSelect.on("change", function () {
+        stockItemsValidator.revalidateField(itemsField[0]);
+    });
+
+    unitSelect.on("change", function () {
+        stockItemsValidator.revalidateField(unitField[0]);
+    });
+});
+stockItemsValidator.onSuccess(function(event){
+    if(!event){
+        return;
+    }
+    event.preventDefault();
+
+    const item = {
+        unitConversions: $("#newStockItemsRows tr").map(function (){
+            const cells = $(this).find("td");
+            // var creationDate = moment(cells.eq(0).find("input").val(), "YYYY-MM-DD").toDate();
+            // var creationDate = moment.from(cells.eq(0).find("input").val(), 'fa', 'YYYY/MM/DD').locale('en').format('YYYY/MM/DD');
+            var creationDate = moment.from("1405/5/11", 'fa', 'YYYY/MM/DD').locale('en')._d;
+            return {
+                creationDate: creationDate,
+                itemId: Number(cells.eq(1).find("select").val()),
+                unitId: Number(cells.eq(2).find("select").val()),
+                stockId: Number(cells.eq(3).find("select").val()),
+                quantity: Number(cells.eq(4).find("input").val() || 0),
+                remarks: cells.eq(5).find("input").val()
+            };
+        }).get()
+    };
+    //console.log(item.unitConversions);
+    $.ajax({
+        url: "/api/Inventory/NewItemStockEntry",
+        type: "POST",
+        contentType: "application/json",
+        data: JSON.stringify(item.unitConversions),
+        success : function(response){
+            showToast("success", "ثبت سو.");
+            $("#newStockItemsRows").empty();
+            $("#newStockItemsForm")[0].reset();
+            $("#newStockItem").modal("hide");
+        },
+        error : function(error){
+            showToast("warning", error.responseText);
+        }
+    });
+});
 $(document).on("change", ".select-item", function () {
     var currentRow = $(this).closest("tr");
     var itemId = this.tomselect.getValue();
@@ -181,6 +350,41 @@ $(document).on("click", ".btn-remove-row", function (event) {
 $(document).ready(function(){
 stockItemsList();
 });
+
+
+$(document).on("click", ".btn-export", function(event){
+    var data = $(this).data("row");
+    console.log(data);
+});
+FlatPickerComponent("#stockExchangeDate");
+var stockExchangeUnit = new TomSelect("#stockExchangeUnit", {
+        valueField: "id",
+        labelField: "subUnitName",
+        searchField: "subUnitName"
+    });
+var stockExchangeToStock = new TomSelect("#stockExchangeToStock", {
+        valueField: "id",
+        labelField: "name",
+        searchField: "name"
+    });
+stockExchangeToStock.addOptions(stocks);
+$(document).on("click", ".btn-exchange", function(event){
+    var data = $(this).data("row");
+    $("#stockExchangeItemName").text(`${data.itemName} - ${data.quantity} ${data.unitName} - ${data.stockName}`);
+    $("#stockExchangeItemId").val(data.id);    
+    
+
+    stockExchangeUnit.clear(true);
+    stockExchangeUnit.clearOptions();
+
+    $.get("/api/Inventory/GetUnitConversionsOnly/" + data.itemID, function (units) {
+        stockExchangeUnit.addOptions(units);
+        stockExchangeUnit.refreshOptions(false);
+    });
+    $("#stockExchangeModal").modal("show");
+    console.log(data);
+});
+
 function stockItemsList(){
     $.ajax({
         url: "/api/Inventory/GetStockItems",
@@ -212,14 +416,13 @@ function stockItemsList(){
         }
     });
 }
-$(document).on("click", ".btn-export", function(event){
-    var data = $(this).data("row");
-    console.log(data);
-});
 
-$(document).on("click", ".btn-exchange", function(event){
-    var data = $(this).data("row");
-    console.log(data);
-});
+function FlatPickerComponent(control){
+    flatpickr(control, {
+        locale: "fa",
+        defaultDate: new Date(),
+        allowInput: true
+    });
+}
 </script>
 }
