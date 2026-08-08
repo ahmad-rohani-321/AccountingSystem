@@ -153,7 +153,7 @@ namespace AccountingSystem.Data
                 new StockTransactionType
                 {
                     ID = 4,
-                    Name = "د ګدامونو ترمنځ انتقال",
+                    Name = "له ګدام څخه انتقال",
                 },
 
                 new StockTransactionType
@@ -186,16 +186,21 @@ namespace AccountingSystem.Data
                     Name = "ضایعات",
                 },
 
-                new StockTransactionType()
+                new StockTransactionType
                 {
                     ID = 10,
                     Name = "خرید تغیر"
                 },
 
-                new StockTransactionType()
+                new StockTransactionType
                 {
                     ID = 11,
                     Name = "فروش تغیر"
+                },
+                new StockTransactionType
+                {
+                    ID = 12,
+                    Name = "ګدام ته انتقال"
                 }
             );
 

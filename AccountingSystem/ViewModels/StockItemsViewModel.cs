@@ -10,5 +10,8 @@ public class StockItemsViewModel
     public int StockID { get; set; }
     public string StockName { get; set; }
     public decimal Quantity { get; set; }
+    public decimal MinQuantity { get; set; }
+    public string Remarks { get; set; }
+    public int TransactionType { get; set; }
     
 }

@@ -9,5 +9,9 @@ namespace AccountingSystem.Controllers
         public IActionResult Index() => View();
 
         public IActionResult StockItems() => View();
+        
+        public IActionResult StockHistory() => View();
+
+        public IActionResult MinAlerts() => View();
     }
 }

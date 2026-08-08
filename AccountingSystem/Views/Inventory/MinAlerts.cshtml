@@ -1,0 +1,55 @@
+@{
+    ViewData["title"] = "د ګدام کمښت خبرتیا";
+    ViewData["Inventory"] = "active";
+    ViewData["MinItems"] = "active";
+}
+<div class="row row-deck row-cards">
+    <div class="card">
+        <div class="card-header">
+            <h3 class="h3">@ViewData["title"]</h3>
+        </div>
+        <div class="card-body">
+            <table class="table table-hover table-bordered table-responsive table-striped">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>جنس</th>
+                        <th>عمومي واحد</th>
+                        <th>ګدام</th>
+                        <th>د کمښت اندازه</th>
+                        <th>موجودي</th>
+                    </tr>
+                </thead>
+                <tbody id="itemsList">
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+$(document).ready(function(){
+    $.ajax({
+        url: "/api/Inventory/GetStockMinItems",
+        type: "GET",
+        success: function(response){
+            var dataTable = $("#itemsList");
+            response.forEach(function(row){
+                var tr = $("<tr>");
+                $("<td>").text(row.id).appendTo(tr);
+                $("<td>").text(row.itemName).appendTo(tr);
+                $("<td>").text(row.unitName).appendTo(tr);
+                $("<td>").text(row.stockName).appendTo(tr);
+                $("<td>").text(row.minQuantity).appendTo(tr);
+                $("<td>").text(row.quantity).appendTo(tr);
+                tr.appendTo(dataTable);
+            });
+        },
+        error: function(response){
+            console.log(response.responseText);
+        }
+    });
+});
+</script>
+}

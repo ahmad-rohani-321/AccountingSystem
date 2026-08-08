@@ -21,7 +21,7 @@
                 نوی جنس
                 <i class="fas fa-plus ms-3"></i>
             </button>
-            <table class="table table-hover table-bordered table-responsive">
+            <table class="table table-hover table-bordered table-responsive table-striped">
                 <thead>
                     <tr>
                         <th>#</th>
@@ -123,7 +123,7 @@
                 </div>
                 <div class="modal-body py-4">
                     <h3 class="h3">فرعي واحدونه</h3>
-                    <table class="table table-bordered table-responsive table-hover">
+                    <table class="table table-bordered table-responsive table-hover table-striped">
                         <thead>
                             <tr>
                                 <th class="d-none">#</th>
@@ -233,7 +233,7 @@
                 </div>
                 <div class="modal-body py-4">
                     <h3 class="h3">فرعي واحدونه</h3>
-                    <table class="table table-bordered table-responsive table-hover">
+                    <table class="table table-bordered table-responsive table-hover table-striped">
                         <thead>
                             <tr>
                                 <th class="d-none">id</th>
@@ -286,7 +286,7 @@
                         </button>
                     </h3>
                     
-                    <table class="table table-bordered table-responsive table-hover">
+                    <table class="table table-bordered table-responsive table-hover table-striped">
                         <thead>
                             <tr>
                                 <th>واحد</th>
@@ -318,7 +318,6 @@
 @section Scripts{
 <script src="~/lib/tom-select/dist/js/tom-select.complete.min.js"></script>
 <script src="~/lib/just-validate/dist/just-validate.production.min.js"></script>
-<script src=""></script>
 <script>
 $(document).ready(function(){
     getItemsList();
@@ -877,12 +876,8 @@ function getItemsList(){
                 firstUl.appendTo(ul);
 
                 var secondUl = $("<li>");
-                $("<button>").addClass("dropdown-item btn-units").attr("data-nameandsecondname", JSON.stringify({id : data.id, name : data.name, secondName : data.secondName})).text("واحدونه").appendTo(secondUl);
-                secondUl.appendTo(secondUl);
-
-                var thirdUl = $("<li>");
-                $("<button>").addClass("dropdown-item btn-new-stock").attr("data-nameandsecondname", JSON.stringify({id : data.id, name : data.name, secondName : data.secondName})).text("ابتدایی موجودي").appendTo(thirdUl);
-                thirdUl.appendTo(ul);
+                $("<button>").addClass("dropdown-item btn-new-stock").attr("data-nameandsecondname", JSON.stringify({id : data.id, name : data.name, secondName : data.secondName})).text("ابتدایی موجودي").appendTo(secondUl);
+                secondUl.appendTo(ul);
                 
                 ul.appendTo(dropDown);
                 dropDown.appendTo(actionsCell);

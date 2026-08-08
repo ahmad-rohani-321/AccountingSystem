@@ -630,15 +630,13 @@ namespace AccountingSystem.Controllers.ApiControllers
             {
                 return BadRequest("جنس سیریل نمبر حتمي دی.");
             }
-            else if (!request.UnitConversions.Any(unit =>
-                        // Negative values are never allowed.
-                        unit.MainUnitQuantity < 0 ||
-                        unit.SubUnitQuantity < 0 ||
-
-                        // Exactly one is zero while the other is positive.
-                        (unit.MainUnitQuantity >= 0 && unit.SubUnitQuantity > 0) ||
-                        (unit.MainUnitQuantity > 0 && unit.SubUnitQuantity >= 0)
-                    ))
+            else if (request.UnitConversions.Count(u => 
+                u.MainUnitQuantity != 0 && u.SubUnitQuantity != 0) > 0 && 
+                !request.UnitConversions.Any(
+                u => u.MainUnitQuantity < 0 || u.SubUnitQuantity < 0 ||
+                (u.MainUnitQuantity >= 0 && u.SubUnitQuantity > 0) || 
+                (u.MainUnitQuantity > 0 && u.SubUnitQuantity >= 0)
+            ))
             {
                 return BadRequest("واحدونه اصلاح کړئ");
             }
@@ -789,14 +787,14 @@ namespace AccountingSystem.Controllers.ApiControllers
                 {
                     var getItem = await _context.Items.FindAsync(request.Id);
 
-                    string fileName = "default.png";
                     if (request.ImageFile != null)
                     {
-                        fileName = $"{Guid.NewGuid()}{Path.GetExtension(request.ImageFile.FileName)}";
+                        string fileName = $"{Guid.NewGuid()}{Path.GetExtension(request.ImageFile.FileName)}";
                         var path = Path.Combine(_environemnt.WebRootPath, "Items", fileName);
 
                         await using var stream = new FileStream(path, FileMode.Create);
                         await request.ImageFile.CopyToAsync(stream);
+                        getItem.ImageName = fileName;
                     }
 
 
@@ -806,7 +804,6 @@ namespace AccountingSystem.Controllers.ApiControllers
                     getItem.CreatedByUserId = user;
                     getItem.CreationDate = DateTime.Now;
                     getItem.Description = request.Description;
-                    getItem.ImageName = fileName;
                     getItem.IsActive = true;
                     getItem.MinimumQuantity = request.MinQuantity;
                     getItem.SerialNumber = request.SerialNo;
@@ -1067,6 +1064,7 @@ namespace AccountingSystem.Controllers.ApiControllers
                         .Include(x => x.Item)
                         .ThenInclude(x => x.Unit)
                         .Include(x => x.Warehouse)
+                        .Where(x => x.Quantity > 0)
                         .ToArrayAsync())
                         .Select(x => new StockItemsViewModel()
                         {
@@ -1082,8 +1080,423 @@ namespace AccountingSystem.Controllers.ApiControllers
             return Ok(data);
         }
         
+        [HttpPost("SaveStockExchange")]
+        public async Task<ActionResult> SaveStockExchange(StockItemsViewModel request)
+        {
+            string user = _accessor.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier).Value;
+            if (request == null)
+            {
+                return BadRequest("خالي لیست نه ثبت کیږي");
+            }
+            else if (!await _context.StockBalances.AnyAsync(x => x.ID == request.Id))
+            {
+                return BadRequest("هیله ده جنس انتخاب کړئ!");
+            }
+            else if(!await _context.UnitConversion.AnyAsync(u => u.ID == request.UnitID))
+            {
+                return BadRequest("هیله ده صحیح واحد انتخاب کړئ!");
+            }
+            else if (!await _context.WareHouses.AnyAsync(s => s.ID == request.StockID))
+            {
+                return BadRequest("هیله ده صحیح ګدام انتخاب کړئ!");
+            }
+            else
+            {
+                using var transaction = await _context.Database.BeginTransactionAsync();
+                try
+                {
+                    var itemUnit = await _context.UnitConversion.FindAsync(request.UnitID);
+                    decimal calculatedQuantity = Math.Round(request.Quantity / itemUnit.ExchangedAmount, Defaults.DefaultDecimals);
+                    var stockItem = await _context.StockBalances.FindAsync(request.Id);
+
+                    if (stockItem.Quantity < calculatedQuantity)
+                    {
+                        return BadRequest("د جنس د انتقال لپاره په کافي اندازه تعداد نسته");
+                    }
+                   
+                    var toStock = await _context.StockBalances.FirstOrDefaultAsync(x => x.ItemID == stockItem.ItemID && x.WarehouseID == request.StockID);
+                    stockItem.Quantity -= calculatedQuantity;
+                    if (toStock == null)
+                    {
+                        var newEntry = await _context.StockBalances.AddAsync(new StockBalance()
+                        {
+                            CreatedByUserId = user,
+                            ItemID = stockItem.ItemID,
+                            Quantity = calculatedQuantity,
+                            CreationDate = DateTime.Now,
+                            WarehouseID = request.StockID,
+                            Remarks = request.Remarks
+                        });
+                        await _context.SaveChangesAsync();
+                        toStock = newEntry.Entity;
+                    }
+                    else
+                    {
+                        toStock.Quantity += calculatedQuantity;
+                    }
+
+                    await _context.StockTransactions.AddAsync(new StockTransactions()
+                    {
+                        CreatedByUserId = user,
+                        CreationDate = DateTime.Now,
+                        Quantity = request.Quantity,
+                        Remarks = request.Remarks,
+                        StockBalanceID = stockItem.ID,
+                        TransactionID = 4, 
+                        UnitID = request.UnitID,
+                    });
+
+                    await _context.StockTransactions.AddAsync(new StockTransactions()
+                    {
+                        CreatedByUserId = user,
+                        CreationDate = DateTime.Now,
+                        Quantity = request.Quantity,
+                        Remarks = request.Remarks,
+                        StockBalanceID = toStock.ID,
+                        TransactionID = 12, 
+                        UnitID = request.UnitID
+                    });
+                    
+                    
+                    await _context.UserHistories.AddAsync(new Models.Identity.UserHistory()
+                    {
+                        CreatedByUserId = user,
+                        CreationDate = DateTime.Now,
+                        Details = "د جنس لپاره موجودي تبادله، ثبت سوه.",
+                        ModelName = "اجناس"
+                    });
+                    await _context.SaveChangesAsync();
+                    await transaction.CommitAsync();
+                    return Ok();
+                }
+                catch (Exception ex)
+                {
+                    await transaction.RollbackAsync();
+                    return BadRequest(ex.Message);
+                }
+            }
+        }
         
+        [HttpPost("ExportOrDemageItem")]
+        public async Task<ActionResult> ExportOrDemageItem(StockItemsViewModel request)
+        {
+            string user = _accessor.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier).Value;
+            if (request == null)
+            {
+                return BadRequest("خالي لیست نه ثبت کیږي");
+            }
+            else if (!await _context.StockBalances.AnyAsync(s => s.ID == request.Id))
+            {
+                return BadRequest("هیله ده صحیح جنس انتخاب کړئ!");
+            }
+            else if(!await _context.UnitConversion.AnyAsync(u => u.ID == request.UnitID))
+            {
+                return BadRequest("هیله ده صحیح واحد انتخاب کړئ!");
+            }
+            else
+            {
+                using var transaction = await _context.Database.BeginTransactionAsync();
+                try
+                {
+                    var itemUnit = await _context.UnitConversion.FindAsync(request.UnitID);
+                    decimal calculatedQuantity = Math.Round(request.Quantity / itemUnit.ExchangedAmount, Defaults.DefaultDecimals);
+                    var stockItem = await _context.StockBalances.FindAsync(request.Id);
+
+                    if (stockItem.Quantity < calculatedQuantity)
+                    {
+                        return BadRequest("د جنس د انتقال لپاره په کافي اندازه تعداد نسته");
+                    }
+                   
+                    
+                    stockItem.Quantity -= calculatedQuantity;
+
+                    await _context.StockTransactions.AddAsync(new StockTransactions()
+                    {
+                        CreatedByUserId = user,
+                        CreationDate = DateTime.Now,
+                        Quantity = request.Quantity,
+                        Remarks = request.Remarks,
+                        StockBalanceID = stockItem.ID,
+                        TransactionID = request.TransactionType, // Assuming 4 is the ID for stock exchange
+                        UnitID = request.UnitID,
+                    });
+                    
+                    
+                    await _context.UserHistories.AddAsync(new Models.Identity.UserHistory()
+                    {
+                        CreatedByUserId = user,
+                        CreationDate = DateTime.Now,
+                        Details = "د جنس لپاره موجودي تبادله، ثبت سوه.",
+                        ModelName = "اجناس"
+                    });
+                    await _context.SaveChangesAsync();
+                    await transaction.CommitAsync();
+                    return Ok();
+                }
+                catch (Exception ex)
+                {
+                    await transaction.RollbackAsync();
+                    return BadRequest(ex.Message);
+                }
+            }
+        }
+
+        [HttpGet("StockTranscationsHistory")]
+        public async Task<ActionResult> StockTranscationsHistory([FromQuery] int[]? itemIds, [FromQuery] int[]? stockIds, [FromQuery] int[]? transactionTypeIds,[FromQuery] DateTime? startDate, [FromQuery] DateTime? endDate)
+        {
+            if (itemIds?.Length > 0 &&
+                !await _context.StockTransactions.Include(x => x.StockBalance).AnyAsync(x => itemIds.Contains(x.StockBalance.ItemID)))
+            {
+                return BadRequest("صحیح اجناس انتخاب کړئ");
+            }
+            else if(transactionTypeIds?.Length > 0 && 
+                !await _context.StockTransactionTypes.AnyAsync(x => transactionTypeIds.Contains(x.ID)))
+            {
+                return BadRequest("هیله ده صحیح دعملېې ډول انتخاب کړئ");
+            }
+            else if (stockIds?.Length > 0 && !await _context.WareHouses.AnyAsync(x => stockIds.Contains(x.ID)))
+            {
+                return BadRequest("صحیح ګدام انتخاب کړئ");
+            }
+            else if (startDate.HasValue && endDate.HasValue && startDate > endDate)
+            {
+                return BadRequest("نېټې اصلاح کړئ");
+            }
+            else
+            {
+                List<StockTransactionsViewModel> data = null;
+                // only items with dates
+                if (itemIds?.Length > 0 && stockIds?.Length == 0 && transactionTypeIds.Length == 0)
+                {
+                    data = [.. (await _context.StockTransactions
+                                    .Include(x => x.StockBalance)
+                                    .ThenInclude(x => x.Item)
+                                    .Include(x => x.StockBalance.Warehouse)
+                                    .Include(x => x.Transaction)
+                                    .Include(x => x.Unit)
+                                    .ThenInclude(x => x.SubUnit)
+                                    .Where(x => x.CreationDate >= startDate && x.CreationDate <= endDate && itemIds.Contains(x.StockBalance.Item.ID))
+                                    .OrderByDescending(x => x.CreationDate)
+                                    .ToArrayAsync())
+                            .Select(x => new StockTransactionsViewModel(){
+                                Date = x.CreationDate,
+                                Description = x.Remarks,
+                                Id = x.ID,
+                                Name = x.StockBalance.Item.NativeName,
+                                Quantity = x.Quantity,
+                                TransactionTypeName = x.Transaction.Name,
+                                UnitName = x.Unit.SubUnit.Name,
+                                WarehouseName = x.StockBalance.Warehouse.Name
+                            })];
+                }
+                // only stock with dates
+                else if (itemIds?.Length == 0 && stockIds?.Length > 0 && transactionTypeIds.Length == 0)
+                {
+                    data = [.. (await _context.StockTransactions
+                                    .Include(x => x.StockBalance)
+                                    .ThenInclude(x => x.Item)
+                                    .Include(x => x.StockBalance.Warehouse)
+                                    .Include(x => x.Transaction)
+                                    .Include(x => x.Unit)
+                                    .ThenInclude(x => x.SubUnit)
+                                    .Where(x => x.CreationDate >= startDate && x.CreationDate <= endDate && stockIds.Contains(x.StockBalance.Warehouse.ID))
+                                    .OrderByDescending(x => x.CreationDate)
+                                    .ToArrayAsync())
+                            .Select(x => new StockTransactionsViewModel(){
+                                Date = x.CreationDate,
+                                Description = x.Remarks,
+                                Id = x.ID,
+                                Name = x.StockBalance.Item.NativeName,
+                                Quantity = x.Quantity,
+                                TransactionTypeName = x.Transaction.Name,
+                                UnitName = x.Unit.SubUnit.Name,
+                                WarehouseName = x.StockBalance.Warehouse.Name
+                            })];
+                }
+                // only transaction type with dates
+                else if (itemIds?.Length == 0 && stockIds?.Length == 0 && transactionTypeIds.Length > 0)
+                {
+                    data = [.. (await _context.StockTransactions
+                                    .Include(x => x.StockBalance)
+                                    .ThenInclude(x => x.Item)
+                                    .Include(x => x.StockBalance.Warehouse)
+                                    .Include(x => x.Transaction)
+                                    .Include(x => x.Unit)
+                                    .ThenInclude(x => x.SubUnit)
+                                    .Where(x => x.CreationDate >= startDate && x.CreationDate <= endDate && transactionTypeIds.Contains(x.Transaction.ID))
+                                    .OrderByDescending(x => x.CreationDate)
+                                    .ToArrayAsync())
+                            .Select(x => new StockTransactionsViewModel(){
+                                Date = x.CreationDate,
+                                Description = x.Remarks,
+                                Id = x.ID,
+                                Name = x.StockBalance.Item.NativeName,
+                                Quantity = x.Quantity,
+                                TransactionTypeName = x.Transaction.Name,
+                                UnitName = x.Unit.SubUnit.Name,
+                                WarehouseName = x.StockBalance.Warehouse.Name
+                            })];
+                }
+                // items and stocks with dates
+                else if (itemIds?.Length > 0 && stockIds?.Length > 0 && transactionTypeIds.Length == 0)
+                {
+                    data = [.. (await _context.StockTransactions
+                                    .Include(x => x.StockBalance)
+                                    .ThenInclude(x => x.Item)
+                                    .Include(x => x.StockBalance.Warehouse)
+                                    .Include(x => x.Transaction)
+                                    .Include(x => x.Unit)
+                                    .ThenInclude(x => x.SubUnit)
+                                    .Where(x => x.CreationDate >= startDate && x.CreationDate <= endDate && itemIds.Contains(x.StockBalance.Item.ID) && stockIds.Contains(x.StockBalance.Warehouse.ID))
+                                    .OrderByDescending(x => x.CreationDate)
+                                    .ToArrayAsync())
+                            .Select(x => new StockTransactionsViewModel(){
+                                Date = x.CreationDate,
+                                Description = x.Remarks,
+                                Id = x.ID,
+                                Name = x.StockBalance.Item.NativeName,
+                                Quantity = x.Quantity,
+                                TransactionTypeName = x.Transaction.Name,
+                                UnitName = x.Unit.SubUnit.Name,
+                                WarehouseName = x.StockBalance.Warehouse.Name
+                            })];
+                }
+                // items and transactions with dates
+                else if (itemIds?.Length > 0 && stockIds?.Length == 0 && transactionTypeIds.Length > 0)
+                {
+                    data = [.. (await _context.StockTransactions
+                                    .Include(x => x.StockBalance)
+                                    .ThenInclude(x => x.Item)
+                                    .Include(x => x.StockBalance.Warehouse)
+                                    .Include(x => x.Transaction)
+                                    .Include(x => x.Unit)
+                                    .ThenInclude(x => x.SubUnit)
+                                    .Where(x => x.CreationDate >= startDate && x.CreationDate <= endDate && itemIds.Contains(x.StockBalance.Item.ID) && transactionTypeIds.Contains(x.Transaction.ID))
+                                    .OrderByDescending(x => x.CreationDate)
+                                    .ToArrayAsync())
+                            .Select(x => new StockTransactionsViewModel(){
+                                Date = x.CreationDate,
+                                Description = x.Remarks,
+                                Id = x.ID,
+                                Name = x.StockBalance.Item.NativeName,
+                                Quantity = x.Quantity,
+                                TransactionTypeName = x.Transaction.Name,
+                                UnitName = x.Unit.SubUnit.Name,
+                                WarehouseName = x.StockBalance.Warehouse.Name
+                            })];
+                }
+                // stocks and transactions with dates
+                else if (itemIds?.Length == 0 && stockIds?.Length > 0 && transactionTypeIds.Length > 0)
+                {
+                    data = [.. (await _context.StockTransactions
+                                    .Include(x => x.StockBalance)
+                                    .ThenInclude(x => x.Item)
+                                    .Include(x => x.StockBalance.Warehouse)
+                                    .Include(x => x.Transaction)
+                                    .Include(x => x.Unit)
+                                    .ThenInclude(x => x.SubUnit)
+                                    .Where(x => x.CreationDate >= startDate && x.CreationDate <= endDate && stockIds.Contains(x.StockBalance.Warehouse.ID) && transactionTypeIds.Contains(x.Transaction.ID))
+                                    .OrderByDescending(x => x.CreationDate)
+                                    .ToArrayAsync())
+                            .Select(x => new StockTransactionsViewModel(){
+                                Date = x.CreationDate,
+                                Description = x.Remarks,
+                                Id = x.ID,
+                                Name = x.StockBalance.Item.NativeName,
+                                Quantity = x.Quantity,
+                                TransactionTypeName = x.Transaction.Name,
+                                UnitName = x.Unit.SubUnit.Name,
+                                WarehouseName = x.StockBalance.Warehouse.Name
+                            })];
+                }
+                // stocks and transactions and items with dates
+                else if (itemIds?.Length > 0 && stockIds?.Length > 0 && transactionTypeIds.Length > 0)
+                {
+                    data = [.. (await _context.StockTransactions
+                                    .Include(x => x.StockBalance)
+                                    .ThenInclude(x => x.Item)
+                                    .Include(x => x.StockBalance.Warehouse)
+                                    .Include(x => x.Transaction)
+                                    .Include(x => x.Unit)
+                                    .ThenInclude(x => x.SubUnit)
+                                    .Where(x => x.CreationDate >= startDate && x.CreationDate <= endDate && itemIds.Contains(x.StockBalance.Item.ID) && stockIds.Contains(x.StockBalance.Warehouse.ID) && transactionTypeIds.Contains(x.Transaction.ID))
+                                    .OrderByDescending(x => x.CreationDate)
+                                    .ToArrayAsync())
+                            .Select(x => new StockTransactionsViewModel(){
+                                Date = x.CreationDate,
+                                Description = x.Remarks,
+                                Id = x.ID,
+                                Name = x.StockBalance.Item.NativeName,
+                                Quantity = x.Quantity,
+                                TransactionTypeName = x.Transaction.Name,
+                                UnitName = x.Unit.SubUnit.Name,
+                                WarehouseName = x.StockBalance.Warehouse.Name
+                            })];
+                }
+                else {
+                    data = (await _context.StockTransactions
+                                    .Include(x => x.StockBalance)
+                                    .ThenInclude(x => x.Item)
+                                    .Include(x => x.StockBalance.Warehouse)
+                                    .Include(x => x.Transaction)
+                                    .Include(x => x.Unit)
+                                    .ThenInclude(x => x.SubUnit)
+                                    .Where(x => x.CreationDate >= startDate && x.CreationDate <= endDate)
+                                    .ToArrayAsync())
+                            .Select(x => new StockTransactionsViewModel(){
+                                Date = x.CreationDate,
+                                Description = x.Remarks,
+                                Id = x.ID,
+                                Name = x.StockBalance.Item.NativeName,
+                                Quantity = x.Quantity,
+                                TransactionTypeName = x.Transaction.Name,
+                                UnitName = x.Unit.SubUnit.Name,
+                                WarehouseName = x.StockBalance.Warehouse.Name
+                            }).ToList();
+                }
+                return Ok(data);
+            }
+        }
+        
+        [HttpGet("GetStockMinItems")]
+        public async Task<ActionResult> GetStockMinItems()
+        {
+            var data = (await _context.StockBalances
+                        .Include(x => x.Item)
+                        .ThenInclude(x => x.Unit)
+                        .Include(x => x.Warehouse)
+                        .Where(x => x.Quantity > 0 && x.Item.MinimumQuantity > 0 && x.Item.MinimumQuantity >= x.Quantity)
+                        .ToArrayAsync())
+                        .Select(x => new StockItemsViewModel()
+                        {
+                            Id = x.ID,
+                            ItemID = x.Item.ID,
+                            ItemName = x.Item.NativeName,
+                            Quantity = x.Quantity,
+                            MinQuantity = x.Item.MinimumQuantity,
+                            StockID = x.WarehouseID,
+                            StockName = x.Warehouse.Name,
+                            UnitID = x.Item.Unit.ID,
+                            UnitName = x.Item.Unit.Name
+                        }).ToList();
+            return Ok(data);
+        }
         #endregion
 
+        [HttpGet("GetStockOutageActionTypes")]
+        public async Task<ActionResult> GetStockOutageActionTypes()
+        {
+            int[] types = [3, 9];
+            var actionTypes = await _context.StockTransactionTypes.Where(x => types.Contains(x.ID)).ToListAsync();
+            return Ok(actionTypes);
+        }
+
+        [HttpGet("GetStockTransactionTypes")]
+        public async Task<ActionResult> GetStockTransactionTypes()
+        {
+            return Ok(
+                await _context.StockTransactionTypes.ToListAsync()
+            );
+        }
     }
 }

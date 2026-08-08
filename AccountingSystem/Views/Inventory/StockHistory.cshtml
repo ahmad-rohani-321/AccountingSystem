@@ -1,0 +1,204 @@
+@{
+    ViewData["title"] = "د ګدام تاریخچه";
+    ViewData["Inventory"] = "active";
+    ViewData["StockHistory"] = "active";
+}
+@section Styles {
+<link href="~/lib/flatpickr-jalali-support/dist/flatpickr.min.css" rel="stylesheet" />
+<link href="~/lib/flatpickr-jalali-support/dist/themes/soft-card.css" rel="stylesheet" />
+<link href="~/lib/tom-select/dist/css/tom-select.bootstrap5.css" rel="stylesheet" />
+}
+<div class="row row-deck row-cards">
+    <div class="card">
+        <div class="card-header">
+            <h3 class="h3">@ViewData["title"]</h3>
+        </div>
+        <div class="card-body">
+            <form class="my-3" id="searchForm">
+                <div class="row align-items-end">
+                    <div class="col-auto">
+                        <div class="form-group" for="itemId">
+                            <label class="form-label">حساب</label>
+                            <select id="accountId" class="form-control" multiple></select>
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <div class="form-group">
+                            <label class="form-label" for="stockId">اسعار</label>
+                            <select id="currencyId" class="form-control" multiple></select>
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <div class="form-group">
+                            <label class="form-label" for="transactionType">معاملې ډول</label>
+                            <select id="transactionTypeId" class="form-control" multiple></select>
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <div class="form-group">
+                            <label class="form-label" for="startDate">شروع نېټه</label>
+                            <input type="text" id="startDate" class="form-control" />
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <div class="form-group">
+                            <label class="form-label" for="endDate">ختم نېټه</label>
+                            <input type="text" id="endDate" class="form-control" />
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        
+                        <button type="submit" class="btn btn-primary"> 
+                            <i class="fas fa-search pe-3"></i>
+                             پلټنه</button>
+                    </div>
+                </div>
+            </form>
+            <table class="table table-bordered table-hover table-responsive table-striped">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>جنس</th>
+                        <th>د عملېې ډول</th>
+                        <th>واحد</th>
+                        <th>تعداد</th>
+                        <th>ګدام</th>
+                        <th>نېټه</th>
+                        <th>ملاحظات</th>
+                    </tr>
+                </thead>
+                <tbody id="stockJournalDataTable">
+
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script src="~/lib/flatpickr-jalali-support/dist/flatpickr.min.js"></script>
+<script src="~/lib/flatpickr-jalali-support/dist/l10n/fa.js"></script>
+<script src="~/lib/tom-select/dist/js/tom-select.complete.min.js"></script>
+<script src="~/lib/just-validate/dist/just-validate.production.min.js"></script>
+<script src="~/lib/moment-jalali/dist/jalali-moment.browser.js"></script>
+
+<script>
+$(document).ready(function(){
+// starting date
+FlatPickerComponent("#startDate");
+// ending date
+FlatPickerComponent("#endDate");
+// items list
+TomSelectComponent("/api/Inventory/GetActiveItemsList/", "#itemId", "id", "name");
+// stocks list
+TomSelectComponent("/api/Inventory/GetActiveStockList/", "#stockId", "id", "name");
+// stock transaction types
+TomSelectComponent("/api/Inventory/GetStockTransactionTypes/", "#transactionType", "id", "name");
+});
+
+function FlatPickerComponent(control){
+    flatpickr(control, {
+        locale: "fa",
+        defaultDate: new Date(),
+        allowInput: true
+    });
+}
+function TomSelectComponent(api, control, valueMember, displayMember){
+    var select = new TomSelect(control, {
+        valueField: valueMember,
+        labelField: displayMember,
+        searchField: displayMember
+    });
+    $.get(api, function(rows) {
+        select.addOptions(rows);
+    });
+}
+</script>
+
+<script>
+var formValidator = new JustValidate("#searchForm");
+formValidator.addField("#startDate", [
+{
+    rule: "required",
+    errorMessage: "شروع نېټه اړین ده"
+},
+{
+    validator: function(value){
+        var endDate = $("#endDate").val();
+        var status = endDate >= value;
+        return status;
+    },
+    errorMessage: "شروع نېټه باید د ختم د نېټې څخه مخکي وي"
+}]);
+
+formValidator.addField("#endDate", [
+{
+    rule: "required",
+    errorMessage: "ختم نېټه اړین ده"
+},
+{
+    validator: function(value){
+        var startDate = $("#startDate").val();
+        var status = startDate <= value;
+        return status;
+    },
+    errorMessage: "ختم نېټه باید د شروع د نېټې څخه وروسته وي"
+}]);
+
+formValidator.onSuccess(function(event){
+    event.preventDefault();
+
+    var itemIds = ($("#itemId").val() || []).map(function(value) {
+        return Number(value);
+    });
+    var stockIds = ($("#stockId").val() || []).map(function(value) {
+        return Number(value);
+    });
+    var transactionType = ($("#transactionType").val() || []).map(function(value){
+        return Number(value);
+    });
+
+    var startDate = $("#startDate").val();
+    var endDate = $("#endDate").val();
+
+    if (startDate) {
+        startDate = moment.from(startDate, 'fa', 'YYYY/MM/DD').locale('en').format('YYYY-MM-DDTHH:mm:ss');
+    }
+    if (endDate) {
+        endDate = moment.from(endDate, 'fa', 'YYYY/MM/DD').locale('en').format('YYYY-MM-DDTHH:mm:ss');
+    }
+
+    $.ajax({
+        url: "/api/Inventory/StockTranscationsHistory",
+        type: "GET",
+        data: $.param({
+            itemIds: itemIds,
+            stockIds: stockIds,
+            transactionTypeIds: transactionType,
+            startDate: startDate,
+            endDate: endDate
+        }, true),
+        success: function(response){
+            var dataTable = $("#stockJournalDataTable");
+            dataTable.empty();
+            response.forEach(function(rows){
+                var tr = $("<tr>");
+                $("<td>").text(rows.id).appendTo(tr);
+                $("<td>").text(rows.name).appendTo(tr);
+                $("<td>").text(rows.transactionTypeName).appendTo(tr);
+                $("<td>").text(rows.unitName).appendTo(tr);
+                $("<td>").text(rows.quantity).appendTo(tr);
+                $("<td>").text(rows.warehouseName).appendTo(tr);
+                $("<td>").text(moment(rows.date).format("jYYYY/jMM/jDD HH:mm:ss")).appendTo(tr);
+                $("<td>").text(rows.description).appendTo(tr);
+                tr.appendTo(dataTable);
+            });
+        },
+        error: function(response){
+            console.log(response.responseText);
+        }
+
+    });
+});
+</script>
+}

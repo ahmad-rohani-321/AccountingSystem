@@ -18,7 +18,7 @@
                 نوې موجودي
                 <i class="fas fa-plus ms-3"></i>
             </button>
-        <table class="table table-hover table-bordered table-responsive">
+        <table class="table table-hover table-bordered table-responsive table-striped">
             <thead>
                 <tr>
                     <th>#</th>
@@ -53,7 +53,7 @@
                             <i class="fas fa-plus"></i>
                         </button>
                     
-                    <table class="table table-bordered table-responsive table-hover">
+                    <table class="table table-bordered table-responsive table-hover table-striped">
                         <thead>
                             <tr>
                                 <th>نېټه</th>
@@ -90,7 +90,7 @@
         <div class="modal-content">
             <div class="modal-header">
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                <h2>نوې موجودي</h2>
+                <h2>د ګدامونو ترمنځ تبادله</h2>
             </div>
             <form id="stockExchangeForm">
                 <input type="hidden" id="stockExchangeItemId">
@@ -103,13 +103,13 @@
                         <div class="col">
                             <div class="mb-3">
                                 <label class="form-label" for="stockExchangeDate">نېټه</label>
-                                <input type="text" class="form-control" id="stockExchangeDate" />
+                                <input type="text" class="form-control" id="stockExchangeDate" disabled />
                             </div>
                         </div>
                         <div class="col">
                             <div class="mb-3">
-                                <label class="form-label" for="stockExchangeUnit">واحد</label>
-                                <select class="form-control" id="stockExchangeUnit"></select>
+                                <label class="form-label" for="stockExchangeToStock">ګدام ته</label>
+                                <select class="form-control" id="stockExchangeToStock"></select>
                             </div>
                         </div>
                     </div>
@@ -117,8 +117,8 @@
                     <div class="row">
                         <div class="col">
                             <div class="mb-3">
-                                <label class="form-label" for="stockExchangeToStock">ګدام ته</label>
-                                <select class="form-control" id="stockExchangeToStock"></select>
+                                <label class="form-label" for="stockExchangeUnit">واحد</label>
+                                <select class="form-control" id="stockExchangeUnit"></select>
                             </div>
                         </div>
                         <div class="col">
@@ -155,18 +155,85 @@
     </div>
 </div>
 
+<div class="modal fade" id="stockOutageModal">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <h2>د جنس اخراجول</h2>
+            </div>
+            <form id="stockOutageForm">
+                <input type="hidden" id="stockOutageItemId">
+                <div class="modal-body py-4">
+                    <h3 class="h3 text-dark">جنس / عمومي واحد او تعداد / ګدام</h3>
+                    <h3 class="h3 text-muted" id="stockOutageItemName"></h3>
+                </div>
+                <div class="modal-body py-4">
+                    <div class="row">
+                        <div class="col">
+                            <div class="mb-3">
+                                <label class="form-label" for="stockOutageDate">نېټه</label>
+                                <input type="text" class="form-control" id="stockOutageDate" disabled />
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="mb-3">
+                                <label class="form-label" for="stockOutageActionType">د عملېې ډول</label>
+                                <select class="form-control" id="stockOutageActionType"></select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col">
+                            <div class="mb-3">
+                                <label class="form-label" for="stockOutageUnit">واحد</label>
+                                <select class="form-control" id="stockOutageUnit"></select>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="mb-3">
+                                <label class="form-label" for="stockOutageQuantity">تعداد</label>
+                                <input type="number" class="form-control" id="stockOutageQuantity">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col">
+                            <div class="mb-3">
+                                <label class="form-label" for="stockOutageRemarks">تشریح</label>
+                                <textarea class="form-control" id="stockOutageRemarks"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <div class="w-100">
+                        <div class="row">
+                            <div class="col-auto">
+                                <button type="submit" class="btn btn-primary w-100"> تائید </button>
+                            </div>
+                            <div class="col-auto">
+                                <button class="btn w-100" type="reset" data-bs-dismiss="modal"> لغوه </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
 <script src="~/lib/flatpickr-jalali-support/dist/flatpickr.min.js"></script>
 <script src="~/lib/flatpickr-jalali-support/dist/l10n/fa.js"></script>
 <script src="~/lib/tom-select/dist/js/tom-select.complete.min.js"></script>
 <script src="~/lib/just-validate/dist/just-validate.production.min.js"></script>
 <script src="~/lib/moment-jalali/dist/jalali-moment.browser.js"></script>
+@* Generals *@
 <script>
-$(document).ready(function(){
-$(".control-date").flatpickr({
-    locale: "fa"
-});
-});
+$(document).ready(stockItemsList());
 var stocks = null;
 $.get("/api/Inventory/GetActiveStockList/", function(rows) {
     stocks = rows;
@@ -175,6 +242,50 @@ var activeItems = null;
 $.get("/api/Inventory/GetActiveItemsList/", function(rows) {
     activeItems = rows;
 });
+
+function stockItemsList(){
+    $.ajax({
+        url: "/api/Inventory/GetStockItems",
+        type: "GET",
+        success : function(respondedData){
+            var dataTable = $("#stockItemsList");
+            dataTable.empty();
+            respondedData.forEach(function(data){
+                var tr = $("<tr>");
+                $("<td>").text(data.id).appendTo(tr);
+                $("<td>").text(data.itemName).appendTo(tr);
+                $("<td>").text(data.unitName).appendTo(tr);
+                $("<td>").text(data.stockName).appendTo(tr);
+                $("<td>").text(data.quantity).appendTo(tr);
+                var actionsCell = $("<td>");
+                var actionsDiv = $("<div>").addClass("btn-group");
+                actionsDiv.appendTo(actionsCell);
+                exportBtn = $("<button>").addClass("btn btn-sm btn-primary btn-export").attr("data-row", JSON.stringify(data)).text("اخراج");
+                exportBtn.appendTo(actionsDiv);
+                exchangeBtn = $("<button>").addClass("btn btn-sm btn-success btn-exchange").attr("data-row", JSON.stringify(data)).text("تبادله");
+                exchangeBtn.appendTo(actionsDiv);
+                actionsCell.appendTo(tr);
+                tr.appendTo(dataTable);
+
+            });
+        },
+        error : function(error){
+            console.error(error);
+        }
+    });
+}
+
+function FlatPickerComponent(control){
+    flatpickr(control, {
+        locale: "fa",
+        defaultDate: new Date(),
+        allowInput: true
+    });
+}
+</script>
+
+@* List of new items *@
+<script>
 var stockItemsValidator = new JustValidate("#newStockItemsForm");
 
 $("#addNewStockItemRow").click(async function(event){
@@ -316,6 +427,7 @@ stockItemsValidator.onSuccess(function(event){
             $("#newStockItemsRows").empty();
             $("#newStockItemsForm")[0].reset();
             $("#newStockItem").modal("hide");
+            stockItemsList();
         },
         error : function(error){
             showToast("warning", error.responseText);
@@ -346,33 +458,82 @@ $(document).on("click", ".btn-remove-row", function (event) {
     event.preventDefault();
     $(this).closest("tr").remove();
 });
-
-$(document).ready(function(){
-stockItemsList();
+$("#newStockItemsForm").on("reset", function(event){
+    $("#newStockItemsRows").empty();
 });
+</script>
 
-
-$(document).on("click", ".btn-export", function(event){
-    var data = $(this).data("row");
-    console.log(data);
-});
+@* Exchange *@
+<script>
 FlatPickerComponent("#stockExchangeDate");
 var stockExchangeUnit = new TomSelect("#stockExchangeUnit", {
         valueField: "id",
         labelField: "subUnitName",
         searchField: "subUnitName"
     });
-var stockExchangeToStock = new TomSelect("#stockExchangeToStock", {
+
+var stocksSelect = new TomSelect("#stockExchangeToStock", {
         valueField: "id",
         labelField: "name",
         searchField: "name"
     });
-stockExchangeToStock.addOptions(stocks);
+var activeStocks = null;
+$.get("/api/Inventory/GetActiveStockList/", function(rows) {
+    activeStocks = rows;
+});
+var stockExchangeFormValidation = new JustValidate("#stockExchangeForm");
+stockExchangeFormValidation.addField("#stockExchangeDate", [
+    {
+        rule: "required",
+        errorMessage: "نېټه اړین ده"
+    }
+]);
+stockExchangeFormValidation.addField("#stockExchangeUnit", [
+    {
+        rule: "required",
+        errorMessage: "واحد اړین دی"
+    }
+]);
+stockExchangeFormValidation.addField("#stockExchangeToStock", [
+    {
+        rule: "required",
+        errorMessage: "ګدام اړین دی"
+    }
+]);
+stockExchangeFormValidation.addField("#stockExchangeQuantity", [
+    {
+        rule: "required",
+        errorMessage: "تعداد اړین دی"
+    },
+    {
+        validator: function(value) {
+            return Number(value) > 0;
+        },
+        errorMessage: "تعداد باید له صفر څخه زیات وي"
+    }
+]);
+stockExchangeFormValidation.addField("#stockExchangeRemarks", [
+    {
+        rule: "required",
+        errorMessage: "تشریح اړین دی"
+    }
+]);
 $(document).on("click", ".btn-exchange", function(event){
     var data = $(this).data("row");
+
     $("#stockExchangeItemName").text(`${data.itemName} - ${data.quantity} ${data.unitName} - ${data.stockName}`);
     $("#stockExchangeItemId").val(data.id);    
-    
+    const fp = document.querySelector("#stockExchangeDate")._flatpickr;
+
+    fp.setDate(new Date());
+
+    var filteredStocks = activeStocks.filter(function(stock) {
+        return stock.id !== data.stockID;
+    });
+    stocksSelect.clear();
+    stocksSelect.clearOptions();
+    stocksSelect.addOptions(filteredStocks);
+    stocksSelect.refreshOptions(false);
 
     stockExchangeUnit.clear(true);
     stockExchangeUnit.clearOptions();
@@ -382,47 +543,143 @@ $(document).on("click", ".btn-exchange", function(event){
         stockExchangeUnit.refreshOptions(false);
     });
     $("#stockExchangeModal").modal("show");
-    console.log(data);
 });
+stockExchangeFormValidation.onSuccess(function(event){
+    if(!event){
+        return;
+    }
+    event.preventDefault();
 
-function stockItemsList(){
+    const exchangeData = {
+        id: Number($("#stockExchangeItemId").val()),
+        unitID: Number($("#stockExchangeUnit").val()),
+        stockID: Number($("#stockExchangeToStock").val()),
+        quantity: Number($("#stockExchangeQuantity").val() || 0),
+        remarks: $("#stockExchangeRemarks").val()
+    };
+
     $.ajax({
-        url: "/api/Inventory/GetStockItems",
-        type: "GET",
-        success : function(respondedData){
-            var dataTable = $("#stockItemsList");
-            dataTable.empty();
-            respondedData.forEach(function(data){
-                var tr = $("<tr>");
-                $("<td>").text(data.id).appendTo(tr);
-                $("<td>").text(data.itemName).appendTo(tr);
-                $("<td>").text(data.unitName).appendTo(tr);
-                $("<td>").text(data.stockName).appendTo(tr);
-                $("<td>").text(data.quantity).appendTo(tr);
-                var actionsCell = $("<td>");
-                var actionsDiv = $("<div>").addClass("btn-group");
-                actionsDiv.appendTo(actionsCell);
-                exportBtn = $("<button>").addClass("btn btn-sm btn-primary btn-export").attr("data-row", JSON.stringify(data)).text("اخراج");
-                exportBtn.appendTo(actionsDiv);
-                exchangeBtn = $("<button>").addClass("btn btn-sm btn-success btn-exchange").attr("data-row", JSON.stringify(data)).text("تبادله");
-                exchangeBtn.appendTo(actionsDiv);
-                actionsCell.appendTo(tr);
-                tr.appendTo(dataTable);
-
-            });
+        url: "/api/Inventory/SaveStockExchange",
+        type: "POST",
+        contentType: "application/json",
+        data: JSON.stringify(exchangeData),
+        success : function(response){
+            showToast("success", "تبادله ثبت سو.");
+            $("#stockExchangeForm")[0].reset();
+            $("#stockExchangeModal").modal("hide");
+            stockItemsList();
         },
         error : function(error){
-            console.error(error);
+            showToast("warning", error.responseText);
         }
     });
-}
+});
+</script>
 
-function FlatPickerComponent(control){
-    flatpickr(control, {
-        locale: "fa",
-        defaultDate: new Date(),
-        allowInput: true
+@* Outage/Export *@
+<script>
+FlatPickerComponent("#stockOutageDate");
+var stockOutageUnit = new TomSelect("#stockOutageUnit",{
+    valueField: "id",
+    labelField: "subUnitName",
+    searchField: "subUnitName"
+});
+
+var stockOutageActionType = new TomSelect("#stockOutageActionType", {
+        valueField: "id",
+        labelField: "name",
+        searchField: "name"
     });
-}
+$.get("/api/Inventory/GetStockOutageActionTypes/", function(rows) {
+    stockOutageActionType.addOptions(rows);
+});
+
+var stockOutageFormValidator = new JustValidate("#stockOutageForm");
+
+$(document).on("click", ".btn-export", function(event){
+    var data = $(this).data("row");
+    //
+    
+    $("#stockOutageItemName").text(`${data.itemName} - ${data.quantity} ${data.unitName} - ${data.stockName}`);
+    $("#stockOutageItemId").val(data.id);    
+    const fp = document.querySelector("#stockOutageDate")._flatpickr;
+
+    fp.setDate(new Date());
+
+    stockOutageUnit.clear(true);
+    stockOutageUnit.clearOptions();
+
+    $.get("/api/Inventory/GetUnitConversionsOnly/" + data.itemID, function (units) {
+        stockOutageUnit.addOptions(units);
+        stockOutageUnit.refreshOptions(false);
+    });
+
+    stockOutageFormValidator.addField("#stockOutageDate", [
+    {
+        rule: "required",
+        errorMessage: "نېټه حتمي ده"
+    }
+    ]);
+
+    stockOutageFormValidator.addField("#stockOutageActionType", [
+    {
+        rule: "required",
+        errorMessage: "د عملیې ډول حتمي دئ"
+    }
+    ]);
+
+    stockOutageFormValidator.addField("#stockOutageUnit", [
+    {
+        rule: "required",
+        errorMessage: "واحد حتمي دئ"
+    }
+    ]);
+
+    stockOutageFormValidator.addField("#stockOutageQuantity", [
+    {
+        rule: "required",
+        errorMessage: "مبلغ حتمي دئ"
+    },
+    {
+        validator: function(value) {
+            return Number(value) > 0;
+        },
+        errorMessage: "تعداد باید له صفر څخه زیات وي"
+    }
+    ]);
+
+    stockOutageFormValidator.addField("#stockOutageRemarks", [
+    {
+        rule: "required",
+        errorMessage: "تشریح حتمي دئ"
+    }
+    ]);
+    $("#stockOutageModal").modal('show');
+});
+stockOutageFormValidator.onSuccess(function(event){
+    event.preventDefault();
+    var data = {
+        id : Number($("#stockOutageItemId").val()),
+        unitID : Number($("#stockOutageUnit").val()),
+        quantity : Number($("#stockOutageQuantity").val()),
+        transactionType : Number($("#stockOutageActionType").val())
+    };
+    console.log(data);
+    $.ajax({
+        url: "/api/Inventory/ExportOrDemageItem/",
+        type: "POST",
+        contentType: "application/json",
+        data: JSON.stringify(data),
+        success : function(response){
+            showToast("success", "عملیه ثبت سو.");
+            $("#stockOutageForm")[0].reset();
+            $("#stockOutageModal").modal("hide");
+            stockItemsList();
+        },
+        error : function(error){
+            showToast("warning", error.responseText);
+        }
+    });
+});
 </script>
 }

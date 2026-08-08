@@ -109,7 +109,7 @@
                                 </li>
 
                                 <li>
-                                    <a class="dropdown-item">
+                                    <a class="dropdown-item @ViewData["StockHistory"]" asp-controller="Inventory" asp-action="StockHistory">
                                         <i class="fa-solid fa-receipt"></i>
                                         د ګدام تاریخچه
                                     </a>
@@ -123,7 +123,7 @@
                                 </li>
 
                                 <li>
-                                    <a class="dropdown-item">
+                                    <a class="dropdown-item @ViewData["MinItems"]" asp-controller="Inventory" asp-action="MinAlerts">
                                         <i class="fa-solid fa-bell"></i>
                                         د کمښته خبرتیا
                                     </a>
@@ -152,7 +152,7 @@
                                     </a>
                                 </li>
                                 <li>
-                                    <a class="dropdown-item">
+                                    <a class="dropdown-item @ViewData["Transactions"]" asp-controller="Accounting" asp-action="Transactions">
                                         <i class="fa-solid fa-clipboard-list"></i>
                                         نقدي معاملات
                                     </a>

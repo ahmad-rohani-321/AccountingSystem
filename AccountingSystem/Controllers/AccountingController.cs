@@ -8,5 +8,10 @@ namespace AccountingSystem.Controllers
         {
             return View();
         }
+
+        public IActionResult Transactions()
+        {
+            return View();
+        }
     }
 }

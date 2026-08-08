@@ -1,0 +1,106 @@
+@{
+    ViewData["title"] = "نقدي معاملات";
+    ViewData["Accounting"] = "active";
+    ViewData["Transactions"] = "active";
+}
+@section Styles {
+<link href="~/lib/flatpickr-jalali-support/dist/flatpickr.min.css" rel="stylesheet" />
+<link href="~/lib/flatpickr-jalali-support/dist/themes/soft-card.css" rel="stylesheet" />
+<link href="~/lib/tom-select/dist/css/tom-select.bootstrap5.css" rel="stylesheet" />
+}
+<div class="row row-deck row-cards">
+    <div class="card">
+        <div class="card-header">
+            <h3 class="h3">@ViewData["title"]</h3>
+        </div>
+        <div class="card-body">
+            <button class="btn btn-primary mb-3" id="createNewTransaction">
+                <i class="fas fa-plus pe-2"></i>
+                نوې معامله</button>
+            <form class="my-3" id="searchForm">
+                <div class="row align-items-end">
+                    <div class="col-auto">
+                        <div class="form-group" for="itemId">
+                            <label class="form-label">جنس</label>
+                            <select id="itemId" class="form-control" multiple></select>
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <div class="form-group">
+                            <label class="form-label" for="stockId">ګدام</label>
+                            <select id="stockId" class="form-control" multiple></select>
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <div class="form-group">
+                            <label class="form-label" for="transactionType">عملېې ډول</label>
+                            <select id="transactionType" class="form-control" multiple></select>
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <div class="form-group">
+                            <label class="form-label" for="startDate">شروع نېټه</label>
+                            <input type="text" id="startDate" class="form-control" />
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <div class="form-group">
+                            <label class="form-label" for="endDate">ختم نېټه</label>
+                            <input type="text" id="endDate" class="form-control" />
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        
+                        <button type="submit" class="btn btn-primary"> 
+                            <i class="fas fa-search pe-3"></i>
+                             پلټنه</button>
+                    </div>
+                </div>
+            </form>
+            <table class="table table-hover table-bordered table-responsive table-striped">
+                <thead>
+                    <tr>
+                        <th>نېټه</th>
+                        <th>حساب</th>
+                        <th>اسعار</th>
+                        <th>د معاملې ډول</th>
+                        <th>رسیدګي</th>
+                        <th>بردګي</th>
+                        <th>بلانس</th>
+                        <th>تشریح</th>
+                    </tr>
+                </thead>
+                <tbody id="itemsList">
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts{
+    
+<script src="~/lib/flatpickr-jalali-support/dist/flatpickr.min.js"></script>
+<script src="~/lib/flatpickr-jalali-support/dist/l10n/fa.js"></script>
+<script src="~/lib/tom-select/dist/js/tom-select.complete.min.js"></script>
+<script src="~/lib/just-validate/dist/just-validate.production.min.js"></script>
+<script src="~/lib/moment-jalali/dist/jalali-moment.browser.js"></script>
+
+<script>
+flatpickr("#startDate", {
+    locale: "fa",
+    defaultDate: new Date(),
+    allowInput: true
+});
+flatpickr("#endDate", {
+    locale: "fa",
+    defaultDate: new Date(),
+    allowInput: true
+});
+
+var accountsList = null;
+$.get("/api/Accounting/GetAccountsList", function (data) {
+    accountsList = data;
+    
+});
+</script>
+}
