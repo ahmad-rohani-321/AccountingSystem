@@ -20,21 +20,21 @@
             <form class="my-3" id="searchForm">
                 <div class="row align-items-end">
                     <div class="col-auto">
-                        <div class="form-group" for="itemId">
-                            <label class="form-label">جنس</label>
-                            <select id="itemId" class="form-control" multiple></select>
+                        <div class="form-group" for="accountId">
+                            <label class="form-label">حساب</label>
+                            <select id="accountId" class="form-control" multiple></select>
                         </div>
                     </div>
                     <div class="col-auto">
                         <div class="form-group">
-                            <label class="form-label" for="stockId">ګدام</label>
-                            <select id="stockId" class="form-control" multiple></select>
+                            <label class="form-label" for="currencyId">اسعار</label>
+                            <select id="currencyId" class="form-control" multiple></select>
                         </div>
                     </div>
                     <div class="col-auto">
                         <div class="form-group">
-                            <label class="form-label" for="transactionType">عملېې ډول</label>
-                            <select id="transactionType" class="form-control" multiple></select>
+                            <label class="form-label" for="transactionTypeId">عملېې ډول</label>
+                            <select id="transactionTypeId" class="form-control" multiple></select>
                         </div>
                     </div>
                     <div class="col-auto">
@@ -97,10 +97,32 @@ flatpickr("#endDate", {
     allowInput: true
 });
 
+var accountIds = new TomSelect("#accountId", {
+    valueField: 'id',
+    labelField: 'name',
+    searchField: 'name'
+});
+var currencyIds = new TomSelect("#currencyId", {
+    valueField: 'id',
+    labelField: 'name',
+    searchField: 'name'
+});
+$.get("/api/Currency/Currencies/Simple/", function(rows){
+    currencyIds.addOptions(rows);
+});
+var transactionTypeIds = new TomSelect("#transactionTypeId", {
+    valueField: 'id',
+    labelField: 'typeName',
+    searchField: 'typeName'
+});
+$.get("/api/Accounts/GetTransactionTypes/", function(rows){
+    transactionTypeIds.addOptions(rows);
+});
+
 var accountsList = null;
-$.get("/api/Accounting/GetAccountsList", function (data) {
+$.get("/api/Accounts/GetAccountsList/", function (data) {
     accountsList = data;
-    
+    accountIds.addOptions(data);
 });
 </script>
 }

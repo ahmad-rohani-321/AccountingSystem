@@ -126,6 +126,20 @@ namespace AccountingSystem.Controllers.ApiControllers
             return Ok(data);
         }
 
+        [HttpGet("GetAccountsList")]
+        public async Task<ActionResult> GetAccountsList()
+        {
+            var data = (await _context.Accounts.Include(x => x.AccountType).Where(x => x.IsActive).ToArrayAsync())
+                        .Select(x => new AccountsViewModel
+                        {
+                            Id = x.ID,
+                            Name = x.Name,
+                            Code = x.Code,
+                            AccountTypeName = x.AccountType.Name
+                        }).ToList();
+            return Ok(data);
+        }
+
         [HttpPost("CreatePersonAccount")]
         public async Task<ActionResult> CreatePeoplAccount(PeopleAccountViewModel personModel)
         {
@@ -538,6 +552,11 @@ namespace AccountingSystem.Controllers.ApiControllers
             int[] typeIds = new int[] { 11 };
             var list = await _context.AccountTypes.Where(x => typeIds.Contains(x.ID)).ToListAsync();
             return Ok(list);
+        }
+        [HttpGet("GetTransactionTypes")]
+        public async Task<ActionResult> GetTransactionTypes()
+        {
+            return Ok(await _context.JournalEntryTransactionTypes.ToListAsync());
         }
         #endregion
     }
