@@ -1242,7 +1242,7 @@ namespace AccountingSystem.Controllers.ApiControllers
         }
 
         [HttpGet("StockTranscationsHistory")]
-        public async Task<ActionResult> StockTranscationsHistory([FromQuery] int[]? itemIds, [FromQuery] int[]? stockIds, [FromQuery] int[]? transactionTypeIds,[FromQuery] DateTime? startDate, [FromQuery] DateTime? endDate)
+        public async Task<ActionResult> StockTranscationsHistory([FromQuery] int[] itemIds, [FromQuery] int[] stockIds, [FromQuery] int[] transactionTypeIds,[FromQuery] DateTime startDate, [FromQuery] DateTime endDate)
         {
             if (itemIds?.Length > 0 &&
                 !await _context.StockTransactions.Include(x => x.StockBalance).AnyAsync(x => itemIds.Contains(x.StockBalance.ItemID)))
@@ -1258,7 +1258,7 @@ namespace AccountingSystem.Controllers.ApiControllers
             {
                 return BadRequest("صحیح ګدام انتخاب کړئ");
             }
-            else if (startDate.HasValue && endDate.HasValue && startDate > endDate)
+            else if (startDate > endDate)
             {
                 return BadRequest("نېټې اصلاح کړئ");
             }

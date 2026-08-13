@@ -36,12 +36,13 @@ namespace AccountingSystem.Controllers.ApiControllers
         [HttpGet("Currencies/Simple")]
         public async Task<ActionResult<List<CurrencyViewModel>>> CurrencySimpleList()
         {
-            var currencies = (await _context.Currencies.Where(x => x.IsActive).ToArrayAsync()).Select(x => new CurrencyViewModel()
-            {
-                Id = x.ID,
-                Name = x.CurrencyName,
-                Symbole = x.CurrencySymbole
-            }).ToList();
+            var currencies = (await _context.Currencies.Where(x => x.IsActive).OrderByDescending(z => z.IsMainCurrency).ToArrayAsync())
+                    .Select(x => new CurrencyViewModel()
+                    {
+                        Id = x.ID,
+                        Name = x.CurrencyName,
+                        Symbole = x.CurrencySymbole
+                    }).ToList();
             return Ok(currencies);
         }
 

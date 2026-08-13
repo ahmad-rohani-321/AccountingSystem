@@ -131,7 +131,7 @@ namespace AccountingSystem.Data
                     CreationDate = DateTime.Now
                 }
                 );
-
+                
             modelBuilder.Entity<StockTransactionType>().HasData(
                 new StockTransactionType
                 {

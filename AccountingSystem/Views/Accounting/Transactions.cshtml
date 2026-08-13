@@ -14,7 +14,7 @@
             <h3 class="h3">@ViewData["title"]</h3>
         </div>
         <div class="card-body">
-            <button class="btn btn-primary mb-3" id="createNewTransaction">
+            <button class="btn btn-primary mb-3" data-bs-toggle="modal" data-bs-target="#createNewTransaction" >
                 <i class="fas fa-plus pe-2"></i>
                 نوې معامله</button>
             <form class="my-3" id="searchForm">
@@ -77,38 +77,169 @@
     </div>
 </div>
 
+<div class="modal fade" id="createNewTransaction" tabindex="0">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+            <button type="reset" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <h2>نوې معامله</h2>
+            </div>
+            <form id="newTransactionForm">
+                <div class="modal-body py-4">
+                    <div class="row mb-2">
+                        <div class="form-group">
+                            <label for="transactionDate" class="form-label">نېټه</label>
+                            <input type="text" class="form-control" disabled id="transactionDate">
+                        </div>
+                    </div>
+                    <div class="row my-2">
+                        <div class="col">
+                            <div class="form-group">
+                                <label for="debitCurrency" class="form-label">بردګي اسعار</label>
+                                <select class="form-control" id="debitCurrency"></select>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="form-group">
+                                <label for="creditCurrency" class="form-label">رسیدګي اسعار</label>
+                                <select class="form-control" id="creditCurrency"></select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row my-2">
+                        <div class="col">
+                            <div class="form-group">
+                                <label for="debitAccount" class="form-label">بردګي حساب</label>
+                                <select class="form-control" id="debitAccount"></select>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="form-group">
+                                <label for="creditAccount" class="form-label">رسیدګي حساب</label>
+                                <select class="form-control" id="creditAccount"></select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row my-2">
+                        <div class="col">
+                            <div class="form-group">
+                                <label for="debitCurrencyExchange" class="form-label">بردګي اسعار</label>
+                                <input type="number" class="form-control" id="debitCurrencyExchange">
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="form-group">
+                                <label for="creditCurrencyExchane" class="form-label">رسیدګي اسعار</label>
+                                <input type="number" class="form-control" id="creditCurrencyExchane">
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="form-group">
+                                <label for="selectedCurrencyExchange" class="form-label">تبادله</label>
+                                <input type="number" class="form-control" id="selectedCurrencyExchange">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row my-2">
+                        <div class="col">
+                            <div class="form-group">
+                                <label for="exchangingAcount" class="form-label">مبلغ</label>
+                                <input type="number" class="form-control" id="exchangingAcount">
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="form-group">
+                                <label for="remarks" class="form-label">تشریحات</label>
+                                <textarea class="form-control" id="remarks"></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row my-2">
+                        <div class="col">
+                            <div class="form-group">
+                                <label for="image" class="form-label">سند عکس</label>
+                                <input type="file" class="form-control" id="image">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-body pb-3">
+                    <h3 class="h3">د حسابونو محاسبه (په عدد او تورو سره)</h3>
+                </div>
+                <div class="modal-footer">
+                    <div class="w-100">
+                        <div class="row">
+                            <div class="col">
+                                <button type="submit" class="btn btn-primary w-100"> تائید </button>
+                            </div>
+                            <div class="col">
+                                <button class="btn w-100" type="reset" data-bs-dismiss="modal"> لغوه </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 @section Scripts{
     
 <script src="~/lib/flatpickr-jalali-support/dist/flatpickr.min.js"></script>
 <script src="~/lib/flatpickr-jalali-support/dist/l10n/fa.js"></script>
 <script src="~/lib/tom-select/dist/js/tom-select.complete.min.js"></script>
 <script src="~/lib/just-validate/dist/just-validate.production.min.js"></script>
-<script src="~/lib/moment-jalali/dist/jalali-moment.browser.js"></script>
 
 <script>
-flatpickr("#startDate", {
-    locale: "fa",
-    defaultDate: new Date(),
-    allowInput: true
-});
-flatpickr("#endDate", {
-    locale: "fa",
-    defaultDate: new Date(),
-    allowInput: true
+function DateComponent(control){
+    flatpickr(control, {
+        locale: "fa",
+        defaultDate: new Date(),
+        allowInput: true
+    });
+}
+DateComponent("#endDate");
+DateComponent("#transactionDate");
+
+
+var  accountIds = new TomSelect("#accountId", {
+    valueField: 'id',
+    labelField: 'name',
+    searchField: ['name', 'code', 'accountTypeName'],
+    render: {
+        option: function(data, escape) {
+            return `<div>${escape(accountDisplay(data))}</div>`;
+        },
+        item: function(data, escape) {
+            return `<div>${escape(accountDisplay(data))}</div>`;
+        }
+    }
 });
 
-var accountIds = new TomSelect("#accountId", {
+var currencyIds = new TomSelect("#currencyId", {
     valueField: 'id',
     labelField: 'name',
     searchField: 'name'
 });
-var currencyIds = new TomSelect("#currencyId", {
+var debitCurrency = new TomSelect("#debitCurrency", {
+    valueField: 'id',
+    labelField: 'name',
+    searchField: 'name'
+});
+var creditCurrency = new TomSelect("#creditCurrency", {
     valueField: 'id',
     labelField: 'name',
     searchField: 'name'
 });
 $.get("/api/Currency/Currencies/Simple/", function(rows){
     currencyIds.addOptions(rows);
+    debitCurrency.addOptions(rows);
+    creditCurrency.addOptions(rows);
+
 });
 var transactionTypeIds = new TomSelect("#transactionTypeId", {
     valueField: 'id',
@@ -119,10 +250,111 @@ $.get("/api/Accounts/GetTransactionTypes/", function(rows){
     transactionTypeIds.addOptions(rows);
 });
 
-var accountsList = null;
+function accountDisplay(data) {
+    return `${data.name} - ${data.code} - ${data.accountTypeName}`;
+}
+
+var debitAccountSelect = new TomSelect("#debitAccount", {
+    valueField: 'id',
+    labelField: 'name',
+    searchField: ['name', 'code', 'accountTypeName'],
+    render: {
+        option: function(data, escape) {
+            return `<div>${escape(accountDisplay(data))}</div>`;
+        },
+        item: function(data, escape) {
+            return `<div>${escape(accountDisplay(data))}</div>`;
+        }
+    }
+});
+
+var creditAccountSelect = new TomSelect("#creditAccount", {
+    valueField: 'id',
+    labelField: 'name',
+    searchField: ['name', 'code', 'accountTypeName'],
+    render: {
+        option: function(data, escape) {
+            return `<div>${escape(accountDisplay(data))}</div>`;
+        },
+        item: function(data, escape) {
+            return `<div>${escape(accountDisplay(data))}</div>`;
+        }
+    }
+});
+
+var accountsList = [];
+var debitAccountsList = [];
 $.get("/api/Accounts/GetAccountsList/", function (data) {
     accountsList = data;
+    debitAccountsList = data.filter(x => [1, 2,  3, 4, 5, 6, 8, 9].includes(x.accountTypeId));
+    debitAccountSelect.addOptions(debitAccountsList);
     accountIds.addOptions(data);
 });
+
+$(document).on("#debitAccount", "change", function(event){
+    console.log(event);
+});
+
+$("#debitAccount").change(function(event){
+    if(!event.target)
+        return;
+    var accountId = event.target.tomselect.items[0];
+    var getFullAccount = accountsList.filter(x => x.id == accountId)[0];
+    switch(getFullAccount.accountTypeId){
+        // treasure
+        case 1 : 
+            creditAccountSelect.clearOptions();
+        creditAccountSelect.addOptions(accountsList.filter(x => x.id != accountId && [1, 2, 3, 4, 5, 7, 8, 9].includes(x.accountTypeId)));
+        break;
+        
+        // banks
+        case 2 : 
+            creditAccountSelect.clearOptions();
+            creditAccountSelect.addOptions(accountsList.filter(x => x.id != accountId && [1, 2, 3, 4, 5, 7, 8, 9].includes(x.accountTypeId)));
+        break;
+        
+        // buyers
+        case 3 : 
+            creditAccountSelect.clearOptions();
+            creditAccountSelect.addOptions(accountsList.filter(x => x.id != accountId && [1, 2, 3, 4, 5].includes(x.accountTypeId)));
+        break;
+        
+        // sellers
+        case 4 : 
+            creditAccountSelect.clearOptions();
+            creditAccountSelect.addOptions(accountsList.filter(x => x.id != accountId && [1, 2, 3, 4, 5].includes(x.accountTypeId)));
+        break;
+        
+        // both
+        case 5 : 
+            creditAccountSelect.clearOptions();
+            creditAccountSelect.addOptions(accountsList.filter(x => x.id != accountId && [1, 2, 3, 4, 5].includes(x.accountTypeId)));
+        break;
+        
+        // other revenues
+        case 6 : 
+            creditAccountSelect.clearOptions();
+            creditAccountSelect.addOptions(accountsList.filter(x => x.id != accountId && [1, 2].includes(x.accountTypeId)));
+        break;
+        
+        // contributors
+        case 8 : 
+            creditAccountSelect.clearOptions();
+            creditAccountSelect.addOptions(accountsList.filter(x => x.id != accountId && [1, 2].includes(x.accountTypeId)));
+        break;
+        
+        // stuff
+        case 9 : 
+            creditAccountSelect.clearOptions();
+            creditAccountSelect.addOptions(accountsList.filter(x => x.id != accountId && [1, 2].includes(x.accountTypeId)));
+        break;
+        
+    }
+});
+
+
+function CalculateJournalEntryFields(){
+    //var 
+}
 </script>
 }

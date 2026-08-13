@@ -135,7 +135,8 @@ namespace AccountingSystem.Controllers.ApiControllers
                             Id = x.ID,
                             Name = x.Name,
                             Code = x.Code,
-                            AccountTypeName = x.AccountType.Name
+                            AccountTypeName = x.AccountType.Name,
+                            AccountTypeId = x.AccountTypeID
                         }).ToList();
             return Ok(data);
         }
