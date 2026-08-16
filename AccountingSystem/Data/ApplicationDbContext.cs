@@ -387,6 +387,16 @@ namespace AccountingSystem.Data
                 {
                     ID = 12,
                     TypeName = "خرید مصرف"
+                },
+                new JournalTransactionType()
+                {
+                    ID = 13,
+                    TypeName = "متفرقه عواید"
+                },
+                new JournalTransactionType()
+                {
+                    ID = 14,
+                    TypeName = "مصارف"
                 }
             );
         }

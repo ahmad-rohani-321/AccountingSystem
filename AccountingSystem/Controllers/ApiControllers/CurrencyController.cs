@@ -246,7 +246,7 @@ namespace AccountingSystem.Controllers.ApiControllers
             List<CurrencyConversionViewModel> listCurrencies = new();
             foreach(var currency in currencies)
             {
-                var currencyPrice = await _context.CurrencyExchanges.FirstOrDefaultAsync(x => x.SubCurrencyID == currency.ID);
+                var currencyPrice = await _context.CurrencyExchanges.OrderByDescending(z => z.ID).FirstOrDefaultAsync(x => x.SubCurrencyID == currency.ID);
                 listCurrencies.Add(
                     new CurrencyConversionViewModel()
                     {
@@ -260,6 +260,24 @@ namespace AccountingSystem.Controllers.ApiControllers
 
             return Ok(listCurrencies);
         }
+
+
+        // convert prices
+        [HttpGet("GetSingleCurrencyConversion/{currencyId}")]
+        public async Task<ActionResult> GetSingleCurrencyConversion(int currencyId)
+        {
+            var currencyPrice = await _context.CurrencyExchanges.OrderByDescending(z => z.ID).FirstOrDefaultAsync(x => x.SubCurrencyID == currencyId);
+            var conversion = new CurrencyConversionViewModel()
+            {
+                CurrencyId = currencyPrice == null ? 0 : currencyPrice.ID,
+                MainCurrencyPrice = currencyPrice == null ? 1 : currencyPrice.MainCurrencyAmount,
+                SubCurrencyPrice = currencyPrice == null ? 1 : currencyPrice.SubCurrencyAmount,
+                ExchangedAmount = currencyPrice == null ? 1 : currencyPrice.CurrencyExchangeRate
+            };
+
+            return Ok(conversion);
+        }
+
 
         [HttpPost("CurrencyConversion/Create")]
         public async Task<ActionResult> SaveExchanges(List<CurrencyConversionViewModel> currencyConversions)

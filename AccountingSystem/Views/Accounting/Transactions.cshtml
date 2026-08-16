@@ -7,6 +7,11 @@
 <link href="~/lib/flatpickr-jalali-support/dist/flatpickr.min.css" rel="stylesheet" />
 <link href="~/lib/flatpickr-jalali-support/dist/themes/soft-card.css" rel="stylesheet" />
 <link href="~/lib/tom-select/dist/css/tom-select.bootstrap5.css" rel="stylesheet" />
+<style>
+    .item-image {
+        width: 90px;
+    }
+</style>
 }
 <div class="row row-deck row-cards">
     <div class="card">
@@ -22,19 +27,13 @@
                     <div class="col-auto">
                         <div class="form-group" for="accountId">
                             <label class="form-label">حساب</label>
-                            <select id="accountId" class="form-control" multiple></select>
+                            <select id="accountId" class="form-control"></select>
                         </div>
                     </div>
                     <div class="col-auto">
                         <div class="form-group">
                             <label class="form-label" for="currencyId">اسعار</label>
-                            <select id="currencyId" class="form-control" multiple></select>
-                        </div>
-                    </div>
-                    <div class="col-auto">
-                        <div class="form-group">
-                            <label class="form-label" for="transactionTypeId">عملېې ډول</label>
-                            <select id="transactionTypeId" class="form-control" multiple></select>
+                            <select id="currencyId" class="form-control"></select>
                         </div>
                     </div>
                     <div class="col-auto">
@@ -68,9 +67,10 @@
                         <th>بردګي</th>
                         <th>بلانس</th>
                         <th>تشریح</th>
+                        <th>سند</th>
                     </tr>
                 </thead>
-                <tbody id="itemsList">
+                <tbody id="journalList">
                 </tbody>
             </table>
         </div>
@@ -89,7 +89,7 @@
                     <div class="row mb-2">
                         <div class="form-group">
                             <label for="transactionDate" class="form-label">نېټه</label>
-                            <input type="text" class="form-control" disabled id="transactionDate">
+                            <input type="text" class="form-control" id="transactionDate">
                         </div>
                     </div>
                     <div class="row my-2">
@@ -113,42 +113,24 @@
                                 <label for="debitAccount" class="form-label">بردګي حساب</label>
                                 <select class="form-control" id="debitAccount"></select>
                             </div>
+                            <span class="text-muted" id="debitAccountText"></span>
                         </div>
                         <div class="col">
                             <div class="form-group">
                                 <label for="creditAccount" class="form-label">رسیدګي حساب</label>
                                 <select class="form-control" id="creditAccount"></select>
                             </div>
+                            <span class="text-muted" id="creditAccountText"></span>
                         </div>
                     </div>
 
                     <div class="row my-2">
                         <div class="col">
                             <div class="form-group">
-                                <label for="debitCurrencyExchange" class="form-label">بردګي اسعار</label>
-                                <input type="number" class="form-control" id="debitCurrencyExchange">
+                                <label for="creditAmount" class="form-label">مبلغ</label>
+                                <input type="number" class="form-control" id="creditAmount">
                             </div>
-                        </div>
-                        <div class="col">
-                            <div class="form-group">
-                                <label for="creditCurrencyExchane" class="form-label">رسیدګي اسعار</label>
-                                <input type="number" class="form-control" id="creditCurrencyExchane">
-                            </div>
-                        </div>
-                        <div class="col">
-                            <div class="form-group">
-                                <label for="selectedCurrencyExchange" class="form-label">تبادله</label>
-                                <input type="number" class="form-control" id="selectedCurrencyExchange">
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="row my-2">
-                        <div class="col">
-                            <div class="form-group">
-                                <label for="exchangingAcount" class="form-label">مبلغ</label>
-                                <input type="number" class="form-control" id="exchangingAcount">
-                            </div>
+                            <span class="text-muted" id="exchangingAmountText"></span>
                         </div>
                         <div class="col">
                             <div class="form-group">
@@ -162,7 +144,7 @@
                         <div class="col">
                             <div class="form-group">
                                 <label for="image" class="form-label">سند عکس</label>
-                                <input type="file" class="form-control" id="image">
+                                <input type="file" class="form-control" id="documentImage">
                             </div>
                         </div>
                     </div>
@@ -170,6 +152,8 @@
 
                 <div class="modal-body pb-3">
                     <h3 class="h3">د حسابونو محاسبه (په عدد او تورو سره)</h3>
+                    <p id="debitAmountToWords"></p>
+                    <p id="creditAmountToWords"></p>
                 </div>
                 <div class="modal-footer">
                     <div class="w-100">
@@ -193,7 +177,8 @@
 <script src="~/lib/flatpickr-jalali-support/dist/l10n/fa.js"></script>
 <script src="~/lib/tom-select/dist/js/tom-select.complete.min.js"></script>
 <script src="~/lib/just-validate/dist/just-validate.production.min.js"></script>
-
+<script src="~/lib/moment-jalali/dist/jalali-moment.browser.js"></script>
+<script src="~/js/numberToWords.js"></script>
 <script>
 function DateComponent(control){
     flatpickr(control, {
@@ -203,8 +188,7 @@ function DateComponent(control){
     });
 }
 DateComponent("#endDate");
-DateComponent("#transactionDate");
-
+DateComponent("#startDate");
 
 var  accountIds = new TomSelect("#accountId", {
     valueField: 'id',
@@ -235,19 +219,14 @@ var creditCurrency = new TomSelect("#creditCurrency", {
     labelField: 'name',
     searchField: 'name'
 });
+var currencyiesList = [];
 $.get("/api/Currency/Currencies/Simple/", function(rows){
     currencyIds.addOptions(rows);
     debitCurrency.addOptions(rows);
+    debitCurrency.setValue(rows[0].id);
     creditCurrency.addOptions(rows);
-
-});
-var transactionTypeIds = new TomSelect("#transactionTypeId", {
-    valueField: 'id',
-    labelField: 'typeName',
-    searchField: 'typeName'
-});
-$.get("/api/Accounts/GetTransactionTypes/", function(rows){
-    transactionTypeIds.addOptions(rows);
+    creditCurrency.setValue(rows[0].id);
+    currencyiesList = rows;
 });
 
 function accountDisplay(data) {
@@ -289,10 +268,6 @@ $.get("/api/Accounts/GetAccountsList/", function (data) {
     debitAccountsList = data.filter(x => [1, 2,  3, 4, 5, 6, 8, 9].includes(x.accountTypeId));
     debitAccountSelect.addOptions(debitAccountsList);
     accountIds.addOptions(data);
-});
-
-$(document).on("#debitAccount", "change", function(event){
-    console.log(event);
 });
 
 $("#debitAccount").change(function(event){
@@ -350,11 +325,255 @@ $("#debitAccount").change(function(event){
         break;
         
     }
+
+    CalculateNumberToWords();
 });
 
+$("#creditAccount").change(function(event){
+    CalculateNumberToWords();
+});
+var exchangeField = $("#selectedCurrencyExchange");
+$("#creditCurrency").change(function(event){
+    $.get(`/api/Currency/GetSingleCurrencyConversion/${$("#creditCurrency").val()}`, function(data){
+        creditCurrencyExchange = data.exchangedAmount;
+    });
+    CalculateNumberToWords();
+});
 
-function CalculateJournalEntryFields(){
-    //var 
+$("#debitCurrency").change(function(event){
+    $.get(`/api/Currency/GetSingleCurrencyConversion/${$("#debitCurrency").val()}`, function(data){
+        debitCurrencyExchange = data.exchangedAmount;
+    });
+    CalculateNumberToWords();
+});
+
+$("#creditAmount").change(function(event){
+    
+    $("#exchangingAmountText").text(NumberToWords('', event.target.valueAsNumber));
+    CalculatedAccountBalances();
+});
+$("#newTransactionForm").on("reset", function(event){
+    debitCurrency.clear();
+    creditCurrency.clear();
+    creditAccountSelect.clear();
+    creditAccountSelect.clearOptions();
+    $("#debitAmountToWords").text("");
+    $("#creditAmountToWords").text("");
+    $("#debitAccountText").text("");
+    $("#creditAccountText").text("");
+    $("#exchangingAmountText").text("");
+})
+
+function NumberToWords(currencyName, number){
+    var humanized = window.humanizeNumberValue(number);
+    return `${number} ${currencyName} (${humanized} ${currencyName})`;
 }
+
+var creditAccountBalance = 0;
+var debitAccountBalance = 0;
+var creditCurrencyExchange = 1;
+var debitCurrencyExchange = 1;
+
+function CalculateNumberToWords(){
+    var debitCurrencyId = debitCurrency.getValue();
+    var debitAccountId = debitAccountSelect.getValue();
+    var creditCurrencyId = creditCurrency.getValue();
+    var creditAccountId = creditAccountSelect.getValue();
+
+    var debitAccountText = $("#debitAccountText");
+    var creditAccountText = $("#creditAccountText");
+
+
+    if(debitAccountId !== "" && debitAccountId !== null){
+        $.get(`/api/Accounts/GetAccountCurrencyBalance/${debitCurrencyId}/${debitAccountId}`, function(amount){
+            debitAccountBalance = amount.balance;
+            debitAccountText.text(NumberToWords(amount.currencyName, amount.balance));
+        });
+    }
+
+    if(creditAccountId !== "" && creditAccountId !== null){
+        $.get(`/api/Accounts/GetAccountCurrencyBalance/${creditCurrencyId}/${creditAccountId}`, function(amount){
+            creditAccountBalance = amount.balance;
+            creditAccountText.text(NumberToWords(amount.currencyName, amount.balance));
+        });
+    }
+
+
+}
+
+function CalculatedAccountBalances(){
+    var debitCurrencyId = debitCurrency.getValue();
+    var debitAccountId = debitAccountSelect.getValue();
+
+    var creditCurrencyId = creditCurrency.getValue();
+    var creditAccountId = creditAccountSelect.getValue();
+
+    
+    var selectedDebitCurrency = currencyiesList.filter(x => x.id == Number(debitCurrencyId))[0];
+    var selectedCreditCurrency = currencyiesList.filter(x => x.id == Number(creditCurrencyId))[0];
+
+    var selectedDebitAccount = accountsList.filter(x => x.id == Number(debitAccountId))[0];
+    var selectedCreditAccount = accountsList.filter(x => x.id == Number(creditAccountId))[0];
+
+    if(debitCurrencyId !== "" && debitAccountId !== "" && creditCurrencyId !== "" && creditAccountId !== ""){
+        var exchange = debitCurrencyExchange / creditCurrencyExchange;
+        var amount = Number($("#creditAmount").val());
+        var exchangedAmount = amount / exchange;
+        var calculatedCreditAccount = creditAccountBalance + Number(exchangedAmount.toFixed(3));
+        var calculatedDebitAccount = debitAccountBalance - Number(amount.toFixed(3));
+        $("#debitAmountToWords").text(selectedDebitAccount.name + " " + NumberToWords(selectedDebitCurrency.name, calculatedDebitAccount));
+        $("#creditAmountToWords").text(selectedCreditAccount.name + " " + NumberToWords(selectedCreditCurrency.name, calculatedCreditAccount));
+    }
+}
+
+var journalEntryFormValidator = new JustValidate("#newTransactionForm");
+journalEntryFormValidator.addField("#transactionDate", [
+    {
+        rule: "required",
+        errorMessage: "نېټه ضروري ده"
+    }
+]);
+journalEntryFormValidator.addField("#debitCurrency", [
+    {
+        validator: function(value){
+            return value !== null;
+        },
+        errorMessage: "بردګي اسعار ضروري دي"
+    }
+]);
+journalEntryFormValidator.addField("#creditCurrency", [
+    {
+        validator: function(value){
+            return value !== null;
+        },
+        errorMessage: "رسیدګي اسعار ضروري دي"
+    }
+]);
+journalEntryFormValidator.addField("#debitAccount", [
+    {
+        validator: function(value){
+            return value !== '';
+        },
+        errorMessage: "رسیدګي حساب ضروري دي"
+    }
+]);
+journalEntryFormValidator.addField("#creditAccount", [
+    {
+        validator: function(value){
+            return value !== '';
+        },
+        errorMessage: "بردګي حساب ضروري دي"
+    }
+]);
+journalEntryFormValidator.addField("#creditAmount", [
+    {
+        rule: "required",
+        errorMessage: "د تبادلې مبلغ ضروري دی"
+    },
+    {
+        validator: function(value){
+            return value > 0;
+        },
+        errorMessage: "د تبادلې مبلغ باید د صفر څخه لوړ وي"
+    },
+    {
+        validator: function(value){
+            var debitAccountId = debitAccountSelect.getValue();
+            var selectedDebitAccount = accountsList.filter(x => x.id == debitAccountId)[0];
+
+            if (selectedDebitAccount.accountTypeId === 1 || selectedDebitAccount.accountTypeId === 2){
+                var exchange = creditCurrencyExchange / debitCurrencyExchange;
+                var exchangeAmount = $("#creditAmount").val();
+                var result = exchangeAmount / exchange;
+                return debitAccountBalance >= result;
+            }
+            else{return true;}
+        },
+        errorMessage : "د تبادلې مبلغ د بردګي په حساب کي نه دی مو جود"
+    }
+]);
+journalEntryFormValidator.addField("#remarks", [
+    {
+        rule: "required",
+        errorMessage: "د تشریحات ضروري دی"
+    }
+]);
+journalEntryFormValidator.addField("#documentImage", [
+    {
+      rule: 'files',
+      value: {
+        files: {
+          extensions: ['jpeg', 'jpg', 'png'],
+          maxSize: 5000000,
+          types: ['image/jpeg', 'image/jpg', 'image/png'],
+        },
+        errorMessage : "یوازي عکس آپلوډ کړی"
+      },
+      errorMessage : "تر 5 MB اضافه عکس نه آپلوډکیږي"
+    }])
+journalEntryFormValidator.onSuccess(function(event){
+    var currentDate = moment.from($("#transactionDate").val(), 'fa', 'YYYY/MM/DD').format("YYYY-MM-DD");
+    var formData = new FormData();
+    formData.append("Date", currentDate);
+    formData.append("CreditCurrencyId", Number(creditCurrency.getValue()));
+    formData.append("DebitCurrencyId", Number(debitCurrency.getValue()));
+    formData.append("CreditAccountId", Number(creditAccountSelect.getValue()));
+    formData.append("DebitAccountId", Number(debitAccountSelect.getValue()));
+    formData.append("Amount", Number($("#creditAmount").val()));
+    formData.append("Remarks", $("#remarks").val());
+    if ($("#documentImage")[0].files[0]) {
+        formData.append("Image", $("#documentImage")[0].files[0]);
+    }
+
+    $.ajax({
+        url: "/api/Journal/NewJournalEntry",
+        type: "POST",
+        data: formData,
+        processData: false,
+        contentType: false, 
+        success: function (result) {
+            showToast("success", "نوې انټري ثبت سوه");
+            $("#newTransactionForm")[0].reset();
+            $("#createNewTransaction").modal("hide");
+        },
+        error: function (xhr) {
+            showToast("warning", xhr.responseText);
+            console.error(xhr.responseText);
+        }
+    });
+});
+
+$(document).ready(function(){
+    GetTodayJournal();
+});
+
+function GetTodayJournal(){
+    $.ajax({
+        url: "/api/Journal/GetTodayJournal",
+        type: "GET",
+        success : function(respondedData){
+            var dataTable = $("#journalList");
+            dataTable.empty();
+            respondedData.forEach(function(data){
+                var tr = $("<tr>");
+                $("<td>").text(moment(data.date).format("jYYYY/jMM/jDD HH:mm:ss")).appendTo(tr);
+                $("<td>").text(data.accountName).appendTo(tr);
+                $("<td>").text(data.currencyName).appendTo(tr);
+                $("<td>").text(data.transactionTypeName).appendTo(tr);
+                $("<td>").text(data.credit).appendTo(tr);
+                $("<td>").text(data.debit).appendTo(tr);
+                $("<td>").text(data.balance).appendTo(tr);
+                $("<td>").text(data.remarks).appendTo(tr);
+                $("<td>").html(`<img src='/Journal/${data.photo}' class='item-image' />`).appendTo(tr);
+                tr.appendTo(dataTable);
+
+            });
+        },
+        error : function(error){
+            console.error(error);
+        }
+    });
+}
+
 </script>
 }

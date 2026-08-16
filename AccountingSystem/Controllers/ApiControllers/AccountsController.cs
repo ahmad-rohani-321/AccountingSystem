@@ -53,6 +53,21 @@ namespace AccountingSystem.Controllers.ApiControllers
             return Ok(balance);
         }
 
+        [HttpGet("GetAccountCurrencyBalance/{currencyId}/{accountId}")]
+        public async Task<ActionResult> GetAccountCurrencyBalance(int currencyId, int accountId)
+        {
+            var data = await _context.AccountBalances
+                .Include(ab => ab.Currency)
+                .FirstOrDefaultAsync(x => x.CurrencyID == currencyId && x.AccountID == accountId);
+            var currency = await _context.Currencies.FirstOrDefaultAsync(x => x.ID == currencyId);
+            AccountBalanceViewModel balance = new()
+            {
+                Balance = data == null ? 0 : data.Balance,
+                CurrencyName = currency.CurrencyName
+            };
+            return Ok(balance);
+        }
+
         [HttpGet("PeopleAccount")]
         public async Task<ActionResult> GetPeopleAccount()
         {
