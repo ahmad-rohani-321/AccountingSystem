@@ -95,6 +95,48 @@ namespace AccountingSystem.Controllers.ApiControllers
             return Ok(data);
         }
 
+        [HttpGet("GetSuppliers")]
+        public async Task<ActionResult> GetSuppliers()
+        {
+            int[] accountTypeLimits = [ 4, 5 ];
+            var data = (await _context
+                        .Accounts
+                        .Include(c => c.AccountType)
+                        .Where(a => a.IsActive && accountTypeLimits.Contains(a.AccountTypeID)).ToArrayAsync())
+                        .Select(a => new PeopleAccountViewModel()
+                        {
+                            AccountTypeId = a.AccountTypeID,
+                            AccountTypeName = a.AccountType.Name,
+                            Code = a.Code,
+                            Id = a.ID,
+                            Name = a.Name,
+                            IsActive = a.IsActive,
+                            Balance = null
+                        }).ToList();
+            return Ok(data);
+        }
+
+        [HttpGet("GetBankAccounts")]
+        public async Task<ActionResult> GetBankAccounts()
+        {
+            int[] accountTypeLimits = [ 1, 2 ];
+            var data = (await _context
+                        .Accounts
+                        .Include(c => c.AccountType)
+                        .Where(a => a.IsActive && accountTypeLimits.Contains(a.AccountTypeID)).ToArrayAsync())
+                        .Select(a => new PeopleAccountViewModel()
+                        {
+                            AccountTypeId = a.AccountTypeID,
+                            AccountTypeName = a.AccountType.Name,
+                            Code = a.Code,
+                            Id = a.ID,
+                            Name = a.Name,
+                            IsActive = a.IsActive,
+                            Balance = null
+                        }).ToList();
+            return Ok(data);
+        }
+
         [HttpGet("ContributorAccounts")]
         public async Task<ActionResult> GetContributorAccounts()
         {

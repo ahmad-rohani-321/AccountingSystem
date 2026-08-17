@@ -169,7 +169,7 @@
 
                         </li>
 
-                        <li class="nav-item dropdown">
+                        <li class="nav-item dropdown @ViewData["Purchase"]">
                             <a class="nav-link dropdown-toggle"
                                id="navbarDropdown"
                                role="button"
@@ -182,31 +182,17 @@
                             </a>
 
                             <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
-                                <li>
-                                    <a class="dropdown-item">
-                                        <i class="fa-solid fa-cart-plus"></i>
-                                        نوی خرید
-                                    </a>
-                                </li>
 
                                 <li>
-                                    <a class="dropdown-item">
+                                    <a class="dropdown-item @ViewData["PurchaseIndex"]" asp-controller="Purchase" asp-action="Index">
                                         <i class="fa-solid fa-clipboard-list"></i>
                                         خرید لیست
                                     </a>
                                 </li>
-
                                 <li>
-                                    <a class="dropdown-item">
-                                        <i class="fa-solid fa-file-circle-plus"></i>
-                                        نوی خرید آرډر
-                                    </a>
-                                </li>
-
-                                <li>
-                                    <a class="dropdown-item">
-                                        <i class="fa-solid fa-file-lines"></i>
-                                        خرید آرډر لیست
+                                    <a class="dropdown-item @ViewData["NewPurchase"]" asp-controller="Purchase" asp-action="NewPurchase">
+                                        <i class="fa-solid fa-cart-plus"></i>
+                                        نوی خرید
                                     </a>
                                 </li>
 

@@ -1,0 +1,129 @@
+@{
+    ViewData["Title"] = "نوی خرید";
+    ViewData["Purchase"] = "active";
+    ViewData["NewPurchase"] = "active";
+}
+@section Styles{
+<link href="~/lib/flatpickr-jalali-support/dist/flatpickr.min.css" rel="stylesheet" />
+<link href="~/lib/flatpickr-jalali-support/dist/themes/soft-card.css" rel="stylesheet" />
+<link href="~/lib/tom-select/dist/css/tom-select.bootstrap5.css" rel="stylesheet" />
+}
+
+<div class="row row-deck row-cards">
+    <div class="card">
+        <div class="card-header">
+            <h3 class="h3">@ViewData["title"]</h3>
+        </div>
+        <div class="card-body">
+            <form id="newPurchaseForm">
+                <div class="row mb-2">
+                    <div class="col-lg-4 col-md-4 col-sm-12">
+                        <div class="form-group">
+                            <label for="purchaseNo" class="form-label">شمېره</label>
+                            <input type="number" id="purchaseNo" class="form-control">
+                        </div>
+                    </div>
+                    <div class="col-lg-4 col-md-4 col-sm-12">
+                        <div class="form-group">
+                            <label for="purchaseDate" class="form-label">نېټه</label>
+                            <input type="text" id="purchaseDate" class="form-control">
+                        </div>
+                    </div>
+                    <div class="col-lg-4 col-md-4 col-sm-12">
+                        <div class="form-group">
+                            <label for="personAccountId" class="form-label">شخص</label>
+                            <select id="personAccountId" class="form-control"></select>
+                        </div>
+                        <span class="text-muted"></span>
+                    </div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-lg-4 col-md-4 col-sm-12">
+                        <div class="form-group">
+                            <label for="purchaseCurrency" class="form-label">اسعار</label>
+                            <select id="purchaseCurrency" class="form-control"></select>
+                        </div>
+                    </div>
+                    <div class="col-lg-4 col-md-4 col-sm-12">
+                        <div class="form-group">
+                            <label for="feesSourse" class="form-label">تجرۍ/بانک</label>
+                            <select id="feesSourse" class="form-control"></select>
+                        </div>
+                    </div>
+                    <div class="col-lg-4 col-md-4 col-sm-12">
+                        <div class="form-group">
+                            <label for="purchaseRemarks" class="form-label">تشریحات</label>
+                            <textarea id="purchaseRemarks" class="form-control"></textarea>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts{
+<script src="~/lib/flatpickr-jalali-support/dist/flatpickr.min.js"></script>
+<script src="~/lib/flatpickr-jalali-support/dist/l10n/fa.js"></script>
+<script src="~/lib/tom-select/dist/js/tom-select.complete.min.js"></script>
+<script src="~/lib/just-validate/dist/just-validate.production.min.js"></script>
+<script src="~/lib/moment-jalali/dist/jalali-moment.browser.js"></script>
+<script src="~/js/numberToWords.js"></script>
+<script>
+
+flatpickr("#purchaseDate", {
+    locale: "fa",
+    defaultDate: new Date(),
+    allowInput: true
+});
+
+var  personAccount = new TomSelect("#personAccountId", {
+    valueField: 'id',
+    labelField: 'name',
+    searchField: ['name', 'code', 'accountTypeName'],
+    render: {
+        option: function(data, escape) {
+            return `<div>${escape(accountDisplay(data))}</div>`;
+        },
+        item: function(data, escape) {
+            return `<div>${escape(accountDisplay(data))}</div>`;
+        }
+    }
+});
+$.get("/api/Accounts/GetSuppliers", function(data){
+    personAccount.addOptions(data);
+});
+function accountDisplay(data) {
+    return `${data.name} - ${data.code} - ${data.accountTypeName}`;
+}
+var purchaseCurrency = new TomSelect("#purchaseCurrency", {
+    valueField: 'id',
+    labelField: 'name',
+    searchField: 'name'
+});
+$.get("/api/Currency/Currencies/Simple/", function(rows){
+    purchaseCurrency.addOptions(rows);
+});
+
+var feesSourse = new TomSelect("#feesSourse", {
+    valueField: 'id',
+    labelField: 'name',
+    searchField: ['name', 'code', 'accountTypeName'],
+    render: {
+        option: function(data, escape) {
+            return `<div>${escape(accountDisplay(data))}</div>`;
+        },
+        item: function(data, escape) {
+            return `<div>${escape(accountDisplay(data))}</div>`;
+        }
+    }
+});
+$.get("/api/Accounts/GetBankAccounts", function(data){
+    feesSourse.addOptions(data);
+});
+function NumberToWords(currencyName, number){
+    var humanized = window.humanizeNumberValue(number);
+    return `${number} ${currencyName} (${humanized} ${currencyName})`;
+}
+</script>
+}

@@ -25,8 +25,8 @@
             <form class="my-3" id="searchForm">
                 <div class="row align-items-end">
                     <div class="col-auto">
-                        <div class="form-group" for="accountId">
-                            <label class="form-label">حساب</label>
+                        <div class="form-group">
+                            <label class="form-label" for="accountId">حساب</label>
                             <select id="accountId" class="form-control"></select>
                         </div>
                     </div>
@@ -540,6 +540,85 @@ journalEntryFormValidator.onSuccess(function(event){
             showToast("warning", xhr.responseText);
             console.error(xhr.responseText);
         }
+    });
+});
+
+var searchFormValidation = new JustValidate("#searchForm");
+searchFormValidation.addField("#startDate", [
+    {
+        rule: "required",
+        errorMessage: "شروع نېټه ضروري ده"
+    },
+    {
+        validator: function(value){
+            var startDate = $("#endDate").val();
+            var status = startDate >= value;
+            return status;
+        },
+        errorMessage: "شروع نېټه باید د ختم د نېټې څخه مخکي وي"
+    }
+]);
+searchFormValidation.addField("#endDate", [
+    {
+        rule: "required",
+        errorMessage: "ختم نېټه ضروري ده"
+    },
+    {
+        validator: function(value){
+            var startDate = $("#startDate").val();
+            var status = startDate <= value;
+            return status;
+        },
+        errorMessage: "ختم نېټه باید د شروع د نېټې څخه وروسته وي"
+    }
+]);
+
+searchFormValidation.onSuccess(function(event){
+    event.preventDefault();
+    var accountId = Number($("#accountId").val() || 0);
+    var currencyId = Number($("#currencyId").val() || 0);
+
+    var startDate = $("#startDate").val();
+    var endDate = $("#endDate").val();
+
+    if (startDate) {
+        startDate = moment.from(startDate, 'fa', 'YYYY/MM/DD').locale('en').format('YYYY-MM-DDTHH:mm:ss');
+    }
+    if (endDate) {
+        endDate = moment.from(endDate, 'fa', 'YYYY/MM/DD').locale('en').format('YYYY-MM-DDTHH:mm:ss');
+    }
+
+    $.ajax({
+        url: "/api/Journal/GetJournalReport",
+        type: "GET",
+        data: $.param({
+            startDate: startDate,
+            endDate: endDate,
+            accountId: accountId,
+            currencyId: currencyId
+        }, true),
+        success: function(respondedData){
+            var dataTable = $("#journalList");
+            dataTable.empty();
+            respondedData.forEach(function(data){
+                var tr = $("<tr>");
+                $("<td>").text(moment(data.date).format("jYYYY/jMM/jDD HH:mm:ss")).appendTo(tr);
+                $("<td>").text(data.accountName).appendTo(tr);
+                $("<td>").text(data.currencyName).appendTo(tr);
+                $("<td>").text(data.transactionTypeName).appendTo(tr);
+                $("<td>").text(data.credit).appendTo(tr);
+                $("<td>").text(data.debit).appendTo(tr);
+                $("<td>").text(data.balance).appendTo(tr);
+                $("<td>").text(data.remarks).appendTo(tr);
+                $("<td>").html(`<img src='/Journal/${data.photo}' class='item-image' />`).appendTo(tr);
+                tr.appendTo(dataTable);
+
+            });
+        },
+        error: function(response){
+            console.log(response.responseText);
+        }
+
     });
 });
 

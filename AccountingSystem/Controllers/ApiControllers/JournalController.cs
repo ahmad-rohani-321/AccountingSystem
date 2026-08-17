@@ -1,5 +1,6 @@
 ﻿using AccountingSystem.Data;
 using AccountingSystem.ViewModels;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -8,6 +9,7 @@ using System.Security.Cryptography.Xml;
 
 namespace AccountingSystem.Controllers.ApiControllers
 {
+    [Authorize]
     [Route("api/[controller]")]
     [ApiController]
     public class JournalController(ApplicationDbContext context, IHttpContextAccessor accessor, IWebHostEnvironment environment) : ControllerBase
@@ -37,6 +39,97 @@ namespace AccountingSystem.Controllers.ApiControllers
                             Remarks = x.Remarks,
                             TransactionTypeName = x.TransactionType.TypeName
                         }).ToList();
+            return Ok(data);
+        }
+
+        [HttpGet("GetJournalReport")]
+        public async Task<ActionResult> GetJournalReport(DateTime startDate, DateTime endDate, int? accountId, int? currencyId)
+        {
+            var data = new List<JournalViewModel>();
+            if (accountId.HasValue && accountId > 0)
+            {
+                data = (await _context.JournalEntries
+                        .Include(x => x.AccountBalance.Account)
+                        .Include(x => x.AccountBalance.Currency)
+                        .Include(x => x.TransactionType)
+                        .Where(x => x.CreationDate >= startDate && x.CreationDate <= endDate && x.AccountBalance.AccountID == accountId)
+                        .ToArrayAsync())
+                        .Select(x => new JournalViewModel()
+                        {
+                            AccountName = x.AccountBalance.Account.Name,
+                            Balance = x.Balance,
+                            Credit = x.Credit,
+                            Debit = x.Debit,
+                            CurrencyName = x.AccountBalance.Currency.CurrencyName,
+                            Date = x.CreationDate,
+                            Photo = x.ChequePhoto,
+                            Remarks = x.Remarks,
+                            TransactionTypeName = x.TransactionType.TypeName
+                        }).ToList();
+            }
+            else if (currencyId.HasValue && currencyId > 0)
+            {
+                data = (await _context.JournalEntries
+                        .Include(x => x.AccountBalance.Account)
+                        .Include(x => x.AccountBalance.Currency)
+                        .Include(x => x.TransactionType)
+                        .Where(x => x.CreationDate >= startDate && x.CreationDate <= endDate && x.AccountBalance.CurrencyID == currencyId)
+                        .ToArrayAsync())
+                        .Select(x => new JournalViewModel()
+                        {
+                            AccountName = x.AccountBalance.Account.Name,
+                            Balance = x.Balance,
+                            Credit = x.Credit,
+                            Debit = x.Debit,
+                            CurrencyName = x.AccountBalance.Currency.CurrencyName,
+                            Date = x.CreationDate,
+                            Photo = x.ChequePhoto,
+                            Remarks = x.Remarks,
+                            TransactionTypeName = x.TransactionType.TypeName
+                        }).ToList();
+            }
+            else if (accountId.HasValue && accountId > 0 && currencyId.HasValue && currencyId > 0)
+            {
+                data = (await _context.JournalEntries
+                        .Include(x => x.AccountBalance.Account)
+                        .Include(x => x.AccountBalance.Currency)
+                        .Include(x => x.TransactionType)
+                        .Where(x => x.CreationDate >= startDate && x.CreationDate <= endDate && x.AccountBalance.AccountID == accountId && x.AccountBalance.CurrencyID == currencyId)
+                        .ToArrayAsync())
+                        .Select(x => new JournalViewModel()
+                        {
+                            AccountName = x.AccountBalance.Account.Name,
+                            Balance = x.Balance,
+                            Credit = x.Credit,
+                            Debit = x.Debit,
+                            CurrencyName = x.AccountBalance.Currency.CurrencyName,
+                            Date = x.CreationDate,
+                            Photo = x.ChequePhoto,
+                            Remarks = x.Remarks,
+                            TransactionTypeName = x.TransactionType.TypeName
+                        }).ToList();
+            }
+            else
+            {
+                data = (await _context.JournalEntries
+                        .Include(x => x.AccountBalance.Account)
+                        .Include(x => x.AccountBalance.Currency)
+                        .Include(x => x.TransactionType)
+                        .Where(x => x.CreationDate >= startDate && x.CreationDate <= endDate)
+                        .ToArrayAsync())
+                        .Select(x => new JournalViewModel()
+                        {
+                            AccountName = x.AccountBalance.Account.Name,
+                            Balance = x.Balance,
+                            Credit = x.Credit,
+                            Debit = x.Debit,
+                            CurrencyName = x.AccountBalance.Currency.CurrencyName,
+                            Date = x.CreationDate,
+                            Photo = x.ChequePhoto,
+                            Remarks = x.Remarks,
+                            TransactionTypeName = x.TransactionType.TypeName
+                        }).ToList();
+            }
             return Ok(data);
         }
 

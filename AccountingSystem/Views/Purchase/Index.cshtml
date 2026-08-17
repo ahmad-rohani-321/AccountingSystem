@@ -1,0 +1,37 @@
+@{
+    ViewData["Title"] = "خرید لیست";
+    ViewData["Purchase"] = "active";
+    ViewData["PurchaseIndex"] = "active";
+}
+
+<div class="row row-deck row-cards">
+    <div class="card">
+        <div class="card-header">
+            <h3 class="h3">@ViewData["title"]</h3>
+        </div>
+        <div class="card-body">
+            <a asp-controller="Purchase" asp-action="NewPurchase" class="btn btn-primary mb-3" id="createNewItem">
+                نوی خرید
+                <i class="fas fa-cart-shopping ms-3"></i>
+            </a>
+            <table class="table table-hover table-bordered table-responsive table-striped">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>حساب</th>
+                        <th>اسعار</th>
+                        <th>مجموعه</th>
+                        <th>رسید</th>
+                        <th>باقي</th>
+                        <th>جنس تعداد</th>
+                        <th>ملاحظات</th>
+                        <th>نېټه</th>
+                        <th>کړني</th>
+                    </tr>
+                </thead>
+                <tbody id="purchaseList">
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

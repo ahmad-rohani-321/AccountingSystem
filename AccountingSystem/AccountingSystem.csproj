@@ -5,7 +5,6 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
   <ItemGroup>
-    <Folder Include="Views\Settings\" />
     <Folder Include="wwwroot\Items\" />
   </ItemGroup>
   <ItemGroup>
