@@ -11,11 +11,42 @@
 
 <div class="row row-deck row-cards">
     <div class="card">
-        <div class="card-header">
-            <h3 class="h3">@ViewData["title"]</h3>
-        </div>
-        <div class="card-body">
-            <form id="newPurchaseForm">
+        <form id="newPurchaseForm">
+            <div class="card-header d-flex align-items-center">
+                <h3 class="h3 mb-0">@ViewData["title"]</h3>
+                <div class="d-flex gap-2 ms-auto">
+                    <button type="submit" class="btn btn-primary" id="savePurchaseButton">
+                        <i class="fas fa-save me-2"></i> ثبت
+                    </button>
+                    <button type="reset" class="btn btn-outline-secondary" id="backButton" >
+                        <i class="fa-solid fa-eraser me-2"></i> فورم پاک
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-lg-6 col-md-6 col-sm-12">
+                        <div class="form-group">
+                            <label for="checkHold" class="form-check">
+                                <input type="checkbox" class="form-check-input" id="checkHold" />
+                                <span class="form-check-label">خرید ساتل</span>
+                            </label>
+                            <span id="checkHoldText" class="text-primary">خرید نه ساتل کیږي. د ثبت پر مهال به حسابونه او اړوند مالي اغېزې تطبیق سي.</span>
+                        </div>
+                    </div>
+                    <div class="col-lg-6 col-md-6 col-sm-12">
+                        <div class="form-group">
+                            <label for="checkAffectStock" class="form-check">
+                                <input type="checkbox" class="form-check-input" id="checkAffectStock" checked />
+                                <span class="form-check-label">پر ګدام تاثیر کول</span>
+                            </label>
+                            <span id="checkAffectStockText" class="text-primary">انتخاب سوي اجناس به په ټاکلې اندازه ګدام ته جمع سي</span>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
                 <div class="row mb-2">
                     <div class="col-lg-4 col-md-4 col-sm-12">
                         <div class="form-group">
@@ -33,8 +64,8 @@
                         <div class="form-group">
                             <label for="personAccountId" class="form-label">شخص</label>
                             <select id="personAccountId" class="form-control"></select>
+                        <span class="text-muted" id="personAccountIdText"></span>
                         </div>
-                        <span class="text-muted"></span>
                     </div>
                 </div>
                 <div class="row mb-2">
@@ -48,6 +79,7 @@
                         <div class="form-group">
                             <label for="feesSourse" class="form-label">تجرۍ/بانک</label>
                             <select id="feesSourse" class="form-control"></select>
+                        <span class="text-muted" id="feesSourceAccountIdText"></span>
                         </div>
                     </div>
                     <div class="col-lg-4 col-md-4 col-sm-12">
@@ -57,11 +89,54 @@
                         </div>
                     </div>
                 </div>
-            </form>
-        </div>
+            </div>
+            <div class="card-body">
+                <div class="row mb-2">
+                    <div class="col-lg-4 col-md-4 col-sm-12">
+                        <div class="form-group">
+                            <label for="purchaseAmount" class="form-label">مجموعه</label>
+                            <input type="number" id="purchaseAmount" class="form-control" />
+                        </div>
+                    </div>
+                    <div class="col-lg-4 col-md-4 col-sm-12">
+                        <div class="form-group">
+                            <label for="purchaseRecieved" class="form-label">رسید</label>
+                            <input type="number" id="purchaseRecieved" class="form-control" />
+                        </div>
+                    </div>
+                    <div class="col-lg-4 col-md-4 col-sm-12">
+                        <div class="form-group">
+                            <label for="purchaseRemaining" class="form-label">باقي</label>
+                            <input type="number" id="purchaseRemaining" class="form-control" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                    <button class="btn btn-sm mb-2 btn-primary" id="addNewRowButton">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                <div class="row">
+                    <table class="table table-bordered table-responsive table-hover">
+                        <thead>
+                            <tr>
+                                <th>جنس</th>
+                                <th>واحد</th>
+                                <th>مقدار</th>
+                                <th>في قیمت</th>
+                                <th>مجموعه قیمت</th>
+                                <th>ګدام</th>
+                                <th>یاداښت</th>
+                                <th>حذف</th>
+                            </tr>
+                        </thead>
+                        <tbody id="purchaseItemsTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </form>
     </div>
 </div>
-
 @section Scripts{
 <script src="~/lib/flatpickr-jalali-support/dist/flatpickr.min.js"></script>
 <script src="~/lib/flatpickr-jalali-support/dist/l10n/fa.js"></script>
@@ -69,7 +144,13 @@
 <script src="~/lib/just-validate/dist/just-validate.production.min.js"></script>
 <script src="~/lib/moment-jalali/dist/jalali-moment.browser.js"></script>
 <script src="~/js/numberToWords.js"></script>
+
+@* generals *@
 <script>
+$(document).ready(function(){
+    GetPurchaseNo();
+    $("#checkAffectStock").prop("disabled", true);
+});
 
 flatpickr("#purchaseDate", {
     locale: "fa",
@@ -121,9 +202,284 @@ var feesSourse = new TomSelect("#feesSourse", {
 $.get("/api/Accounts/GetBankAccounts", function(data){
     feesSourse.addOptions(data);
 });
+
+var getItemsList = [];
+$.get("/api/Inventory/GetActiveItemsList", function(data){
+    getItemsList = data;
+});
+var getStocksList = [];
+$.get("/api/Inventory/GetActiveStockList/", function(data){
+    getStocksList = data;
+});
+</script>
+
+@* events *@
+<script>
+$("#checkHold").change(function(event){
+    if(event.target.checked){
+        $("#checkAffectStock").prop("disabled", false);
+        $("#checkHoldText").removeClass("text-primary").addClass("text-warning").text("خرید ساتل کیږي. د ثبت پر مهال به حسابونه او اړوند مالي اغېزې تطبیق نه سي.");
+    }
+    else {
+        $("#checkAffectStock").prop("disabled", true);
+        $("#checkHoldText").removeClass("text-warning").addClass("text-primary").text("خرید نه ساتل کیږي. د ثبت پر مهال به حسابونه او اړوند مالي اغېزې تطبیق سي.");
+    }
+});
+$("#checkAffectStock").change(function(event){
+    if(event.target.checked){
+        $("#checkAffectStockText").removeClass("text-warning").addClass("text-primary").text("انتخاب سوي اجناس به په ټاکلې اندازه ګدام ته جمع سي");
+    }
+    else {
+        $("#checkAffectStockText").removeClass("text-primary").addClass("text-warning").text("انتخاب سوي اجناس به په ټاکلې اندازه ګدام ته جمع نه سي");
+    }
+});
+
+$("#purchaseCurrency").change(function(){
+    GetAccountBalance(
+        Number(personAccount.getValue()),
+        Number(purchaseCurrency.getValue()),
+        "#personAccountIdText"
+    );
+    
+GetAccountBalance(
+        Number(feesSourse.getValue()),
+        Number(purchaseCurrency.getValue()),
+        "#feesSourceAccountIdText"
+    );
+});
+
+$("#personAccountId").change(function () {
+    GetAccountBalance(
+        Number(personAccount.getValue()),
+        Number(purchaseCurrency.getValue()),
+        "#personAccountIdText"
+    );
+});
+
+$("#feesSourse").change(function () {
+    GetAccountBalance(
+        Number(feesSourse.getValue()),
+        Number(purchaseCurrency.getValue()),
+        "#feesSourceAccountIdText"
+    );
+});
+
+$("#addNewRowButton").click(function(event){
+    event.preventDefault();
+    var dataTable = $("#purchaseItemsTableBody");
+    var newRow = $("<tr>");
+    var itemCell = $("<td>");
+    itemCell.appendTo(newRow);
+    var itemsSelect = $("<select>").addClass("form-control items-select").appendTo(itemCell);
+    var itemsTomSelect = new TomSelect(itemsSelect[0], {
+        valueField: "id",
+        labelField: "name",
+        searchField: "name"
+    });
+    itemsTomSelect.addOptions(getItemsList);
+
+    formValidator.addField(itemsSelect[0], [
+        {
+            rule: 'required',
+            errorMessage: 'جنس اړینه ده',
+        }
+    ]);
+
+    var unitCell = $("<td>");
+    unitCell.appendTo(newRow);
+
+    var unitsSelect = $("<select>").addClass("form-control units-select").attr("name", "unitId").appendTo(unitCell);
+    var unitsTomSelect = new TomSelect(unitsSelect[0], {
+        valueField: "id",
+        labelField: "subUnitName",
+        searchField: "subUnitName"
+    });
+    unitsTomSelect.addOptions(getItemsList);
+    formValidator.addField(unitsSelect[0], [
+        {
+            rule: 'required',
+            errorMessage: 'واحد اړینه ده',
+        }
+    ]);
+
+    var quantityCell = $("<td>");
+    quantityCell.appendTo(newRow);
+    var quantityInput = $("<input>").attr("type", "number").addClass("form-control control-quantity").appendTo(quantityCell);
+    formValidator.addField(quantityInput[0], [
+        {
+            rule: 'required',
+            errorMessage: 'مقدار اړینه ده',
+        },
+        {
+            rule: 'number',
+            errorMessage: 'مقدار باید یو نمبر وي',
+        }
+    ]);
+
+    var perPriceCell = $("<td>");
+    perPriceCell.appendTo(newRow);
+    var perPriceInput = $("<input>").attr("type", "number").addClass("form-control per-price").appendTo(perPriceCell);
+    formValidator.addField(perPriceInput[0], [
+        {
+            rule: 'required',
+            errorMessage: 'في قیمت اړینه ده',
+        },
+        {
+            rule: 'number',
+            errorMessage: 'في قیمت باید یو نمبر وي',
+        }
+        ]);
+
+
+    var totalPriceCell = $("<td>");
+    totalPriceCell.appendTo(newRow);
+    var totalPriceInput = $("<input>").attr("type", "number").addClass("form-control control-total-price").appendTo(totalPriceCell);
+    formValidator.addField(totalPriceInput[0], [
+        {
+            rule: 'required',
+            errorMessage: 'مجموعه قیمت اړینه ده',
+        },
+        {
+            rule: 'number',
+            errorMessage: 'مجموعه قیمت باید یو نمبر وي',
+        }
+    ]);
+
+
+    var stockCell = $("<td>");
+    stockCell.appendTo(newRow);
+    var stocksList = $("<select>").addClass("form-control").appendTo(stockCell);
+    var stocksTomList = new TomSelect(stocksList[0], {
+        valueField: "id",
+        labelField: "name",
+        searchField: "name"
+    });
+    stocksTomList.addOptions(getStocksList);
+    formValidator.addField(stocksList[0], [
+        {
+            rule: 'required',
+            errorMessage: 'ګدام اړینه ده',
+        }
+    ]);
+
+
+    var remarksCell = $("<td>");
+    remarksCell.appendTo(newRow);
+    $("<input>").attr("type", "text").addClass("form-control").appendTo(remarksCell);
+
+    var deleteCell = $("<td>");
+    deleteCell.appendTo(newRow);
+    var deleteButton = $("<button>").addClass("btn btn-sm btn-danger btn-delete-row").appendTo(deleteCell);
+    $("<i>").addClass("fas fa-trash").appendTo(deleteButton);
+
+    newRow.appendTo(dataTable);
+});
+$(document).on("change", ".items-select", function () {
+    var currentRow = $(this).closest("tr");
+    var itemId = this.tomselect.getValue();
+
+    var unitElement = currentRow.find('select[name="unitId"]')[0];
+    var unitTomSelect = unitElement.tomselect;
+
+    unitTomSelect.clear(true);
+    unitTomSelect.clearOptions();
+
+    if (!itemId) {
+        return;
+    }
+
+    $.get("/api/Inventory/GetUnitConversionsOnly/" + itemId, function (units) {
+        unitTomSelect.addOptions(units);
+        unitTomSelect.refreshOptions(false);
+    });
+});
+$(document).on("click", ".btn-delete-row", function(event){
+    event.preventDefault();
+    $(this).closest("tr").remove();
+});
+$(document).on("change", ".per-price", function () {
+    var currentRow = $(this).closest("tr");
+    var quantity = currentRow.find('.control-quantity').val();
+    var price = $(this).val();
+    var totalPrice = quantity * price;
+    currentRow.find('.control-total-price').val(totalPrice);
+});
+
+const formValidator = new JustValidate('#newPurchaseForm');
+formValidator
+formValidator.addField('#purchaseNo', [
+        {
+            rule: 'required',
+            errorMessage: 'شمېره اړینه ده',
+        },
+        {
+            rule: 'number',
+            errorMessage: 'شمېره باید یو نمبر وي',
+        }
+    ]);
+formValidator.addField('#purchaseDate', [
+        {
+            rule: 'required',
+            errorMessage: 'نېټه اړینه ده',
+        }
+    ]);
+formValidator.addField('#personAccountId', [
+        {
+            rule: 'required',
+            errorMessage: 'شخص اړینه ده',
+        }
+    ]);
+formValidator.addField('#purchaseCurrency', [
+        {
+            rule: 'required',
+            errorMessage: 'اسعار اړینه ده',
+        }
+    ]);
+formValidator.addField('#feesSourse', [
+        {
+            validator: function(value){
+                var feesRecieved = Number($("#purchaseRecieved").val());
+                if(feesRecieved > 0 && !value){
+                    return false;
+                }
+                else {
+                    return true;
+                }
+            },
+            errorMessage: "که رسید ورکړل سوی وي، تجرۍ/بانک اړینه ده"
+        }
+    ]);
+formValidator.addField('#purchaseItemsTableBody', [
+    {
+        validator: () => $('#purchaseItemsTableBody tbody tr').length > 0,
+        errorMessage: 'د خرید لپاره لږ تر لږه یو جنس اړینه ده',
+    }
+]);
+</script>
+
+@* functions *@
+<script>
+
+function GetPurchaseNo(){
+    $.get("/api/Purchase/Next-No", function(data){
+        $("#purchaseNo").val(Number(data.purchaseNo));
+    });
+}
+
+function GetAccountBalance(accountId, currencyId, textElement) {
+    if (!accountId || !currencyId) {
+        $(textElement).text("اصلي حساب 0");
+        return;
+    }
+
+    $.get(`/api/Accounts/GetAccountCurrencyBalance/${currencyId}/${accountId}`, function (data) {
+        $(textElement).text(`اصلي حساب ${NumberToWords(data.balance, data.currencyName)}`);
+    });
+}
+
 function NumberToWords(currencyName, number){
     var humanized = window.humanizeNumberValue(number);
-    return `${number} ${currencyName} (${humanized} ${currencyName})`;
+    return `${number} ${currencyName} (${humanized})`;
 }
 </script>
 }
