@@ -432,8 +432,6 @@ namespace AccountingSystem.Data
         #endregion
 
         #region Purchase
-        public DbSet<PurchaseOrder> PurchaseOrders { get; set; }
-        public DbSet<PurchaseOrderDetails> PurchaseOrderDetails { get; set; }
         public DbSet<Purchase> Purchases { get; set; }
         public DbSet<PurchaseDetails> PurchaseDetails { get; set; }
         public DbSet<PurchaseExpences> PurchaseExpenses { get; set; }
@@ -442,8 +440,6 @@ namespace AccountingSystem.Data
         #endregion
 
         #region Sales
-        public DbSet<SaleOrder> SalesOrders { get; set; }
-        public DbSet<SaleOrderDetails> SalesOrderDetails { get; set; }
         public DbSet<Sales> Sales { get; set; }
         public DbSet<SaleDetails> SalesDetails { get; set; }
         #endregion

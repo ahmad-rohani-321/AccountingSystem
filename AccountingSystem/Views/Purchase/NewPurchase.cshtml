@@ -107,13 +107,13 @@
                     <div class="col-lg-4 col-md-4 col-sm-12">
                         <div class="form-group">
                             <label for="purchaseRemaining" class="form-label">باقي</label>
-                            <input type="number" id="purchaseRemaining" class="form-control" />
+                            <input type="number" id="purchaseRemaining" class="form-control" disabled />
                         </div>
                     </div>
                 </div>
             </div>
             <div class="card-body">
-                    <button class="btn btn-sm mb-2 btn-primary" id="addNewRowButton">
+                    <button type="button" class="btn btn-sm mb-2 btn-primary" id="addNewRowButton">
                         <i class="fas fa-plus"></i>
                     </button>
                 <div class="row">
@@ -184,6 +184,7 @@ var purchaseCurrency = new TomSelect("#purchaseCurrency", {
 });
 $.get("/api/Currency/Currencies/Simple/", function(rows){
     purchaseCurrency.addOptions(rows);
+    purchaseCurrency.setValue(rows[0].id);
 });
 
 var feesSourse = new TomSelect("#feesSourse", {
@@ -264,8 +265,15 @@ $("#feesSourse").change(function () {
     );
 });
 
-$("#addNewRowButton").click(function(event){
+$("#addNewRowButton").click(async function(event){
     event.preventDefault();
+    if ($("#purchaseItemsTableBody tr").length > 0) {
+        var currentRowsAreValid = await formValidator.revalidate();
+
+        if (!currentRowsAreValid) {
+            return;
+        }
+    }
     var dataTable = $("#purchaseItemsTableBody");
     var newRow = $("<tr>");
     var itemCell = $("<td>");
@@ -280,8 +288,16 @@ $("#addNewRowButton").click(function(event){
 
     formValidator.addField(itemsSelect[0], [
         {
-            rule: 'required',
-            errorMessage: 'جنس اړینه ده',
+            validator: function(){
+                var data = itemsTomSelect.getValue();
+                if(data === ''){
+                    return false;
+                }
+                else {
+                    return true;
+                }
+            },
+            errorMessage: "جنس اړین دی"
         }
     ]);
 
@@ -297,8 +313,16 @@ $("#addNewRowButton").click(function(event){
     unitsTomSelect.addOptions(getItemsList);
     formValidator.addField(unitsSelect[0], [
         {
-            rule: 'required',
-            errorMessage: 'واحد اړینه ده',
+            validator: function(){
+                var data = unitsTomSelect.getValue();
+                if(data === ''){
+                    return false;
+                }
+                else {
+                    return true;
+                }
+            },
+            errorMessage: "واحد اړین دی"
         }
     ]);
 
@@ -308,7 +332,7 @@ $("#addNewRowButton").click(function(event){
     formValidator.addField(quantityInput[0], [
         {
             rule: 'required',
-            errorMessage: 'مقدار اړینه ده',
+            errorMessage: 'مقدار اړین دی',
         },
         {
             rule: 'number',
@@ -322,7 +346,7 @@ $("#addNewRowButton").click(function(event){
     formValidator.addField(perPriceInput[0], [
         {
             rule: 'required',
-            errorMessage: 'في قیمت اړینه ده',
+            errorMessage: 'في قیمت اړین دی',
         },
         {
             rule: 'number',
@@ -337,7 +361,7 @@ $("#addNewRowButton").click(function(event){
     formValidator.addField(totalPriceInput[0], [
         {
             rule: 'required',
-            errorMessage: 'مجموعه قیمت اړینه ده',
+            errorMessage: 'مجموعه قیمت اړین دی',
         },
         {
             rule: 'number',
@@ -348,17 +372,26 @@ $("#addNewRowButton").click(function(event){
 
     var stockCell = $("<td>");
     stockCell.appendTo(newRow);
-    var stocksList = $("<select>").addClass("form-control").appendTo(stockCell);
+    var stocksList = $("<select>").addClass("form-control stock-select").appendTo(stockCell);
     var stocksTomList = new TomSelect(stocksList[0], {
         valueField: "id",
         labelField: "name",
         searchField: "name"
     });
     stocksTomList.addOptions(getStocksList);
+    stocksTomList.setValue(getStocksList[0].id);
     formValidator.addField(stocksList[0], [
         {
-            rule: 'required',
-            errorMessage: 'ګدام اړینه ده',
+            validator: function(){
+                var data = stocksTomList.getValue();
+                if(data === ''){
+                    return false;
+                }
+                else {
+                    return true;
+                }
+            },
+            errorMessage: "ګدام اړین دی"
         }
     ]);
 
@@ -373,16 +406,20 @@ $("#addNewRowButton").click(function(event){
     $("<i>").addClass("fas fa-trash").appendTo(deleteButton);
 
     newRow.appendTo(dataTable);
+
+    CalculatePurchaseTotal();
 });
 $(document).on("change", ".items-select", function () {
     var currentRow = $(this).closest("tr");
-    var itemId = this.tomselect.getValue();
+    var itemId = this.tomselect.getValue(); 
 
     var unitElement = currentRow.find('select[name="unitId"]')[0];
     var unitTomSelect = unitElement.tomselect;
 
     unitTomSelect.clear(true);
     unitTomSelect.clearOptions();
+
+    CalculatePurchaseTotal();
 
     if (!itemId) {
         return;
@@ -391,11 +428,29 @@ $(document).on("change", ".items-select", function () {
     $.get("/api/Inventory/GetUnitConversionsOnly/" + itemId, function (units) {
         unitTomSelect.addOptions(units);
         unitTomSelect.refreshOptions(false);
+        unitTomSelect.setValue(units[0].id);
     });
 });
 $(document).on("click", ".btn-delete-row", function(event){
     event.preventDefault();
-    $(this).closest("tr").remove();
+    var row = $(this).closest("tr");
+    var itemSelect = row.find('.items-select');
+    var unitSelect = row.find('.units-select');
+    var quantity = row.find('.control-quantity');
+    var perprice = row.find('.per-price');
+    var controltotalprice = row.find('.control-total-price');
+    var stockselect = row.find('.stock-select');
+
+    formValidator.removeField(itemSelect[0]);
+    formValidator.removeField(unitSelect[0]);
+    formValidator.removeField(quantity[0]);
+    formValidator.removeField(perprice[0]);
+    formValidator.removeField(controltotalprice[0]);
+    formValidator.removeField(stockselect[0]);
+
+    row.remove();
+
+    CalculatePurchaseTotal();
 });
 $(document).on("change", ".per-price", function () {
     var currentRow = $(this).closest("tr");
@@ -403,10 +458,17 @@ $(document).on("change", ".per-price", function () {
     var price = $(this).val();
     var totalPrice = quantity * price;
     currentRow.find('.control-total-price').val(totalPrice);
-});
 
+    CalculatePurchaseTotal();
+});
+$(document).on("change", ".control-total-price", function(){
+    CalculatePurchaseTotal();
+});
+$("#purchaseRecieved").change(function(){
+    CalculatePurchaseTotal();
+});
 const formValidator = new JustValidate('#newPurchaseForm');
-formValidator
+
 formValidator.addField('#purchaseNo', [
         {
             rule: 'required',
@@ -439,7 +501,7 @@ formValidator.addField('#feesSourse', [
         {
             validator: function(value){
                 var feesRecieved = Number($("#purchaseRecieved").val());
-                if(feesRecieved > 0 && !value){
+                if(!($("#checkHold")[0].checked) && feesRecieved > 0 && !value){
                     return false;
                 }
                 else {
@@ -451,14 +513,126 @@ formValidator.addField('#feesSourse', [
     ]);
 formValidator.addField('#purchaseItemsTableBody', [
     {
-        validator: () => $('#purchaseItemsTableBody tbody tr').length > 0,
+        validator: () => $('#purchaseItemsTableBody tr').length > 0,
         errorMessage: 'د خرید لپاره لږ تر لږه یو جنس اړینه ده',
     }
 ]);
+formValidator.addField("#purchaseRecieved",
+[{
+    validator: function(value){
+        var total  = Number($("#purchaseAmount").val());
+        return value <= total;
+    },
+    errorMessage: "رسید مبلغ له مجموعه مبلغ څخه باید لوړ نه وي."
+},
+{
+    validator: function(value){
+        return value >= 0;
+    },
+    errorMessage: "رسید مبلغ باید له صفر څخه کوچنی نه وي."
+},        
+{
+    validator: function(value){
+        if(!($("#checkHold")[0].checked) && value === 0 && Number(feesSourse.getValue() || 0) !== 0){
+            return false;
+        }
+        else {
+            return true;
+        }
+    },
+    errorMessage: "که بانک/تجرئ انتخاب سوې وي، رسید مبلغ ضروري دی"
+}]);
+formValidator.onSuccess(function(event){
+    if (!event){
+        return;
+    }
+
+    var currentDate = moment.from($("#purchaseDate").val(), 'fa', 'YYYY/MM/DD').format("YYYY-MM-DD");
+    var data = {
+        isHolded: $("#checkHold")[0].checked,
+        effectsStock: $("#checkAffectStock")[0].checked,
+        purchaseId: Number($("#purchaseNo").val()),
+        purchaseDate:currentDate,
+        personId: Number(personAccount.getValue()),
+        currencyId: (purchaseCurrency.getValue() === '' ? 0 : Number(purchaseCurrency.getValue())),
+        bankId: Number(feesSourse.getValue() || 0),
+        remarks: $("#purchaseRemarks").val(),
+        purchaseTotal: Number($("#purchaseAmount").val()),
+        purchaseRecieved: Number($("#purchaseRecieved").val()),
+        purchaseRemaining: Number($("#purchaseRemaining").val()),
+        purchaseDetails: $("#purchaseItemsTableBody tr").map(function (){
+            const cells = $(this).find("td");
+            return {
+                itemId: Number(cells.eq(0).find('.items-select')[0].tomselect.getValue()),
+                unitId: Number(cells.eq(1).find("select")[0].tomselect.getValue()),
+                quantity: Number(cells.eq(2).find("input").val() || 0),
+                perPrice: Number(cells.eq(3).find("input").val()),
+                totalPrice: Number(cells.eq(4).find("input").val()),
+                stockId: Number(cells.eq(5).find('.stock-select')[0].tomselect.getValue()),
+                remarks: cells.eq(6).find("input").val()
+            };
+        }).get()
+    };
+    $.ajax({
+        url: "/api/Purchase/SaveNewPurchase",
+        type: "POST",
+        data: JSON.stringify(data),
+        contentType: "application/json",
+        success: function () {
+            showToast("success", "نوې خرید ثبت سو");
+            $("#newPurchaseForm")[0].reset();
+        },
+        error: function (xhr) {
+            showToast("warning", xhr.responseText);
+            console.error(xhr.responseText);
+        }
+    });
+});
+$(document).on("reset", "#newPurchaseForm", function(event){
+    var form = this;
+
+    setTimeout(function(){
+        $("#purchaseItemsTableBody tr").each(function(){
+            var row = $(this);
+
+            formValidator.removeField(row.find('.items-select')[0]);
+            formValidator.removeField(row.find('.units-select')[0]);
+            formValidator.removeField(row.find('.control-quantity')[0]);
+            formValidator.removeField(row.find('.per-price')[0]);
+            formValidator.removeField(row.find('.control-total-price')[0]);
+            formValidator.removeField(row.find('.stock-select')[0]);
+        });
+
+        $("#purchaseItemsTableBody").empty();
+        $(form).find("input:not([type='checkbox']), textarea").val("");
+        personAccount.clear();
+        purchaseCurrency.clear();
+        feesSourse.clear();
+        $("#purchaseDate")[0]._flatpickr.setDate(new Date(), true);
+        $("#personAccountIdText, #feesSourceAccountIdText").empty();
+        $("#checkHold, #checkAffectStock").trigger("change");
+        GetPurchaseNo()
+        formValidator.clearErrors();
+    });
+});
+
 </script>
 
 @* functions *@
 <script>
+
+function CalculatePurchaseTotal(){
+    var total = 0;
+    var data = $("#purchaseItemsTableBody tr").map(function (){
+            const cells = $(this).find("td");
+            total += Number(cells.eq(4).find("input").val());
+        }).get();
+    
+    $("#purchaseAmount").val(total);
+    var recievedValue = Number($("#purchaseRecieved").val());
+    var result = total - recievedValue;
+    $("#purchaseRemaining").val(result);
+}
 
 function GetPurchaseNo(){
     $.get("/api/Purchase/Next-No", function(data){
