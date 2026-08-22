@@ -16,4 +16,5 @@ public class PurchaseViewModel
     public decimal PurchaseRecieved { get; set; }
     public decimal PurchaseRemaining { get; set; }
     public List<PurchaseDetailsViewModel> PurchaseDetails { get; set; }
+    public int PurchaseItemsCount { get; set; }
 }

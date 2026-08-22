@@ -11,8 +11,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace AccountingSystem.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260815051611_JournalEntryMigration")]
-    partial class JournalEntryMigration
+    [Migration("20260820131519_InitialMigration")]
+    partial class InitialMigration
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -188,7 +188,7 @@ namespace AccountingSystem.Migrations
                             AccountTypeID = 10,
                             Code = "Walkin",
                             CreatedByUserId = "f5b9b7e7-2d3a-4b4d-a1b5-1b3f2a7a9e01",
-                            CreationDate = new DateTime(2026, 8, 15, 9, 46, 9, 571, DateTimeKind.Local).AddTicks(5382),
+                            CreationDate = new DateTime(2026, 8, 20, 17, 45, 18, 610, DateTimeKind.Local).AddTicks(2304),
                             IsActive = true,
                             Name = "عادي"
                         });
@@ -271,7 +271,7 @@ namespace AccountingSystem.Migrations
                             AccountID = 1,
                             Address = "",
                             CreatedByUserId = "f5b9b7e7-2d3a-4b4d-a1b5-1b3f2a7a9e01",
-                            CreationDate = new DateTime(2026, 8, 15, 9, 46, 9, 571, DateTimeKind.Local).AddTicks(6962),
+                            CreationDate = new DateTime(2026, 8, 20, 17, 45, 18, 610, DateTimeKind.Local).AddTicks(3984),
                             Email = "",
                             FirstPhone = "",
                             NIC = "",
@@ -510,7 +510,7 @@ namespace AccountingSystem.Migrations
                             LockoutEnabled = false,
                             NormalizedEmail = "ADMIN@ADMIN.COM",
                             NormalizedUserName = "ADMIN",
-                            PasswordHash = "AQAAAAIAAYagAAAAEMmkmz6Z6DgIR43imeF1bZLu9iocWZX9lqheSGhl4nKeIpyRDPHJ7+iTB51LLgENTg==",
+                            PasswordHash = "AQAAAAIAAYagAAAAECAOIilPM4qeggSQ2DVkm5rd9UaZrpB641Rng/eW4awU97akNeV5e4hHGhOB5evkkg==",
                             PhoneNumberConfirmed = false,
                             ProfilePhoto = "",
                             SecurityStamp = "2c9a4d9b-4f5a-4b8b-9a7c-2b1c3d4e5f61",
@@ -566,7 +566,7 @@ namespace AccountingSystem.Migrations
                         {
                             UserId = "f5b9b7e7-2d3a-4b4d-a1b5-1b3f2a7a9e01",
                             RoleId = "65a02658-9b8d-4505-95af-5edd8634bb35",
-                            CreationDate = new DateTime(2026, 8, 15, 9, 46, 9, 569, DateTimeKind.Local).AddTicks(5421)
+                            CreationDate = new DateTime(2026, 8, 20, 17, 45, 18, 607, DateTimeKind.Local).AddTicks(9675)
                         });
                 });
 
@@ -757,7 +757,7 @@ namespace AccountingSystem.Migrations
                         new
                         {
                             ID = 6,
-                            Name = "خرید واپسي"
+                            Name = "خرید تغیر جمع"
                         },
                         new
                         {
@@ -788,6 +788,11 @@ namespace AccountingSystem.Migrations
                         {
                             ID = 12,
                             Name = "ګدام ته انتقال"
+                        },
+                        new
+                        {
+                            ID = 13,
+                            Name = "خرید تغیر منفي"
                         });
                 });
 
@@ -937,7 +942,7 @@ namespace AccountingSystem.Migrations
                         {
                             ID = 1,
                             CreatedByUserId = "f5b9b7e7-2d3a-4b4d-a1b5-1b3f2a7a9e01",
-                            CreationDate = new DateTime(2026, 8, 15, 9, 46, 9, 571, DateTimeKind.Local).AddTicks(1165),
+                            CreationDate = new DateTime(2026, 8, 20, 17, 45, 18, 609, DateTimeKind.Local).AddTicks(7952),
                             Description = "اصلي ګدام د ټولو موادو لپاره دی.",
                             IsActive = true,
                             Name = "عمومي ګدام"
@@ -951,6 +956,9 @@ namespace AccountingSystem.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<int>("AccountID")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("CanAffectStock")
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("CreatedByUserId")
@@ -1119,74 +1127,6 @@ namespace AccountingSystem.Migrations
                     b.ToTable("PurchaseExpenseDetails");
                 });
 
-            modelBuilder.Entity("AccountingSystem.Models.Purchase.PurchaseOrder", b =>
-                {
-                    b.Property<int>("ID")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("AccountID")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("CreatedByUserId")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("CreationDate")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateOnly>("DueDate")
-                        .HasColumnType("TEXT");
-
-                    b.Property<bool>("IsCompleted")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("Remarks")
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("ID");
-
-                    b.HasIndex("AccountID");
-
-                    b.HasIndex("CreatedByUserId");
-
-                    b.ToTable("PurchaseOrders");
-                });
-
-            modelBuilder.Entity("AccountingSystem.Models.Purchase.PurchaseOrderDetails", b =>
-                {
-                    b.Property<int>("ID")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("CreatedByUserId")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("CreationDate")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("ItemID")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<decimal>("Quantity")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Remarks")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("UnitID")
-                        .HasColumnType("INTEGER");
-
-                    b.HasKey("ID");
-
-                    b.HasIndex("CreatedByUserId");
-
-                    b.HasIndex("ItemID");
-
-                    b.HasIndex("UnitID");
-
-                    b.ToTable("PurchaseOrderDetails");
-                });
-
             modelBuilder.Entity("AccountingSystem.Models.Purchase.PurchaseVariousExpenses", b =>
                 {
                     b.Property<int>("ID")
@@ -1281,74 +1221,6 @@ namespace AccountingSystem.Migrations
                     b.ToTable("SalesDetails");
                 });
 
-            modelBuilder.Entity("AccountingSystem.Models.Sales.SaleOrder", b =>
-                {
-                    b.Property<int>("ID")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("AccountID")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("CreatedByUserId")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("CreationDate")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateOnly>("DueDate")
-                        .HasColumnType("TEXT");
-
-                    b.Property<bool>("IsCompleted")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("Remarks")
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("ID");
-
-                    b.HasIndex("AccountID");
-
-                    b.HasIndex("CreatedByUserId");
-
-                    b.ToTable("SalesOrders");
-                });
-
-            modelBuilder.Entity("AccountingSystem.Models.Sales.SaleOrderDetails", b =>
-                {
-                    b.Property<int>("ID")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("CreatedByUserId")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("CreationDate")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("ItemID")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<decimal>("Quantity")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Remarks")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("UnitID")
-                        .HasColumnType("INTEGER");
-
-                    b.HasKey("ID");
-
-                    b.HasIndex("CreatedByUserId");
-
-                    b.HasIndex("ItemID");
-
-                    b.HasIndex("UnitID");
-
-                    b.ToTable("SalesOrderDetails");
-                });
-
             modelBuilder.Entity("AccountingSystem.Models.Sales.Sales", b =>
                 {
                     b.Property<int>("ID")
@@ -1356,6 +1228,9 @@ namespace AccountingSystem.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<int>("AccountID")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("CanAffectStock")
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("CreatedByUserId")
@@ -1434,7 +1309,7 @@ namespace AccountingSystem.Migrations
                         {
                             ID = 1,
                             CreatedByUserId = "f5b9b7e7-2d3a-4b4d-a1b5-1b3f2a7a9e01",
-                            CreationDate = new DateTime(2026, 8, 15, 9, 46, 9, 572, DateTimeKind.Local).AddTicks(1606),
+                            CreationDate = new DateTime(2026, 8, 20, 17, 45, 18, 610, DateTimeKind.Local).AddTicks(9014),
                             CurrencyName = "افغانۍ",
                             CurrencySymbole = "AFN",
                             IsActive = true,
@@ -1444,7 +1319,7 @@ namespace AccountingSystem.Migrations
                         {
                             ID = 2,
                             CreatedByUserId = "f5b9b7e7-2d3a-4b4d-a1b5-1b3f2a7a9e01",
-                            CreationDate = new DateTime(2026, 8, 15, 9, 46, 9, 572, DateTimeKind.Local).AddTicks(1614),
+                            CreationDate = new DateTime(2026, 8, 20, 17, 45, 18, 610, DateTimeKind.Local).AddTicks(9022),
                             CurrencyName = "ډالر",
                             CurrencySymbole = "USD",
                             IsActive = true,
@@ -1953,48 +1828,6 @@ namespace AccountingSystem.Migrations
                     b.Navigation("PurchaseExpense");
                 });
 
-            modelBuilder.Entity("AccountingSystem.Models.Purchase.PurchaseOrder", b =>
-                {
-                    b.HasOne("AccountingSystem.Models.Accounts.Account", "Account")
-                        .WithMany()
-                        .HasForeignKey("AccountID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("AccountingSystem.Models.Identity.User", "CreatedByUser")
-                        .WithMany()
-                        .HasForeignKey("CreatedByUserId");
-
-                    b.Navigation("Account");
-
-                    b.Navigation("CreatedByUser");
-                });
-
-            modelBuilder.Entity("AccountingSystem.Models.Purchase.PurchaseOrderDetails", b =>
-                {
-                    b.HasOne("AccountingSystem.Models.Identity.User", "CreatedByUser")
-                        .WithMany()
-                        .HasForeignKey("CreatedByUserId");
-
-                    b.HasOne("AccountingSystem.Models.Inventory.Item", "Item")
-                        .WithMany()
-                        .HasForeignKey("ItemID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("AccountingSystem.Models.Inventory.UnitConversion", "Unit")
-                        .WithMany()
-                        .HasForeignKey("UnitID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("CreatedByUser");
-
-                    b.Navigation("Item");
-
-                    b.Navigation("Unit");
-                });
-
             modelBuilder.Entity("AccountingSystem.Models.Purchase.PurchaseVariousExpenses", b =>
                 {
                     b.HasOne("AccountingSystem.Models.Accounts.Account", "Account")
@@ -2067,48 +1900,6 @@ namespace AccountingSystem.Migrations
                     b.Navigation("UnitConversion");
 
                     b.Navigation("Warehouse");
-                });
-
-            modelBuilder.Entity("AccountingSystem.Models.Sales.SaleOrder", b =>
-                {
-                    b.HasOne("AccountingSystem.Models.Accounts.Account", "Account")
-                        .WithMany()
-                        .HasForeignKey("AccountID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("AccountingSystem.Models.Identity.User", "CreatedByUser")
-                        .WithMany()
-                        .HasForeignKey("CreatedByUserId");
-
-                    b.Navigation("Account");
-
-                    b.Navigation("CreatedByUser");
-                });
-
-            modelBuilder.Entity("AccountingSystem.Models.Sales.SaleOrderDetails", b =>
-                {
-                    b.HasOne("AccountingSystem.Models.Identity.User", "CreatedByUser")
-                        .WithMany()
-                        .HasForeignKey("CreatedByUserId");
-
-                    b.HasOne("AccountingSystem.Models.Inventory.Item", "Item")
-                        .WithMany()
-                        .HasForeignKey("ItemID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("AccountingSystem.Models.Inventory.UnitConversion", "Unit")
-                        .WithMany()
-                        .HasForeignKey("UnitID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("CreatedByUser");
-
-                    b.Navigation("Item");
-
-                    b.Navigation("Unit");
                 });
 
             modelBuilder.Entity("AccountingSystem.Models.Sales.Sales", b =>

@@ -13,5 +13,6 @@ public class StockItemsViewModel
     public decimal MinQuantity { get; set; }
     public string Remarks { get; set; }
     public int TransactionType { get; set; }
+    public DateTime CreationDate { get; set; }
     
 }

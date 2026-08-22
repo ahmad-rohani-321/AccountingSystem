@@ -25,7 +25,7 @@ namespace AccountingSystem.Controllers.ApiControllers
                         .Include(x => x.AccountBalance.Account)
                         .Include(x => x.AccountBalance.Currency)
                         .Include(x => x.TransactionType)
-                        .Where(x => x.CreationDate == DateTime.Today)
+                        .Where(x => x.CreationDate.Date == DateTime.Today.Date)
                         .ToArrayAsync())
                         .Select(x => new JournalViewModel()
                         {
@@ -52,7 +52,7 @@ namespace AccountingSystem.Controllers.ApiControllers
                         .Include(x => x.AccountBalance.Account)
                         .Include(x => x.AccountBalance.Currency)
                         .Include(x => x.TransactionType)
-                        .Where(x => x.CreationDate >= startDate && x.CreationDate <= endDate && x.AccountBalance.AccountID == accountId)
+                        .Where(x => x.CreationDate.Date >= startDate.Date && x.CreationDate.Date <= endDate.Date && x.AccountBalance.AccountID == accountId)
                         .ToArrayAsync())
                         .Select(x => new JournalViewModel()
                         {
@@ -73,7 +73,7 @@ namespace AccountingSystem.Controllers.ApiControllers
                         .Include(x => x.AccountBalance.Account)
                         .Include(x => x.AccountBalance.Currency)
                         .Include(x => x.TransactionType)
-                        .Where(x => x.CreationDate >= startDate && x.CreationDate <= endDate && x.AccountBalance.CurrencyID == currencyId)
+                        .Where(x => x.CreationDate.Date >= startDate.Date && x.CreationDate.Date <= endDate.Date && x.AccountBalance.CurrencyID == currencyId)
                         .ToArrayAsync())
                         .Select(x => new JournalViewModel()
                         {
@@ -94,7 +94,7 @@ namespace AccountingSystem.Controllers.ApiControllers
                         .Include(x => x.AccountBalance.Account)
                         .Include(x => x.AccountBalance.Currency)
                         .Include(x => x.TransactionType)
-                        .Where(x => x.CreationDate >= startDate && x.CreationDate <= endDate && x.AccountBalance.AccountID == accountId && x.AccountBalance.CurrencyID == currencyId)
+                        .Where(x => x.CreationDate.Date >= startDate.Date && x.CreationDate.Date <= endDate.Date && x.AccountBalance.AccountID == accountId && x.AccountBalance.CurrencyID == currencyId)
                         .ToArrayAsync())
                         .Select(x => new JournalViewModel()
                         {
@@ -115,7 +115,7 @@ namespace AccountingSystem.Controllers.ApiControllers
                         .Include(x => x.AccountBalance.Account)
                         .Include(x => x.AccountBalance.Currency)
                         .Include(x => x.TransactionType)
-                        .Where(x => x.CreationDate >= startDate && x.CreationDate <= endDate)
+                        .Where(x => x.CreationDate.Date >= startDate.Date && x.CreationDate.Date <= endDate.Date)
                         .ToArrayAsync())
                         .Select(x => new JournalViewModel()
                         {

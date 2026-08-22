@@ -371,7 +371,6 @@ $(document).ready(function() {
                 formData.balance.push({ currencyID: currencyId, balance: parseFloat(amount) });
             }
         });
-        console.log(JSON.stringify(formData));
         $.ajax({
             url: "/api/Accounts/CreatePersonAccount",
             type: "POST",
@@ -488,7 +487,6 @@ $(document).ready(function() {
             address: $("#edit-address").val(),
             accountTypeId: edit_ts.getValue()
         };
-        console.log(JSON.stringify(formData));
         $.ajax({
             url: "/api/Accounts/UpdatePersonAccount",
             type: "PUT",
@@ -508,7 +506,6 @@ $(document).ready(function() {
     // edit person account information
     $(document).on("click", ".btn-edit-person-account", function(){
         var row = $(this).data("row");
-        console.log(row);
         $("#edit-address").val(row.address);
         $("#edit-code").val(row.code);
         $("#edit-email").val(row.email);

@@ -288,7 +288,6 @@ $(document).ready(function() {
                 formData.balance.push({ currencyID: currencyId, balance: parseFloat(amount) });
             }
         });
-        console.log(JSON.stringify(formData));
         $.ajax({
             url: "/api/Accounts/CreateAccount",
             type: "POST",
@@ -305,7 +304,9 @@ $(document).ready(function() {
             }
         });
     });
-
+    $("#newAccountForm").on("reset", function() {
+        ts.clear();
+    });
     // load people list 
     loadPeoplAccountList();
     function loadPeoplAccountList(){
@@ -313,9 +314,9 @@ $(document).ready(function() {
             url : "/api/Accounts/NormalAccounts",
             type : "GET",
             success: function (data) {
+                console.log(data);
                 var dataTable = $("#load-accounts-list");
                 dataTable.empty();
-                console.log(data);
                 data.forEach(function (rows) {
                     var row = $("<tr>");
 
@@ -389,7 +390,6 @@ $(document).ready(function() {
             code: $("#edit-code").val(),
             accountTypeId: edit_ts.getValue()
         };
-        console.log(JSON.stringify(formData));
         $.ajax({
             url: "/api/Accounts/UpdateAccount",
             type: "PUT",
@@ -409,7 +409,6 @@ $(document).ready(function() {
     // edit person account information
     $(document).on("click", ".btn-edit-account", function(){
         var row = $(this).data("row");
-        console.log(row);
         $("#edit-code").val(row.code);
         $("#edit-name").val(row.name);
         $("#edit-account-id").val(row.id);

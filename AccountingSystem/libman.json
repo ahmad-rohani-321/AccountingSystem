@@ -37,6 +37,10 @@
     {
       "library": "jalali-moment@3.3.11",
       "destination": "wwwroot/lib/moment-jalali"
+    },
+    {
+      "library":  "print-js@1.6.0",
+      "destination": "wwwroot/lib/print-js"
     }
   ]
 }

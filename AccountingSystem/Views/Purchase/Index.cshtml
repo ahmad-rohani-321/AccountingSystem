@@ -179,15 +179,24 @@ function loadPurchases() {
                     .appendTo(actions);
                 }
                 if(purchase.isHolded && !purchase.effectsStock){
-                    $("<button>").addClass("btn btn-sm btn-danger ms-2 btn-delete-purchase").attr("data-id", JSON.stringify({ id: purchase.purchaseId , effectsStock: purchase.effectsStock, isHolded: purchase.isHolded }))
+                    $("<button>").addClass("btn btn-sm btn-danger ms-2 btn-delete-purchase").attr("data-purchase", JSON.stringify({ id: purchase.purchaseId , effectsStock: purchase.effectsStock, isHolded: purchase.isHolded }))
                     .append($("<i>").addClass("fas fa-trash")).appendTo(actions);
                     
                 }
+                $("<button>").addClass("btn btn-sm btn-warning ms-2 btn-refund-purchase").attr("data-id", purchase.purchaseId).attr("type", "button").attr("title", "Refund")
+                    .append($("<i>").addClass("fas fa-undo")).appendTo(actions);
+
+                $("<button>").addClass("btn btn-sm btn-info ms-2 btn-received-purchase").attr("data-id", purchase.purchaseId).attr("type", "button").attr("title", "Received")
+                    .append($("<i>").addClass("fas fa-hand-holding-usd")).appendTo(actions);
+
+                $("<button>").addClass("btn btn-sm btn-success ms-2 btn-print-purchase").attr("data-id", purchase.purchaseId).attr("type", "button").attr("title", "Print")
+                    .append($("<i>").addClass("fas fa-print")).appendTo(actions);
+
                 
+
                 actions.appendTo(row);
                 row.appendTo(table);
             });
-            // edit, delete, print, refud, 
         },
         error: function (xhr) {
             console.error(xhr.responseText);

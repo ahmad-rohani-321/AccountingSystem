@@ -10,7 +10,7 @@
                 <h3 class="h3">اسعار</h3>
             </div>
             <div class="card-body">
-                <button class="btn btn-primary mb-3" data-bs-toggle="modal" data-bs-target="#add-currency-modal">نوي اسعار <i class="fas fa-plus ps-2"></i></button>
+                <button class="btn btn-primary mb-3 d-print-none" data-bs-toggle="modal" data-bs-target="#add-currency-modal">نوي اسعار <i class="fas fa-plus ps-2"></i></button>
                 <table class="table table-responsive table-bordered table-hover table-striped">
                     <thead >
                         <tr>
@@ -19,7 +19,7 @@
                             <th>سمبول</th>
                             <th>اسعارو ډول</th>
                             <th>فعالیت</th>
-                            <th>عملیه</th>
+                            <th class="d-print-none">عملیه</th>
                         </tr>
                     </thead>
                     <tbody id="currencies-table-head">
@@ -35,7 +35,7 @@
                 <h3 class="h3">د اسعارو نرخونه <span class="text-muted">(ټول نرخونه عمومي اسعارو نه تبادله کیږي)</span></h3>
             </div>
             <form class="card-body" id="save-currency-exchange-form">
-                <button class="btn btn-primary mb-3" id="btn-save-currnecy-prices">
+                <button class="btn btn-primary mb-3 d-print-none" id="btn-save-currnecy-prices">
                     ثبت
                     <i class="fas fa-save ps-2"></i>
                 </button>
@@ -317,7 +317,7 @@
                                 <td>${currency.currencySymbole}</td>
                                 <td>${currency.isMainCurrency == true ? 'عمومي' : 'فرعي'}</td>
                                 <td>${currency.isActive == true ? 'فعال' : 'غیر فعال'}</td>
-                                <td>
+                                <td class="d-print-none">
                                     <button class="btn btn-sm btn-primary btn-edit" data-row='${JSON.stringify(currency)}'>تغییر</button>
                                     <button class="btn btn-sm ${currency.isActive == true ? "btn-danger" : "btn-success" } btn-change-activation" data-id="${currency.currencyId}">${currency.isActive == false ? 'فعال' : 'غیر فعال'}</button>
                                     ${toMainButton}

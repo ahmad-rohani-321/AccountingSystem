@@ -103,7 +103,7 @@
                         <div class="col">
                             <div class="mb-3">
                                 <label class="form-label" for="stockExchangeDate">نېټه</label>
-                                <input type="text" class="form-control" id="stockExchangeDate" disabled />
+                                <input type="text" class="form-control" id="stockExchangeDate" />
                             </div>
                         </div>
                         <div class="col">
@@ -173,7 +173,7 @@
                         <div class="col">
                             <div class="mb-3">
                                 <label class="form-label" for="stockOutageDate">نېټه</label>
-                                <input type="text" class="form-control" id="stockOutageDate" disabled />
+                                <input type="text" class="form-control" id="stockOutageDate" />
                             </div>
                         </div>
                         <div class="col">
@@ -287,7 +287,13 @@ function FlatPickerComponent(control){
 @* List of new items *@
 <script>
 var stockItemsValidator = new JustValidate("#newStockItemsForm");
-
+stockItemsValidator.addField("#newStockItemsRows", [
+{
+    validator: function(){
+        return $("#newStockItemsRows tr").length > 0;
+    }, 
+    errorMessage: "خالي لیست نه ثبت کیږي"
+}]);
 $("#addNewStockItemRow").click(async function(event){
     event.preventDefault();
 
@@ -302,7 +308,7 @@ $("#addNewStockItemRow").click(async function(event){
 
     var newRow = $("<tr>");
     var dateCell = $("<td>");
-    var datefield = $("<input>").addClass("form-control").attr("placeholder", "نېټه");
+    var datefield = $("<input>").addClass("form-control form-control-date").attr("placeholder", "نېټه");
     datefield.appendTo(dateCell);
     FlatPickerComponent(dateCell.find("input")[0]);
     dateCell.appendTo(newRow);
@@ -319,7 +325,7 @@ $("#addNewStockItemRow").click(async function(event){
     itemsSelect.addOptions(activeItems);
 
     var unitCell = $("<td>");
-    var unitField = $("<select>").addClass("form-select").attr("name", "unitId");
+    var unitField = $("<select>").addClass("form-select form-control-unit").attr("name", "unitId");
     unitField.appendTo(unitCell);
     unitCell.appendTo(newRow);
     var unitSelect = new TomSelect(unitField[0], {
@@ -329,7 +335,7 @@ $("#addNewStockItemRow").click(async function(event){
     });
 
     var stockCell = $("<td>");    
-    var stockField = $("<select>").addClass("form-select").attr("name", "stockId");
+    var stockField = $("<select>").addClass("form-select form-control-stock").attr("name", "stockId");
     stockField.appendTo(stockCell);
     stockCell.appendTo(newRow);
     var stocksSelect = new TomSelect(stockField[0], {
@@ -340,7 +346,7 @@ $("#addNewStockItemRow").click(async function(event){
     stocksSelect.addOptions(stocks);
 
     var quantityCell = $("<td>");
-    var quantityField = $("<input>").addClass("form-control").attr("type", "number");
+    var quantityField = $("<input>").addClass("form-control form-control-quantity").attr("type", "number");
     quantityField.appendTo(quantityCell);
     quantityCell.appendTo(newRow);
 
@@ -403,9 +409,8 @@ stockItemsValidator.onSuccess(function(event){
     const item = {
         unitConversions: $("#newStockItemsRows tr").map(function (){
             const cells = $(this).find("td");
-            // var creationDate = moment(cells.eq(0).find("input").val(), "YYYY-MM-DD").toDate();
-            // var creationDate = moment.from(cells.eq(0).find("input").val(), 'fa', 'YYYY/MM/DD').locale('en').format('YYYY/MM/DD');
-            var creationDate = moment.from("1405/5/11", 'fa', 'YYYY/MM/DD').locale('en')._d;
+            var creationDate = moment.from(cells.eq(0).find("input").val(), 'fa', 'YYYY/MM/DD').locale('en').format('YYYY-MM-DDTHH:mm:ss');
+            console.log(creationDate);
             return {
                 creationDate: creationDate,
                 itemId: Number(cells.eq(1).find("select").val()),
@@ -456,10 +461,28 @@ $(document).on("change", ".select-item", function () {
 
 $(document).on("click", ".btn-remove-row", function (event) {
     event.preventDefault();
-    $(this).closest("tr").remove();
+    var row = $(this).closest("tr");
+    stockItemsValidator.removeField(row.find('.form-control-date')[0]);
+    stockItemsValidator.removeField(row.find('.select-item')[0]);
+    stockItemsValidator.removeField(row.find('.form-control-unit')[0]);
+    stockItemsValidator.removeField(row.find('.form-control-stock')[0]);
+    stockItemsValidator.removeField(row.find('.form-control-quantity')[0]);
+    row.remove();
 });
 $("#newStockItemsForm").on("reset", function(event){
+    setTimeout(function(){
+        $("#editSubUnits tr").each(function(){
+            var row = $(this);
+
+            stockItemsValidator.removeField(row.find('.form-control-date')[0]);
+            stockItemsValidator.removeField(row.find('.select-item')[0]);
+            stockItemsValidator.removeField(row.find('.form-control-unit')[0]);
+            stockItemsValidator.removeField(row.find('.form-control-stock')[0]);
+            stockItemsValidator.removeField(row.find('.form-control-quantity')[0]);
+        });
+        stockItemsValidator.clearErrors();
     $("#newStockItemsRows").empty();
+    });
 });
 </script>
 
@@ -555,7 +578,8 @@ stockExchangeFormValidation.onSuccess(function(event){
         unitID: Number($("#stockExchangeUnit").val()),
         stockID: Number($("#stockExchangeToStock").val()),
         quantity: Number($("#stockExchangeQuantity").val() || 0),
-        remarks: $("#stockExchangeRemarks").val()
+        remarks: $("#stockExchangeRemarks").val(),
+        creationDate: moment.from($("#stockExchangeDate").val(), 'fa', 'YYYY/MM/DD').locale('en').format('YYYY-MM-DDTHH:mm:ss')
     };
 
     $.ajax({
@@ -573,6 +597,9 @@ stockExchangeFormValidation.onSuccess(function(event){
             showToast("warning", error.responseText);
         }
     });
+});
+$("#stockExchangeForm").on("reset", function(){
+    $("#stockExchangeDate")[0]._flatpickr.setDate(new Date(), true);
 });
 </script>
 
@@ -662,7 +689,8 @@ stockOutageFormValidator.onSuccess(function(event){
         id : Number($("#stockOutageItemId").val()),
         unitID : Number($("#stockOutageUnit").val()),
         quantity : Number($("#stockOutageQuantity").val()),
-        transactionType : Number($("#stockOutageActionType").val())
+        transactionType : Number($("#stockOutageActionType").val()),
+        creationDate: moment.from($("#stockOutageDate").val(), 'fa', 'YYYY/MM/DD').locale('en').format('YYYY-MM-DDTHH:mm:ss')
     };
     console.log(data);
     $.ajax({
@@ -680,6 +708,9 @@ stockOutageFormValidator.onSuccess(function(event){
             showToast("warning", error.responseText);
         }
     });
+});
+$("#stockOutageForm").on("reset", function(){
+    $("#stockOutageDate")[0]._flatpickr.setDate(new Date(), true);
 });
 </script>
 }

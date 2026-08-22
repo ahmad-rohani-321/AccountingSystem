@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace AccountingSystem.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCreate : Migration
+    public partial class InitialMigration : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -372,64 +372,6 @@ namespace AccountingSystem.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "PurchaseOrders",
-                columns: table => new
-                {
-                    ID = table.Column<int>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    AccountID = table.Column<int>(type: "INTEGER", nullable: false),
-                    IsCompleted = table.Column<bool>(type: "INTEGER", nullable: false),
-                    DueDate = table.Column<DateOnly>(type: "TEXT", nullable: false),
-                    Remarks = table.Column<string>(type: "TEXT", nullable: true),
-                    CreationDate = table.Column<DateTime>(type: "TEXT", nullable: false),
-                    CreatedByUserId = table.Column<string>(type: "TEXT", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_PurchaseOrders", x => x.ID);
-                    table.ForeignKey(
-                        name: "FK_PurchaseOrders_Accounts_AccountID",
-                        column: x => x.AccountID,
-                        principalTable: "Accounts",
-                        principalColumn: "ID",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_PurchaseOrders_User_CreatedByUserId",
-                        column: x => x.CreatedByUserId,
-                        principalTable: "User",
-                        principalColumn: "Id");
-                });
-
-            migrationBuilder.CreateTable(
-                name: "SalesOrders",
-                columns: table => new
-                {
-                    ID = table.Column<int>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    AccountID = table.Column<int>(type: "INTEGER", nullable: false),
-                    IsCompleted = table.Column<bool>(type: "INTEGER", nullable: false),
-                    DueDate = table.Column<DateOnly>(type: "TEXT", nullable: false),
-                    Remarks = table.Column<string>(type: "TEXT", nullable: true),
-                    CreationDate = table.Column<DateTime>(type: "TEXT", nullable: false),
-                    CreatedByUserId = table.Column<string>(type: "TEXT", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_SalesOrders", x => x.ID);
-                    table.ForeignKey(
-                        name: "FK_SalesOrders_Accounts_AccountID",
-                        column: x => x.AccountID,
-                        principalTable: "Accounts",
-                        principalColumn: "ID",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_SalesOrders_User_CreatedByUserId",
-                        column: x => x.CreatedByUserId,
-                        principalTable: "User",
-                        principalColumn: "Id");
-                });
-
-            migrationBuilder.CreateTable(
                 name: "AccountBalances",
                 columns: table => new
                 {
@@ -514,6 +456,7 @@ namespace AccountingSystem.Migrations
                     RemainingAmount = table.Column<decimal>(type: "TEXT", nullable: false),
                     IsRefunded = table.Column<bool>(type: "INTEGER", nullable: false),
                     IsHolded = table.Column<bool>(type: "INTEGER", nullable: false),
+                    CanAffectStock = table.Column<bool>(type: "INTEGER", nullable: false),
                     CreationDate = table.Column<DateTime>(type: "TEXT", nullable: false),
                     CreatedByUserId = table.Column<string>(type: "TEXT", nullable: true)
                 },
@@ -554,6 +497,7 @@ namespace AccountingSystem.Migrations
                     RemainingAmount = table.Column<decimal>(type: "TEXT", nullable: false),
                     IsRefunded = table.Column<bool>(type: "INTEGER", nullable: false),
                     IsHolded = table.Column<bool>(type: "INTEGER", nullable: false),
+                    CanAffectStock = table.Column<bool>(type: "INTEGER", nullable: false),
                     CreationDate = table.Column<DateTime>(type: "TEXT", nullable: false),
                     CreatedByUserId = table.Column<string>(type: "TEXT", nullable: true)
                 },
@@ -887,41 +831,6 @@ namespace AccountingSystem.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "PurchaseOrderDetails",
-                columns: table => new
-                {
-                    ID = table.Column<int>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    ItemID = table.Column<int>(type: "INTEGER", nullable: false),
-                    UnitID = table.Column<int>(type: "INTEGER", nullable: false),
-                    Quantity = table.Column<decimal>(type: "TEXT", nullable: false),
-                    Remarks = table.Column<string>(type: "TEXT", nullable: true),
-                    CreationDate = table.Column<DateTime>(type: "TEXT", nullable: false),
-                    CreatedByUserId = table.Column<string>(type: "TEXT", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_PurchaseOrderDetails", x => x.ID);
-                    table.ForeignKey(
-                        name: "FK_PurchaseOrderDetails_Items_ItemID",
-                        column: x => x.ItemID,
-                        principalTable: "Items",
-                        principalColumn: "ID",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_PurchaseOrderDetails_UnitConversion_UnitID",
-                        column: x => x.UnitID,
-                        principalTable: "UnitConversion",
-                        principalColumn: "ID",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_PurchaseOrderDetails_User_CreatedByUserId",
-                        column: x => x.CreatedByUserId,
-                        principalTable: "User",
-                        principalColumn: "Id");
-                });
-
-            migrationBuilder.CreateTable(
                 name: "SalesDetails",
                 columns: table => new
                 {
@@ -971,41 +880,6 @@ namespace AccountingSystem.Migrations
                         principalTable: "WareHouses",
                         principalColumn: "ID",
                         onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "SalesOrderDetails",
-                columns: table => new
-                {
-                    ID = table.Column<int>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    ItemID = table.Column<int>(type: "INTEGER", nullable: false),
-                    UnitID = table.Column<int>(type: "INTEGER", nullable: false),
-                    Quantity = table.Column<decimal>(type: "TEXT", nullable: false),
-                    Remarks = table.Column<string>(type: "TEXT", nullable: true),
-                    CreationDate = table.Column<DateTime>(type: "TEXT", nullable: false),
-                    CreatedByUserId = table.Column<string>(type: "TEXT", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_SalesOrderDetails", x => x.ID);
-                    table.ForeignKey(
-                        name: "FK_SalesOrderDetails_Items_ItemID",
-                        column: x => x.ItemID,
-                        principalTable: "Items",
-                        principalColumn: "ID",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_SalesOrderDetails_UnitConversion_UnitID",
-                        column: x => x.UnitID,
-                        principalTable: "UnitConversion",
-                        principalColumn: "ID",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_SalesOrderDetails_User_CreatedByUserId",
-                        column: x => x.CreatedByUserId,
-                        principalTable: "User",
-                        principalColumn: "Id");
                 });
 
             migrationBuilder.CreateTable(
@@ -1122,7 +996,9 @@ namespace AccountingSystem.Migrations
                     { 9, "فروش واپسي" },
                     { 10, "خرید واپسي" },
                     { 11, "د حسابونو تبادله" },
-                    { 12, "خرید مصرف" }
+                    { 12, "خرید مصرف" },
+                    { 13, "متفرقه عواید" },
+                    { 14, "مصارف" }
                 });
 
             migrationBuilder.InsertData(
@@ -1145,49 +1021,51 @@ namespace AccountingSystem.Migrations
                     { 1, "ابتدایي موجودي" },
                     { 2, "ګدام ته داخلول" },
                     { 3, "له ګدام څخه ایستل" },
-                    { 4, "د ګدامونو ترمنځ انتقال" },
+                    { 4, "له ګدام څخه انتقال" },
                     { 5, "خرید" },
-                    { 6, "خرید واپسي" },
+                    { 6, "خرید تغیر جمع" },
                     { 7, "فروش" },
                     { 8, "فروش واپسي" },
                     { 9, "ضایعات" },
                     { 10, "خرید تغیر" },
-                    { 11, "فروش تغیر" }
+                    { 11, "فروش تغیر" },
+                    { 12, "ګدام ته انتقال" },
+                    { 13, "خرید تغیر منفي" }
                 });
 
             migrationBuilder.InsertData(
                 table: "User",
                 columns: new[] { "Id", "AccessFailedCount", "ConcurrencyStamp", "Email", "EmailConfirmed", "FirstName", "IsActive", "LastName", "LockoutEnabled", "LockoutEnd", "NormalizedEmail", "NormalizedUserName", "PasswordHash", "PhoneNumber", "PhoneNumberConfirmed", "ProfilePhoto", "SecurityStamp", "TwoFactorEnabled", "UserName" },
-                values: new object[] { "f5b9b7e7-2d3a-4b4d-a1b5-1b3f2a7a9e01", 0, "7a3c2e1d-9b8a-4f6e-8c2b-5d4f3a2b1c9e", "admin@admin.com", true, "Admin", true, "admin", false, null, "ADMIN@ADMIN.COM", "ADMIN", "AQAAAAIAAYagAAAAEKZSiJ/Ud2uZpLa6rXAERmjOejzfLM1g6mDoVTUEm6AbubGp0W0yj/5unfGXwLaYeg==", null, false, "", "2c9a4d9b-4f5a-4b8b-9a7c-2b1c3d4e5f61", false, "admin" });
+                values: new object[] { "f5b9b7e7-2d3a-4b4d-a1b5-1b3f2a7a9e01", 0, "7a3c2e1d-9b8a-4f6e-8c2b-5d4f3a2b1c9e", "admin@admin.com", true, "Admin", true, "admin", false, null, "ADMIN@ADMIN.COM", "ADMIN", "AQAAAAIAAYagAAAAECAOIilPM4qeggSQ2DVkm5rd9UaZrpB641Rng/eW4awU97akNeV5e4hHGhOB5evkkg==", null, false, "", "2c9a4d9b-4f5a-4b8b-9a7c-2b1c3d4e5f61", false, "admin" });
 
             migrationBuilder.InsertData(
                 table: "Accounts",
                 columns: new[] { "ID", "AccountTypeID", "Code", "CreatedByUserId", "CreationDate", "IsActive", "Name" },
-                values: new object[] { 1, 10, "Walkin", "f5b9b7e7-2d3a-4b4d-a1b5-1b3f2a7a9e01", new DateTime(2026, 7, 28, 14, 59, 20, 733, DateTimeKind.Local).AddTicks(9667), true, "عادي" });
+                values: new object[] { 1, 10, "Walkin", "f5b9b7e7-2d3a-4b4d-a1b5-1b3f2a7a9e01", new DateTime(2026, 8, 20, 17, 45, 18, 610, DateTimeKind.Local).AddTicks(2304), true, "عادي" });
 
             migrationBuilder.InsertData(
                 table: "Currencies",
                 columns: new[] { "ID", "CreatedByUserId", "CreationDate", "CurrencyName", "CurrencySymbole", "IsActive", "IsMainCurrency" },
                 values: new object[,]
                 {
-                    { 1, "f5b9b7e7-2d3a-4b4d-a1b5-1b3f2a7a9e01", new DateTime(2026, 7, 28, 14, 59, 20, 734, DateTimeKind.Local).AddTicks(6159), "افغانۍ", "AFN", true, true },
-                    { 2, "f5b9b7e7-2d3a-4b4d-a1b5-1b3f2a7a9e01", new DateTime(2026, 7, 28, 14, 59, 20, 734, DateTimeKind.Local).AddTicks(6167), "ډالر", "USD", true, false }
+                    { 1, "f5b9b7e7-2d3a-4b4d-a1b5-1b3f2a7a9e01", new DateTime(2026, 8, 20, 17, 45, 18, 610, DateTimeKind.Local).AddTicks(9014), "افغانۍ", "AFN", true, true },
+                    { 2, "f5b9b7e7-2d3a-4b4d-a1b5-1b3f2a7a9e01", new DateTime(2026, 8, 20, 17, 45, 18, 610, DateTimeKind.Local).AddTicks(9022), "ډالر", "USD", true, false }
                 });
 
             migrationBuilder.InsertData(
                 table: "UserRole",
                 columns: new[] { "RoleId", "UserId", "CreationDate" },
-                values: new object[] { "65a02658-9b8d-4505-95af-5edd8634bb35", "f5b9b7e7-2d3a-4b4d-a1b5-1b3f2a7a9e01", new DateTime(2026, 7, 28, 14, 59, 20, 731, DateTimeKind.Local).AddTicks(7443) });
+                values: new object[] { "65a02658-9b8d-4505-95af-5edd8634bb35", "f5b9b7e7-2d3a-4b4d-a1b5-1b3f2a7a9e01", new DateTime(2026, 8, 20, 17, 45, 18, 607, DateTimeKind.Local).AddTicks(9675) });
 
             migrationBuilder.InsertData(
                 table: "WareHouses",
                 columns: new[] { "ID", "CreatedByUserId", "CreationDate", "Description", "IsActive", "Name" },
-                values: new object[] { 1, "f5b9b7e7-2d3a-4b4d-a1b5-1b3f2a7a9e01", new DateTime(2026, 7, 28, 14, 59, 20, 733, DateTimeKind.Local).AddTicks(5755), "اصلي ګدام د ټولو موادو لپاره دی.", true, "عمومي ګدام" });
+                values: new object[] { 1, "f5b9b7e7-2d3a-4b4d-a1b5-1b3f2a7a9e01", new DateTime(2026, 8, 20, 17, 45, 18, 609, DateTimeKind.Local).AddTicks(7952), "اصلي ګدام د ټولو موادو لپاره دی.", true, "عمومي ګدام" });
 
             migrationBuilder.InsertData(
                 table: "AccountContacts",
                 columns: new[] { "ID", "AccountID", "Address", "CreatedByUserId", "CreationDate", "Email", "FirstPhone", "NIC", "SecondPhone" },
-                values: new object[] { 1, 1, "", "f5b9b7e7-2d3a-4b4d-a1b5-1b3f2a7a9e01", new DateTime(2026, 7, 28, 14, 59, 20, 734, DateTimeKind.Local).AddTicks(1891), "", "", "", "" });
+                values: new object[] { 1, 1, "", "f5b9b7e7-2d3a-4b4d-a1b5-1b3f2a7a9e01", new DateTime(2026, 8, 20, 17, 45, 18, 610, DateTimeKind.Local).AddTicks(3984), "", "", "", "" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_AccountBalances_AccountID",
@@ -1340,31 +1218,6 @@ namespace AccountingSystem.Migrations
                 column: "PurchaseID");
 
             migrationBuilder.CreateIndex(
-                name: "IX_PurchaseOrderDetails_CreatedByUserId",
-                table: "PurchaseOrderDetails",
-                column: "CreatedByUserId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_PurchaseOrderDetails_ItemID",
-                table: "PurchaseOrderDetails",
-                column: "ItemID");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_PurchaseOrderDetails_UnitID",
-                table: "PurchaseOrderDetails",
-                column: "UnitID");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_PurchaseOrders_AccountID",
-                table: "PurchaseOrders",
-                column: "AccountID");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_PurchaseOrders_CreatedByUserId",
-                table: "PurchaseOrders",
-                column: "CreatedByUserId");
-
-            migrationBuilder.CreateIndex(
                 name: "IX_Purchases_AccountID",
                 table: "Purchases",
                 column: "AccountID");
@@ -1449,31 +1302,6 @@ namespace AccountingSystem.Migrations
                 name: "IX_SalesDetails_WarehouseID",
                 table: "SalesDetails",
                 column: "WarehouseID");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_SalesOrderDetails_CreatedByUserId",
-                table: "SalesOrderDetails",
-                column: "CreatedByUserId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_SalesOrderDetails_ItemID",
-                table: "SalesOrderDetails",
-                column: "ItemID");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_SalesOrderDetails_UnitID",
-                table: "SalesOrderDetails",
-                column: "UnitID");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_SalesOrders_AccountID",
-                table: "SalesOrders",
-                column: "AccountID");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_SalesOrders_CreatedByUserId",
-                table: "SalesOrders",
-                column: "CreatedByUserId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_StockBalances_CreatedByUserId",
@@ -1591,12 +1419,6 @@ namespace AccountingSystem.Migrations
                 name: "PurchaseExpenseDetails");
 
             migrationBuilder.DropTable(
-                name: "PurchaseOrderDetails");
-
-            migrationBuilder.DropTable(
-                name: "PurchaseOrders");
-
-            migrationBuilder.DropTable(
                 name: "PurchaseVariousExpenses");
 
             migrationBuilder.DropTable(
@@ -1604,12 +1426,6 @@ namespace AccountingSystem.Migrations
 
             migrationBuilder.DropTable(
                 name: "SalesDetails");
-
-            migrationBuilder.DropTable(
-                name: "SalesOrderDetails");
-
-            migrationBuilder.DropTable(
-                name: "SalesOrders");
 
             migrationBuilder.DropTable(
                 name: "StockTransactions");

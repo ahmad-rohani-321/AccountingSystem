@@ -622,11 +622,11 @@ namespace AccountingSystem.Controllers.ApiControllers
             {
                 return BadRequest($"جنس نوم تکراري دی.");
             }
-            else if (await _context.Items.AnyAsync(x => x.SKU == request.Name))
+            else if (await _context.Items.AnyAsync(x => x.ID != request.Id && x.SKU == request.Name))
             {
                 return BadRequest("جنس کوډ تکراري دی.");
             }
-            else if (await _context.Items.AnyAsync(x => x.SerialNumber != null && x.SerialNumber == request.SerialNo))
+            else if (await _context.Items.AnyAsync(x => x.ID != request.Id && x.SerialNumber != null && x.SerialNumber == request.SerialNo))
             {
                 return BadRequest("جنس سیریل نمبر حتمي دی.");
             }
@@ -1004,6 +1004,7 @@ namespace AccountingSystem.Controllers.ApiControllers
                 {
                     foreach (var item in request)
                     {
+                        DateTime date = item.CreationDate.Date == DateTime.Now.Date ? DateTime.Now : item.CreationDate;
                         var itemUnit = await _context.UnitConversion.FindAsync(item.UnitId);
                         decimal calculatedQuantity = Math.Round(item.Quantity / itemUnit.ExchangedAmount, Defaults.DefaultDecimals);
                         var currentStockItem = await _context.StockBalances.FirstOrDefaultAsync(x => x.ItemID == item.ItemId && x.WarehouseID == item.StockId);
@@ -1014,7 +1015,7 @@ namespace AccountingSystem.Controllers.ApiControllers
                                 CreatedByUserId = user,
                                 ItemID = item.ItemId,
                                 Quantity = calculatedQuantity,
-                                CreationDate = DateTime.Now,
+                                CreationDate = date,
                                 WarehouseID = item.StockId,
                                 Remarks = item.Remarks
                             });
@@ -1029,7 +1030,7 @@ namespace AccountingSystem.Controllers.ApiControllers
                         await _context.StockTransactions.AddAsync(new StockTransactions()
                         {
                             CreatedByUserId = user,
-                            CreationDate = item.CreationDate,
+                            CreationDate = date,
                             Quantity = item.Quantity,
                             Remarks = item.Remarks,
                             StockBalanceID = currentStockItem.ID,
@@ -1105,6 +1106,7 @@ namespace AccountingSystem.Controllers.ApiControllers
                 using var transaction = await _context.Database.BeginTransactionAsync();
                 try
                 {
+                    DateTime date = request.CreationDate.Date == DateTime.Now.Date ? DateTime.Now : request.CreationDate;
                     var itemUnit = await _context.UnitConversion.FindAsync(request.UnitID);
                     decimal calculatedQuantity = Math.Round(request.Quantity / itemUnit.ExchangedAmount, Defaults.DefaultDecimals);
                     var stockItem = await _context.StockBalances.FindAsync(request.Id);
@@ -1123,7 +1125,7 @@ namespace AccountingSystem.Controllers.ApiControllers
                             CreatedByUserId = user,
                             ItemID = stockItem.ItemID,
                             Quantity = calculatedQuantity,
-                            CreationDate = DateTime.Now,
+                            CreationDate = date,
                             WarehouseID = request.StockID,
                             Remarks = request.Remarks
                         });
@@ -1138,7 +1140,7 @@ namespace AccountingSystem.Controllers.ApiControllers
                     await _context.StockTransactions.AddAsync(new StockTransactions()
                     {
                         CreatedByUserId = user,
-                        CreationDate = DateTime.Now,
+                        CreationDate = date,
                         Quantity = request.Quantity,
                         Remarks = request.Remarks,
                         StockBalanceID = stockItem.ID,
@@ -1149,7 +1151,7 @@ namespace AccountingSystem.Controllers.ApiControllers
                     await _context.StockTransactions.AddAsync(new StockTransactions()
                     {
                         CreatedByUserId = user,
-                        CreationDate = DateTime.Now,
+                        CreationDate = date,
                         Quantity = request.Quantity,
                         Remarks = request.Remarks,
                         StockBalanceID = toStock.ID,
@@ -1198,6 +1200,7 @@ namespace AccountingSystem.Controllers.ApiControllers
                 using var transaction = await _context.Database.BeginTransactionAsync();
                 try
                 {
+                    DateTime date = request.CreationDate.Date == DateTime.Now.Date ? DateTime.Now : request.CreationDate;
                     var itemUnit = await _context.UnitConversion.FindAsync(request.UnitID);
                     decimal calculatedQuantity = Math.Round(request.Quantity / itemUnit.ExchangedAmount, Defaults.DefaultDecimals);
                     var stockItem = await _context.StockBalances.FindAsync(request.Id);
@@ -1213,7 +1216,7 @@ namespace AccountingSystem.Controllers.ApiControllers
                     await _context.StockTransactions.AddAsync(new StockTransactions()
                     {
                         CreatedByUserId = user,
-                        CreationDate = DateTime.Now,
+                        CreationDate = date,
                         Quantity = request.Quantity,
                         Remarks = request.Remarks,
                         StockBalanceID = stockItem.ID,
@@ -1241,8 +1244,8 @@ namespace AccountingSystem.Controllers.ApiControllers
             }
         }
 
-        [HttpGet("StockTranscationsHistory")]
-        public async Task<ActionResult> StockTranscationsHistory([FromQuery] int[] itemIds, [FromQuery] int[] stockIds, [FromQuery] int[] transactionTypeIds,[FromQuery] DateTime startDate, [FromQuery] DateTime endDate)
+        [HttpGet("StockTransactionsHistory")]
+        public async Task<ActionResult> StockTransactionsHistory([FromQuery] int[] itemIds, [FromQuery] int[] stockIds, [FromQuery] int[] transactionTypeIds,[FromQuery] DateTime startDate, [FromQuery] DateTime endDate)
         {
             if (itemIds?.Length > 0 &&
                 !await _context.StockTransactions.Include(x => x.StockBalance).AnyAsync(x => itemIds.Contains(x.StockBalance.ItemID)))
@@ -1275,7 +1278,7 @@ namespace AccountingSystem.Controllers.ApiControllers
                                     .Include(x => x.Transaction)
                                     .Include(x => x.Unit)
                                     .ThenInclude(x => x.SubUnit)
-                                    .Where(x => x.CreationDate >= startDate && x.CreationDate <= endDate && itemIds.Contains(x.StockBalance.Item.ID))
+                                    .Where(x => x.CreationDate.Date >= startDate && x.CreationDate.Date <= endDate && itemIds.Contains(x.StockBalance.Item.ID))
                                     .OrderByDescending(x => x.CreationDate)
                                     .ToArrayAsync())
                             .Select(x => new StockTransactionsViewModel(){
@@ -1299,7 +1302,7 @@ namespace AccountingSystem.Controllers.ApiControllers
                                     .Include(x => x.Transaction)
                                     .Include(x => x.Unit)
                                     .ThenInclude(x => x.SubUnit)
-                                    .Where(x => x.CreationDate >= startDate && x.CreationDate <= endDate && stockIds.Contains(x.StockBalance.Warehouse.ID))
+                                    .Where(x => x.CreationDate.Date >= startDate && x.CreationDate.Date <= endDate && stockIds.Contains(x.StockBalance.Warehouse.ID))
                                     .OrderByDescending(x => x.CreationDate)
                                     .ToArrayAsync())
                             .Select(x => new StockTransactionsViewModel(){
@@ -1323,7 +1326,7 @@ namespace AccountingSystem.Controllers.ApiControllers
                                     .Include(x => x.Transaction)
                                     .Include(x => x.Unit)
                                     .ThenInclude(x => x.SubUnit)
-                                    .Where(x => x.CreationDate >= startDate && x.CreationDate <= endDate && transactionTypeIds.Contains(x.Transaction.ID))
+                                    .Where(x => x.CreationDate.Date >= startDate && x.CreationDate.Date <= endDate && transactionTypeIds.Contains(x.Transaction.ID))
                                     .OrderByDescending(x => x.CreationDate)
                                     .ToArrayAsync())
                             .Select(x => new StockTransactionsViewModel(){
@@ -1347,7 +1350,7 @@ namespace AccountingSystem.Controllers.ApiControllers
                                     .Include(x => x.Transaction)
                                     .Include(x => x.Unit)
                                     .ThenInclude(x => x.SubUnit)
-                                    .Where(x => x.CreationDate >= startDate && x.CreationDate <= endDate && itemIds.Contains(x.StockBalance.Item.ID) && stockIds.Contains(x.StockBalance.Warehouse.ID))
+                                    .Where(x => x.CreationDate.Date >= startDate && x.CreationDate.Date <= endDate && itemIds.Contains(x.StockBalance.Item.ID) && stockIds.Contains(x.StockBalance.Warehouse.ID))
                                     .OrderByDescending(x => x.CreationDate)
                                     .ToArrayAsync())
                             .Select(x => new StockTransactionsViewModel(){
@@ -1371,7 +1374,7 @@ namespace AccountingSystem.Controllers.ApiControllers
                                     .Include(x => x.Transaction)
                                     .Include(x => x.Unit)
                                     .ThenInclude(x => x.SubUnit)
-                                    .Where(x => x.CreationDate >= startDate && x.CreationDate <= endDate && itemIds.Contains(x.StockBalance.Item.ID) && transactionTypeIds.Contains(x.Transaction.ID))
+                                    .Where(x => x.CreationDate.Date >= startDate && x.CreationDate.Date <= endDate && itemIds.Contains(x.StockBalance.Item.ID) && transactionTypeIds.Contains(x.Transaction.ID))
                                     .OrderByDescending(x => x.CreationDate)
                                     .ToArrayAsync())
                             .Select(x => new StockTransactionsViewModel(){
@@ -1395,7 +1398,7 @@ namespace AccountingSystem.Controllers.ApiControllers
                                     .Include(x => x.Transaction)
                                     .Include(x => x.Unit)
                                     .ThenInclude(x => x.SubUnit)
-                                    .Where(x => x.CreationDate >= startDate && x.CreationDate <= endDate && stockIds.Contains(x.StockBalance.Warehouse.ID) && transactionTypeIds.Contains(x.Transaction.ID))
+                                    .Where(x => x.CreationDate.Date >= startDate && x.CreationDate.Date <= endDate && stockIds.Contains(x.StockBalance.Warehouse.ID) && transactionTypeIds.Contains(x.Transaction.ID))
                                     .OrderByDescending(x => x.CreationDate)
                                     .ToArrayAsync())
                             .Select(x => new StockTransactionsViewModel(){
@@ -1419,7 +1422,7 @@ namespace AccountingSystem.Controllers.ApiControllers
                                     .Include(x => x.Transaction)
                                     .Include(x => x.Unit)
                                     .ThenInclude(x => x.SubUnit)
-                                    .Where(x => x.CreationDate >= startDate && x.CreationDate <= endDate && itemIds.Contains(x.StockBalance.Item.ID) && stockIds.Contains(x.StockBalance.Warehouse.ID) && transactionTypeIds.Contains(x.Transaction.ID))
+                                    .Where(x => x.CreationDate.Date >= startDate && x.CreationDate.Date <= endDate && itemIds.Contains(x.StockBalance.Item.ID) && stockIds.Contains(x.StockBalance.Warehouse.ID) && transactionTypeIds.Contains(x.Transaction.ID))
                                     .OrderByDescending(x => x.CreationDate)
                                     .ToArrayAsync())
                             .Select(x => new StockTransactionsViewModel(){
@@ -1441,7 +1444,7 @@ namespace AccountingSystem.Controllers.ApiControllers
                                     .Include(x => x.Transaction)
                                     .Include(x => x.Unit)
                                     .ThenInclude(x => x.SubUnit)
-                                    .Where(x => x.CreationDate >= startDate && x.CreationDate <= endDate)
+                                    .Where(x => x.CreationDate.Date >= startDate && x.CreationDate.Date <= endDate)
                                     .ToArrayAsync())
                             .Select(x => new StockTransactionsViewModel(){
                                 Date = x.CreationDate,

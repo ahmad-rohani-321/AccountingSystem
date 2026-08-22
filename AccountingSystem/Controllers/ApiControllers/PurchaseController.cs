@@ -219,7 +219,11 @@ public class PurchaseController(ApplicationDbContext context, IHttpContextAccess
         {
             return BadRequest("ناسم اسعار انتخاب سوی دی");
         }
-        else if(await _context.Purchases.AnyAsync(x => x.PurchaseNo == request.PurchaseId))
+        else if(!await _context.Purchases.AnyAsync(x => x.ID == request.PurchaseId))
+        {
+            return NotFound("ناسم خرید شمېره");
+        }
+        else if(await _context.Purchases.AnyAsync(x => x.ID != request.PurchaseId && x.PurchaseNo == request.PurchaseNo))
         {
             return BadRequest("ټاکل سوې د خرید شمېره تکراري ده");
         }
@@ -253,22 +257,93 @@ public class PurchaseController(ApplicationDbContext context, IHttpContextAccess
             {
                 DateTime date = request.PurchaseDate == DateTime.Now.Date ? DateTime.Now : request.PurchaseDate;
                 var user = _accessor.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier).Value;
-                string remarks = $"خرید نمبر: {request.PurchaseId} | {request.Remarks}";
-                var purchase = await _context.Purchases.AddAsync(new Models.Purchase.Purchase()
+                string remarks = $"خرید نمبر: {request.PurchaseNo} | {request.Remarks}";
+                var purchase = await _context.Purchases.FirstOrDefaultAsync(x => x.ID == request.PurchaseId);
+                var oldPurchaseDetails = await _context.PurchaseDetails
+                    .Include(x => x.UnitConversion)
+                    .Where(x => x.PurchaseID == purchase.ID)
+                    .ToListAsync();
+                var oldDetailsById = oldPurchaseDetails.ToDictionary(x => x.ID);
+                var submittedDetailIds = request.PurchaseDetails
+                    .Where(x => x.Id != 0)
+                    .Select(x => x.Id)
+                    .ToHashSet();
+                if (submittedDetailIds.Count != request.PurchaseDetails.Count(x => x.Id != 0))
                 {
-                    AccountID = request.PersonId,
-                    CanAffectStock = request.EffectsStock,
-                    CreatedByUserId = user,
-                    CreationDate = date,
-                    CurrencyID = request.CurrencyId,
-                    IsHolded = request.IsHolded,
-                    IsRefunded = false,
-                    PurchaseNo = request.PurchaseId,
-                    Remarks = request.Remarks,
-                    TotalAmount = request.PurchaseTotal,
-                    ReceivedAmount = request.PurchaseRecieved,
-                    RemainingAmount = request.PurchaseTotal - request.PurchaseRecieved
-                });
+                    return BadRequest("A purchase detail was submitted more than once.");
+                }
+                var oldAffectsStock = !purchase.IsHolded && purchase.CanAffectStock;
+                var newAffectsStock = !request.IsHolded && request.EffectsStock;
+
+                async Task ApplyStockAdjustment(
+                    int itemId,
+                    int warehouseId,
+                    int unitId,
+                    decimal quantity,
+                    bool addToStock,
+                    string itemRemarks)
+                {
+                    if (quantity == 0)
+                    {
+                        return;
+                    }
+
+                    var unit = await _context.UnitConversion.FirstOrDefaultAsync(x => x.ID == unitId);
+                    if (unit == null || unit.ExchangedAmount == 0)
+                    {
+                        throw new InvalidOperationException("The unit conversion is invalid.");
+                    }
+
+                    var stock = await _context.StockBalances.FirstOrDefaultAsync(x =>
+                        x.ItemID == itemId && x.WarehouseID == warehouseId);
+
+                    if (stock == null)
+                    {
+                        if (!addToStock)
+                        {
+                            throw new InvalidOperationException("Purchase stock balance was not found.");
+                        }
+
+                        stock = new Models.Inventory.StockBalance()
+                        {
+                            CreatedByUserId = user,
+                            CreationDate = date,
+                            ItemID = itemId,
+                            WarehouseID = warehouseId,
+                            Remarks = itemRemarks,
+                            Quantity = 0
+                        };
+                        await _context.StockBalances.AddAsync(stock);
+                    }
+
+                    var baseQuantity = quantity / unit.ExchangedAmount;
+                    stock.Quantity += addToStock ? baseQuantity : -baseQuantity;
+
+                    await _context.StockTransactions.AddAsync(new Models.Inventory.StockTransactions()
+                    {
+                        CreatedByUserId = user,
+                        CreationDate = date,
+                        Quantity = quantity,
+                        StockBalance = stock,
+                        TransactionID = addToStock ? 6 : 13,
+                        Remarks = itemRemarks,
+                        UnitID = unitId
+                    });
+                }
+
+                purchase.AccountID = request.PersonId;
+                purchase.CanAffectStock = request.EffectsStock;
+                purchase.CreatedByUserId = user;
+                purchase.CreationDate = date;
+                purchase.CurrencyID = request.CurrencyId;
+                purchase.IsHolded = request.IsHolded;
+                purchase.IsRefunded = false;
+                purchase.PurchaseNo = request.PurchaseNo;
+                purchase.Remarks = request.Remarks;
+                purchase.TotalAmount = request.PurchaseTotal;
+                purchase.ReceivedAmount = request.PurchaseRecieved;
+                purchase.RemainingAmount = request.PurchaseTotal - request.PurchaseRecieved;
+
                 await _context.SaveChangesAsync();
                 if (!request.IsHolded)
                 {
@@ -315,53 +390,86 @@ public class PurchaseController(ApplicationDbContext context, IHttpContextAccess
                     }
                     await _context.SaveChangesAsync();
                 }
+
                 foreach (var item in request.PurchaseDetails)
                 {
-                    await _context.PurchaseDetails.AddAsync(new Models.Purchase.PurchaseDetails()
+                    Models.Purchase.PurchaseDetails existingDetail = null;
+                    if (item.Id != 0 && !oldDetailsById.TryGetValue(item.Id, out existingDetail))
                     {
-                        CreatedByUserId = user,
-                        CreationDate = date,
-                        ItemID = item.ItemId,
-                        PerPrice = item.PerPrice,
-                        PurchaseID = purchase.Entity.ID,
-                        Quantity = item.Quantity,
-                        TotalPrice = item.TotalPrice,
-                        UnitConversionID = item.UnitId,
-                        WarehouseID = item.StockId
-                    });
-                    if (!request.IsHolded && request.EffectsStock)
+                        return BadRequest("A purchase detail does not belong to this purchase.");
+                    }
+
+                    if (item.Id == 0)
                     {
-                        var stock = await _context.StockBalances.FirstOrDefaultAsync(x => x.ItemID == item.ItemId && x.WarehouseID == item.StockId);
-                        var unitExchange = await _context.UnitConversion.FirstOrDefaultAsync(x => x.ID == item.UnitId);
-                        decimal realStock = item.Quantity / unitExchange.ExchangedAmount;
-                        if(stock == null)
-                        {
-                            var stockEntry = await _context.StockBalances.AddAsync(new Models.Inventory.StockBalance()
-                            {
-                                CreatedByUserId = user,
-                                CreationDate = DateTime.Now,
-                                ItemID = item.ItemId,
-                                WarehouseID = item.StockId,
-                                Remarks = item.Remarks,
-                                Quantity = realStock
-                            });
-                            await _context.SaveChangesAsync();
-                            stock = stockEntry.Entity;
-                        }
-                        await _context.StockTransactions.AddAsync(new Models.Inventory.StockTransactions()
+                        await _context.PurchaseDetails.AddAsync(new Models.Purchase.PurchaseDetails()
                         {
                             CreatedByUserId = user,
                             CreationDate = date,
+                            ItemID = item.ItemId,
+                            PerPrice = item.PerPrice,
+                            PurchaseID = purchase.ID,
                             Quantity = item.Quantity,
-                            StockBalanceID = stock.ID,
-                            TransactionID = 5,
-                            Remarks = item.Remarks,
-                            UnitID = item.UnitId
+                            TotalPrice = item.TotalPrice,
+                            UnitConversionID = item.UnitId,
+                            WarehouseID = item.StockId,
+                            Remarks = item.Remarks
                         });
-                        await _context.SaveChangesAsync();
+
+                        if (newAffectsStock)
+                        {
+                            await ApplyStockAdjustment(item.ItemId, item.StockId, item.UnitId, item.Quantity, true, item.Remarks);
+                        }
+                        continue;
                     }
-                    await _context.SaveChangesAsync();
+
+                    if (oldAffectsStock && newAffectsStock &&
+                        existingDetail.ItemID == item.ItemId &&
+                        existingDetail.WarehouseID == item.StockId &&
+                        existingDetail.UnitConversionID == item.UnitId)
+                    {
+                        var quantityDifference = item.Quantity - existingDetail.Quantity;
+                        if (quantityDifference > 0)
+                        {
+                            await ApplyStockAdjustment(item.ItemId, item.StockId, item.UnitId, quantityDifference, true, item.Remarks);
+                        }
+                        else if (quantityDifference < 0)
+                        {
+                            await ApplyStockAdjustment(item.ItemId, item.StockId, item.UnitId, -quantityDifference, false, item.Remarks);
+                        }
+                    }
+                    else
+                    {
+                        if (oldAffectsStock)
+                        {
+                            await ApplyStockAdjustment(existingDetail.ItemID, existingDetail.WarehouseID,
+                                existingDetail.UnitConversionID, existingDetail.Quantity, false, existingDetail.Remarks);
+                        }
+                        if (newAffectsStock)
+                        {
+                            await ApplyStockAdjustment(item.ItemId, item.StockId, item.UnitId, item.Quantity, true, item.Remarks);
+                        }
+                    }
+
+                    existingDetail.ItemID = item.ItemId;
+                    existingDetail.UnitConversionID = item.UnitId;
+                    existingDetail.WarehouseID = item.StockId;
+                    existingDetail.Quantity = item.Quantity;
+                    existingDetail.PerPrice = item.PerPrice;
+                    existingDetail.TotalPrice = item.TotalPrice;
+                    existingDetail.Remarks = item.Remarks;
                 }
+
+                foreach (var removedDetail in oldPurchaseDetails.Where(x => !submittedDetailIds.Contains(x.ID)))
+                {
+                    if (oldAffectsStock)
+                    {
+                        await ApplyStockAdjustment(removedDetail.ItemID, removedDetail.WarehouseID,
+                            removedDetail.UnitConversionID, removedDetail.Quantity, false, removedDetail.Remarks);
+                    }
+                    _context.PurchaseDetails.Remove(removedDetail);
+                }
+
+                await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
                 return Ok();
             }
@@ -396,7 +504,8 @@ public class PurchaseController(ApplicationDbContext context, IHttpContextAccess
                 .ToListAsync();
             var purchaseViewModel = new PurchaseViewModel
             {
-                PurchaseId = purchase.PurchaseNo,
+                PurchaseId = purchase.ID,
+                PurchaseNo = purchase.PurchaseNo,
                 PersonId = purchase.AccountID,
                 CurrencyId = purchase.CurrencyID,
                 PurchaseTotal = purchase.TotalAmount,
@@ -422,11 +531,7 @@ public class PurchaseController(ApplicationDbContext context, IHttpContextAccess
     }
 
     [HttpGet("GetPurchaseList")]
-    public async Task<ActionResult<IEnumerable<PurchasesViewModel>>> GetPurchaseList(
-        int? personId,
-        int? currencyId,
-        DateTime? startDate,
-        DateTime? endDate)
+    public async Task<ActionResult> GetPurchaseList(int? personId, int? currencyId, DateTime? startDate, DateTime? endDate)
     {
         var purchases = _context.Purchases.AsQueryable();
 
@@ -447,7 +552,7 @@ public class PurchaseController(ApplicationDbContext context, IHttpContextAccess
 
         var result = await purchases
             .OrderByDescending(x => x.CreationDate)
-            .Select(x => new PurchasesViewModel
+            .Select(x => new PurchaseViewModel
             {
                 PurchaseId = x.ID,
                 PurchaseNo = x.PurchaseNo,
@@ -460,7 +565,9 @@ public class PurchaseController(ApplicationDbContext context, IHttpContextAccess
                 PurchaseRemaining = x.RemainingAmount,
                 PurchaseItemsCount = _context.PurchaseDetails.Count(d => d.PurchaseID == x.ID),
                 Remarks = x.Remarks,
-                PurchaseDate = x.CreationDate
+                PurchaseDate = x.CreationDate,
+                IsHolded = x.IsHolded,
+                EffectsStock = x.CanAffectStock
             })
             .ToListAsync();
 

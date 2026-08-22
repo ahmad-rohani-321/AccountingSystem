@@ -13,6 +13,7 @@
 <div class="row row-deck row-cards">
     <div class="card">
         <form id="newPurchaseForm">
+            <input type="hidden" id="purchaseId" value="@Model" />
             <div class="card-header d-flex align-items-center">
                 <h3 class="h3 mb-0">@ViewData["title"]</h3>
                 <div class="d-flex gap-2 ms-auto">
@@ -148,7 +149,8 @@
 <script>
 $(document).ready(function(){
     $.get("/api/Purchase/GetPurchaseById/" + @Model, function(data){
-        $("#purchaseNo").val(data.purchaseId);
+        $("#purchaseId").val(data.purchaseId);
+        $("#purchaseNo").val(data.purchaseNo);
         $("#purchaseDate").val(moment.from(data.purchaseDate, 'YYYY-MM-DD').format('jYYYY/jMM/jDD'));
         personAccount.setValue(data.personId);
         purchaseCurrency.setValue(data.currencyId);
@@ -587,7 +589,8 @@ formValidator.onSuccess(function(event){
     var data = {
         isHolded: $("#checkHold")[0].checked,
         effectsStock: $("#checkAffectStock")[0].checked,
-        purchaseId: Number($("#purchaseNo").val()),
+        purchaseId: Number($("#purchaseId").val()),
+        purchaseNo: Number($("#purchaseNo").val()),
         purchaseDate:currentDate,
         personId: Number(personAccount.getValue()),
         currencyId: (purchaseCurrency.getValue() === '' ? 0 : Number(purchaseCurrency.getValue())),

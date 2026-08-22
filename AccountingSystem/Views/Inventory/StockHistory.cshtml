@@ -14,7 +14,7 @@
             <h3 class="h3">@ViewData["title"]</h3>
         </div>
         <div class="card-body">
-            <form class="my-3" id="searchForm">
+            <form class="my-3 d-print-none" id="searchForm">
                 <div class="row align-items-end">
                     <div class="col-auto">
                         <div class="form-group" for="itemId">
@@ -169,7 +169,7 @@ formValidator.onSuccess(function(event){
     }
 
     $.ajax({
-        url: "/api/Inventory/StockTranscationsHistory",
+        url: "/api/Inventory/StockTransactionsHistory",
         type: "GET",
         data: $.param({
             itemIds: itemIds,

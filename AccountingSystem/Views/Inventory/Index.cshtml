@@ -334,8 +334,8 @@ $.ajax({
             $("<td>").text(eachRow.name).appendTo(tr);
 
             var mainUnit = $("<td>");
-            var maiUnitControl = $("<input>").attr("type", "number").attr("value", "0").addClass("form-control");
-            maiUnitControl.appendTo(mainUnit);
+            var mainUnitControl = $("<input>").attr("type", "number").attr("value", "0").addClass("form-control");
+            mainUnitControl.appendTo(mainUnit);
             mainUnit.appendTo(tr);
 
             var subUnit = $("<td>");
@@ -347,6 +347,36 @@ $.ajax({
             var remarksControl = $("<input>").attr("type", "text").addClass("form-control");
             remarksControl.appendTo(remarkTd);
             remarkTd.appendTo(tr);
+
+            createItemFormValidator.addField(mainUnitControl[0], [
+            {
+                validator: function(value){
+                    return (value == 0 && subUnitControl[0].valueAsNumber == 0) ||
+                        (value > 0 && subUnitControl[0].valueAsNumber > 0);
+                },
+                errorMessage : "اصلي او فرعي واحدونه باید دواړه صفر وي یا دواړه له صفر څخه زیات وي"
+            },
+            {
+                validator: function(value){
+                    return value >= 0;
+                },
+                errorMessage: "عدد باید له صفر څخه کوچنی نه وي"
+            }]);
+
+            createItemFormValidator.addField(subUnitControl[0], [
+            {
+                validator: function(value){
+                    return (value == 0 && mainUnitControl[0].valueAsNumber == 0) ||
+                        (value > 0 && mainUnitControl[0].valueAsNumber > 0);
+                },
+                errorMessage : "اصلي او فرعي واحدونه باید دواړه صفر وي یا دواړه له صفر څخه زیات وي"
+            },
+            {
+                validator: function(value){
+                    return value >= 0;
+                },
+                errorMessage: "عدد باید له صفر څخه کوچنی نه وي"
+            }]);
 
             tr.appendTo(dataTable);
         });
@@ -404,8 +434,8 @@ var newItemFormData = {
     mainUnit: "#newUnit",
     image: "#newImage"
 }
-itemFormValidator("#createItemForm", newItemFormData)
-.onSuccess(function (event) {
+var createItemFormValidator = itemFormValidator("#createItemForm", newItemFormData);
+createItemFormValidator.onSuccess(function (event) {
     event.preventDefault();
 
     const item = {
@@ -473,8 +503,8 @@ var editItemFormData = {
     image : "#editImage"
 }
 
-itemFormValidator("#editItemForm", editItemFormData)
-.onSuccess(function (event) {
+var editItemFormValidator = itemFormValidator("#editItemForm", editItemFormData);
+editItemFormValidator.onSuccess(function (event) {
     event.preventDefault();
 
     const item = {
@@ -641,6 +671,11 @@ $(document).on("click", ".btn-edit", function(event){
         type: "GET",
         success : function(response){
             var dataTable = $("#editSubUnits");
+            dataTable.find("tr").each(function () {
+                const cells = $(this).find("td");
+                editItemFormValidator.removeField(cells.eq(3).find("input")[0]);
+                editItemFormValidator.removeField(cells.eq(4).find("input")[0]);
+            });
             dataTable.empty();
             response.forEach(function(row){
                 var tr = $("<tr>");
@@ -649,14 +684,44 @@ $(document).on("click", ".btn-edit", function(event){
                 $("<td>").text(row.subUnitName).appendTo(tr);
 
                 var mainAmountTD = $("<td>");
-                var mainAmountTDControl = $("<input>").attr("type", "number").addClass("form-control").val(row.mainUnitQuantity);
+                var mainAmountTDControl = $("<input>").attr("type", "number").addClass("form-control form-main-amount").val(row.mainUnitQuantity);
                 mainAmountTDControl.appendTo(mainAmountTD);
                 mainAmountTD.appendTo(tr);
                 
                 var subAmountTD = $("<td>");
-                var subAmountTDControl = $("<input>").attr("type", "number").addClass("form-control").val(row.subUnitQuantity);
+                var subAmountTDControl = $("<input>").attr("type", "number").addClass("form-control form-sub-amount").val(row.subUnitQuantity);
                 subAmountTDControl.appendTo(subAmountTD);
                 subAmountTD.appendTo(tr);
+
+                editItemFormValidator.addField(mainAmountTDControl[0], [
+                {
+                    validator: function(value){
+                        return (value == 0 && subAmountTDControl[0].valueAsNumber == 0) ||
+                            (value > 0 && subAmountTDControl[0].valueAsNumber > 0);
+                    },
+                    errorMessage : "اصلي او فرعي واحدونه باید دواړه صفر وي یا دواړه له صفر څخه زیات وي"
+                },
+                {
+                    validator: function(value){
+                        return value >= 0;
+                    },
+                    errorMessage: "عدد باید له صفر څخه کوچنی نه وي"
+                }]);
+
+                editItemFormValidator.addField(subAmountTDControl[0], [
+                {
+                    validator: function(value){
+                        return (value == 0 && mainAmountTDControl[0].valueAsNumber == 0) ||
+                            (value > 0 && mainAmountTDControl[0].valueAsNumber > 0);
+                    },
+                    errorMessage : "اصلي او فرعي واحدونه باید دواړه صفر وي یا دواړه له صفر څخه زیات وي"
+                },
+                {
+                    validator: function(value){
+                        return value >= 0;
+                    },
+                    errorMessage: "عدد باید له صفر څخه کوچنی نه وي"
+                }]);
                 
                 var remarksTD = $("<td>");
                 var remarksTDControl = $("<input>").addClass("form-control").val(row.remarks);
@@ -690,17 +755,31 @@ $(document).on("click", ".btn-new-stock", function(event){
             showToast("info", "د انتخاب سوي جنس ابتدایئ موجودي له مخکي ثبت سوې ده.");
         }
     });
+});
+$("#createItemForm").on("reset", function(){
+    newCategory.setValue('');
+    newUnit.setValue('');
+});
+$("#editItemForm").on("reset", function(){
+    setTimeout(function(){
+        $("#editSubUnits tr").each(function(){
+            var row = $(this);
 
-
-   if(!hasBalance){
-        
-   }
-   else{
-        
-   }
+            editItemFormValidator.removeField(row.find('.form-main-amount')[0]);
+            editItemFormValidator.removeField(row.find('.form-sub-amount')[0]);
+        });
+        editItemFormValidator.clearErrors();
+    });
 });
 
 var newStockValidator = new JustValidate("#newStockForm");
+newStockValidator.addField("#newStockRows", [
+{
+    validator: function(value){
+        return $("#newStockRows tr").length !== 0;
+    }, 
+    errorMessage: "خالي لیست نه ثبت کیږي"
+}]);
 
 var stocks = null;
 $.get("/api/Inventory/GetActiveStockList/", function(rows) {
@@ -719,17 +798,17 @@ $("#addNewStockRow").click(async function(event){
 
     var rowTemplate = $("<tr>");
     var unitsCell = $("<td>");
-    var unitsField = $("<select>").addClass("unit-conversions form-control");
+    var unitsField = $("<select>").addClass("unit-conversions form-control form-control-unit");
     unitsField.appendTo(unitsCell);
     unitsCell.appendTo(rowTemplate);
 
     var quantityCell = $("<td>");
-    var quantityField = $("<input>").attr("type", "number").addClass("form-control");
+    var quantityField = $("<input>").attr("type", "number").addClass("form-control form-control-quantity");
     quantityField.appendTo(quantityCell);
     quantityCell.appendTo(rowTemplate);
 
     var stockCell = $("<td>");
-    var stockField = $("<select>").addClass("stocks-list form-control");
+    var stockField = $("<select>").addClass("stocks-list form-control form-control-stock");
     stockField.appendTo(stockCell);
     stockCell.appendTo(rowTemplate);
 
@@ -739,10 +818,10 @@ $("#addNewStockRow").click(async function(event){
     remarksCell.appendTo(rowTemplate);
 
     var remarksCell = $("<td>");
-    var remarksbutton = $("<button>").addClass("btn btn-danger btn-remove-row");
+    var removeButton = $("<button>").addClass("btn btn-danger btn-remove-row");
     var remarksButtonIcon = $("<i>").addClass("fas fa-trash-can");
-    remarksButtonIcon.appendTo(remarksbutton);
-    remarksbutton.appendTo(remarksCell);
+    remarksButtonIcon.appendTo(removeButton);
+    removeButton.appendTo(remarksCell);
     remarksCell.appendTo(rowTemplate);
 
     var dataTable = $("#newStockRows");
@@ -822,20 +901,38 @@ newStockValidator.onSuccess(function(event){
         data: JSON.stringify(item.unitConversions),
         success : function(response){
             showToast("success", "ثبت سو.");
-            $("#newStockRows").empty();
             $("#newStockForm")[0].reset();
             $("#newStock").modal("hide");
-        },
+                },
         error : function(error){
             showToast("warning", error.responseText);
         }
     });
 });
 
+$("#newStockForm").on("reset", function(event){
+    setTimeout(function(){
+        $("#newStockRows tr").each(function(){
+            var row = $(this);
+
+            newStockValidator.removeField(row.find('.form-control-unit')[0]);
+            newStockValidator.removeField(row.find('.form-control-quantity')[0]);
+            newStockValidator.removeField(row.find('.form-control-stock')[0]);
+        });
+        newStockValidator.clearErrors();
+        $("#newStockRows").empty();
+    });
+});
+
 $(document).on("click", ".btn-remove-row", function (event) {
     event.preventDefault();
-    $(this).closest("tr").remove();
+    var row = $(this).closest("tr");
+    newStockValidator.removeField(row.find('.form-control-unit')[0]);
+    newStockValidator.removeField(row.find('.form-control-quantity')[0]);
+    newStockValidator.removeField(row.find('.form-control-stock')[0]);
+    row.remove();
 });
+
 function getItemsList(){
     $.ajax({
         url: "/api/Inventory/GetItemsList",

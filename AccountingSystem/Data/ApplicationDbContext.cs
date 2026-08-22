@@ -165,7 +165,7 @@ namespace AccountingSystem.Data
                 new StockTransactionType
                 {
                     ID = 6,
-                    Name = "خرید واپسي",
+                    Name = "خرید تغیر جمع",
                 },
 
                 new StockTransactionType
@@ -201,6 +201,11 @@ namespace AccountingSystem.Data
                 {
                     ID = 12,
                     Name = "ګدام ته انتقال"
+                },
+                new StockTransactionType
+                {
+                    ID = 13,
+                    Name = "خرید تغیر منفي"
                 }
             );
 
