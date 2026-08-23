@@ -270,10 +270,10 @@ public class PurchaseController(ApplicationDbContext context, IHttpContextAccess
                     .ToHashSet();
                 if (submittedDetailIds.Count != request.PurchaseDetails.Count(x => x.Id != 0))
                 {
-                    return BadRequest("A purchase detail was submitted more than once.");
+                    return BadRequest("د خرید یو جز له یو ځل څخه زیات ثبت سوی دی.");
                 }
-                var oldAffectsStock = !purchase.IsHolded && purchase.CanAffectStock;
-                var newAffectsStock = !request.IsHolded && request.EffectsStock;
+                var oldAffectsStock = !purchase.IsHolded || purchase.CanAffectStock;
+                var newAffectsStock = !request.IsHolded || request.EffectsStock;
 
                 async Task ApplyStockAdjustment(
                     int itemId,
@@ -291,7 +291,7 @@ public class PurchaseController(ApplicationDbContext context, IHttpContextAccess
                     var unit = await _context.UnitConversion.FirstOrDefaultAsync(x => x.ID == unitId);
                     if (unit == null || unit.ExchangedAmount == 0)
                     {
-                        throw new InvalidOperationException("The unit conversion is invalid.");
+                        throw new InvalidOperationException("د واحد د تبدیل معلومات ناسم دي.");
                     }
 
                     var stock = await _context.StockBalances.FirstOrDefaultAsync(x =>
@@ -301,7 +301,7 @@ public class PurchaseController(ApplicationDbContext context, IHttpContextAccess
                     {
                         if (!addToStock)
                         {
-                            throw new InvalidOperationException("Purchase stock balance was not found.");
+                            throw new InvalidOperationException("د خرید اړوند د ګدام موجودي ونه موندل سوه.");
                         }
 
                         stock = new Models.Inventory.StockBalance()
@@ -322,7 +322,7 @@ public class PurchaseController(ApplicationDbContext context, IHttpContextAccess
                     await _context.StockTransactions.AddAsync(new Models.Inventory.StockTransactions()
                     {
                         CreatedByUserId = user,
-                        CreationDate = date,
+                        CreationDate = DateTime.Now,
                         Quantity = quantity,
                         StockBalance = stock,
                         TransactionID = addToStock ? 6 : 13,
@@ -382,7 +382,7 @@ public class PurchaseController(ApplicationDbContext context, IHttpContextAccess
                             Balance = personAccount.Balance,
                             Credit = request.PurchaseRecieved,
                             CreatedByUserId = user,
-                            CreationDate = date,
+                            CreationDate = DateTime.Now,
                             Remarks = remarks,
                             TransactionTypeID = 6,
                             ChequePhoto = "default.png"
@@ -396,7 +396,7 @@ public class PurchaseController(ApplicationDbContext context, IHttpContextAccess
                     Models.Purchase.PurchaseDetails existingDetail = null;
                     if (item.Id != 0 && !oldDetailsById.TryGetValue(item.Id, out existingDetail))
                     {
-                        return BadRequest("A purchase detail does not belong to this purchase.");
+                        return BadRequest("د خرید دا جز له دې خرید سره تړاو نه لري.");
                     }
 
                     if (item.Id == 0)
@@ -404,7 +404,7 @@ public class PurchaseController(ApplicationDbContext context, IHttpContextAccess
                         await _context.PurchaseDetails.AddAsync(new Models.Purchase.PurchaseDetails()
                         {
                             CreatedByUserId = user,
-                            CreationDate = date,
+                            CreationDate = DateTime.Now,
                             ItemID = item.ItemId,
                             PerPrice = item.PerPrice,
                             PurchaseID = purchase.ID,

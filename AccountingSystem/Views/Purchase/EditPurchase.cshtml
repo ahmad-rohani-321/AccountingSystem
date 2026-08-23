@@ -147,8 +147,11 @@
 
 @* generals *@
 <script>
-$(document).ready(function(){
-    $.get("/api/Purchase/GetPurchaseById/" + @Model, function(data){
+$(document).ready(async function(){
+    try {
+        var data = await $.get("/api/Purchase/GetPurchaseById/" + @Model);
+        console.log(data);
+        await Promise.all([suppliersRequest, currenciesRequest, itemsRequest, stocksRequest]);
         $("#purchaseId").val(data.purchaseId);
         $("#purchaseNo").val(data.purchaseNo);
         $("#purchaseDate").val(moment.from(data.purchaseDate, 'YYYY-MM-DD').format('jYYYY/jMM/jDD'));
@@ -174,8 +177,8 @@ $(document).ready(function(){
             $("#checkAffectStockText").removeClass("text-primary").addClass("text-warning").text("انتخاب سوي اجناس به په ټاکلې اندازه ګدام ته جمع نه سي");
         }
         $("#purchaseItemsTableBody").empty();
-        data.purchaseDetails.forEach(function(detail){
-            $("#addNewRowButton").click();
+        for (const detail of data.purchaseDetails) {
+            await addPurchaseRow(false);
             var lastRow = $("#purchaseItemsTableBody tr").last();
             lastRow.find('.items-select')[0].tomselect.setValue(detail.itemId);
             lastRow.find('.units-select')[0].tomselect.setValue(detail.unitId);
@@ -185,8 +188,13 @@ $(document).ready(function(){
             lastRow.find('.stock-select')[0].tomselect.setValue(detail.stockId);
             lastRow.find('td').eq(0).text(detail.id);
             lastRow.find('td').eq(7).find("input").val(detail.remarks);
-        });
-    });
+        }
+    }
+    catch (xhr) {
+        showToast("warning", xhr.responseText || "خرید په سمه توګه بار نه سو");
+        console.error(xhr);
+    }
+    CalculatePurchaseTotal();
 });
 
 flatpickr("#purchaseDate", {
@@ -208,7 +216,7 @@ var  personAccount = new TomSelect("#personAccountId", {
         }
     }
 });
-$.get("/api/Accounts/GetSuppliers", function(data){
+var suppliersRequest = $.get("/api/Accounts/GetSuppliers", function(data){
     personAccount.addOptions(data);
 });
 function accountDisplay(data) {
@@ -219,9 +227,11 @@ var purchaseCurrency = new TomSelect("#purchaseCurrency", {
     labelField: 'name',
     searchField: 'name'
 });
-$.get("/api/Currency/Currencies/Simple/", function(rows){
+var currenciesRequest = $.get("/api/Currency/Currencies/Simple/", function(rows){
     purchaseCurrency.addOptions(rows);
-    purchaseCurrency.setValue(rows[0].id);
+    if (rows.length > 0) {
+        purchaseCurrency.setValue(rows[0].id);
+    }
 });
 
 var feesSourse = new TomSelect("#feesSourse", {
@@ -237,16 +247,16 @@ var feesSourse = new TomSelect("#feesSourse", {
         }
     }
 });
-$.get("/api/Accounts/GetBankAccounts", function(data){
+var bankAccountsRequest = $.get("/api/Accounts/GetBankAccounts", function(data){
     feesSourse.addOptions(data);
 });
 
 var getItemsList = [];
-$.get("/api/Inventory/GetActiveItemsList", function(data){
+var itemsRequest = $.get("/api/Inventory/GetActiveItemsList", function(data){
     getItemsList = data;
 });
 var getStocksList = [];
-$.get("/api/Inventory/GetActiveStockList/", function(data){
+var stocksRequest = $.get("/api/Inventory/GetActiveStockList/", function(data){
     getStocksList = data;
 });
 </script>
@@ -302,9 +312,13 @@ $("#feesSourse").change(function () {
     );
 });
 
-$("#addNewRowButton").click(async function(event){
+$("#addNewRowButton").click(function(event){
     event.preventDefault();
-    if ($("#purchaseItemsTableBody tr").length > 0) {
+    addPurchaseRow();
+});
+
+async function addPurchaseRow(validateExisting = true){
+    if (validateExisting && $("#purchaseItemsTableBody tr").length > 0) {
         var currentRowsAreValid = await formValidator.revalidate();
 
         if (!currentRowsAreValid) {
@@ -417,7 +431,9 @@ $("#addNewRowButton").click(async function(event){
         searchField: "name"
     });
     stocksTomList.addOptions(getStocksList);
-    stocksTomList.setValue(getStocksList[0].id);
+    if (getStocksList.length > 0) {
+        stocksTomList.setValue(getStocksList[0].id);
+    }
     formValidator.addField(stocksList[0], [
         {
             validator: function(){
@@ -446,6 +462,15 @@ $("#addNewRowButton").click(async function(event){
     newRow.appendTo(dataTable);
 
     CalculatePurchaseTotal();
+}
+$(document).on("change", ".control-quantity", function () {
+    var currentRow = $(this).closest("tr");
+    var quantity = $(this).val();
+    var price = currentRow.find('.per-price').val();
+    var totalPrice = quantity * price;
+    currentRow.find('.control-total-price').val(totalPrice);
+
+    CalculatePurchaseTotal();
 });
 $(document).on("change", ".items-select", function () {
     var currentRow = $(this).closest("tr");
@@ -457,7 +482,6 @@ $(document).on("change", ".items-select", function () {
     unitTomSelect.clear(true);
     unitTomSelect.clearOptions();
 
-    CalculatePurchaseTotal();
 
     if (!itemId) {
         return;
@@ -468,6 +492,7 @@ $(document).on("change", ".items-select", function () {
         unitTomSelect.refreshOptions(false);
         unitTomSelect.setValue(units[0].id);
     });
+    CalculatePurchaseTotal();
 });
 $(document).on("click", ".btn-delete-row", function(event){
     event.preventDefault();
@@ -640,7 +665,7 @@ function CalculatePurchaseTotal(){
     var total = 0;
     var data = $("#purchaseItemsTableBody tr").map(function (){
             const cells = $(this).find("td");
-            total += Number(cells.eq(4).find("input").val());
+            total += Number(cells.eq(5).find("input").val());
         }).get();
     
     $("#purchaseAmount").val(total);
@@ -656,7 +681,7 @@ function GetAccountBalance(accountId, currencyId, textElement) {
     }
 
     $.get(`/api/Accounts/GetAccountCurrencyBalance/${currencyId}/${accountId}`, function (data) {
-        $(textElement).text(`اصلي حساب ${NumberToWords(data.balance, data.currencyName)}`);
+        $(textElement).text(`اصلي حساب ${NumberToWords(data.currencyName, data.balance)}`);
     });
 }
 

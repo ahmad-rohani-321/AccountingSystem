@@ -262,7 +262,7 @@ namespace AccountingSystem.Controllers.ApiControllers
                         {
                             if(balance.Balance != 0)
                             {
-                                await _context.AccountBalances.AddAsync(
+                                var accountBalance = await _context.AccountBalances.AddAsync(
                                 new Models.Accounts.AccountBalance()
                                 {
                                     Balance = balance.Balance,
@@ -272,6 +272,7 @@ namespace AccountingSystem.Controllers.ApiControllers
                                     CurrencyID = balance.CurrencyID
                                 }
                                 );
+                                await _context.SaveChangesAsync();
                                 if (balance.Balance > 0)
                                 {
                                     // do credit
@@ -280,7 +281,7 @@ namespace AccountingSystem.Controllers.ApiControllers
                                         {
                                             Credit = balance.Balance,
                                             Balance = balance.Balance,
-                                            AccountBalanceID = person.Entity.ID,
+                                            AccountBalanceID = accountBalance.Entity.ID,
                                             CreatedByUserId = user,
                                             Remarks = string.Empty,
                                             TransactionTypeID = 1,
@@ -298,7 +299,7 @@ namespace AccountingSystem.Controllers.ApiControllers
                                         {
                                             Credit = 0,
                                             Balance = balance.Balance,
-                                            AccountBalanceID = person.Entity.ID,
+                                            AccountBalanceID = accountBalance.Entity.ID,
                                             CreatedByUserId = user,
                                             Remarks = string.Empty,
                                             TransactionTypeID = 1,
@@ -377,7 +378,9 @@ namespace AccountingSystem.Controllers.ApiControllers
                     {
                         foreach (var balance in model.Balance)
                         {
-                            await _context.AccountBalances.AddAsync(
+                            if(balance.Balance != 0)
+                            {
+                                var accountBalance = await _context.AccountBalances.AddAsync(
                                 new Models.Accounts.AccountBalance()
                                 {
                                     Balance = balance.Balance,
@@ -387,41 +390,43 @@ namespace AccountingSystem.Controllers.ApiControllers
                                     CurrencyID = balance.CurrencyID
                                 }
                                 );
-                            if (balance.Balance > 0)
-                            {
-                                // do credit
-                                await _context.JournalEntries.AddAsync(
-                                    new Models.Accounting.JournalEntry()
-                                    {
-                                        Credit = balance.Balance,
-                                        Balance = balance.Balance,
-                                        AccountBalanceID = person.Entity.ID,
-                                        CreatedByUserId = user,
-                                        Remarks = string.Empty,
-                                        TransactionTypeID = 1,
-                                        Debit = 0,
-                                        ChequePhoto = string.Empty,
-                                        CreationDate = DateTime.Now
-                                    }
-                                    );
-                            }
-                            else
-                            {
-                                // do debit
-                                await _context.JournalEntries.AddAsync(
-                                    new Models.Accounting.JournalEntry()
-                                    {
-                                        Credit = 0,
-                                        Balance = balance.Balance,
-                                        AccountBalanceID = person.Entity.ID,
-                                        CreatedByUserId = user,
-                                        Remarks = string.Empty,
-                                        TransactionTypeID = 1,
-                                        Debit = balance.Balance,
-                                        ChequePhoto = string.Empty,
-                                        CreationDate = DateTime.Now
-                                    }
-                                    );
+                                await _context.SaveChangesAsync();
+                                if (balance.Balance > 0)
+                                {
+                                    // do credit
+                                    await _context.JournalEntries.AddAsync(
+                                        new Models.Accounting.JournalEntry()
+                                        {
+                                            Credit = balance.Balance,
+                                            Balance = balance.Balance,
+                                            AccountBalanceID = accountBalance.Entity.ID,
+                                            CreatedByUserId = user,
+                                            Remarks = string.Empty,
+                                            TransactionTypeID = 1,
+                                            Debit = 0,
+                                            ChequePhoto = string.Empty,
+                                            CreationDate = DateTime.Now
+                                        }
+                                        );
+                                }
+                                else
+                                {
+                                    // do debit
+                                    await _context.JournalEntries.AddAsync(
+                                        new Models.Accounting.JournalEntry()
+                                        {
+                                            Credit = 0,
+                                            Balance = balance.Balance,
+                                            AccountBalanceID = accountBalance.Entity.ID,
+                                            CreatedByUserId = user,
+                                            Remarks = string.Empty,
+                                            TransactionTypeID = 1,
+                                            Debit = balance.Balance,
+                                            ChequePhoto = string.Empty,
+                                            CreationDate = DateTime.Now
+                                        }
+                                        );
+                                }
                             }
                         }
                     }

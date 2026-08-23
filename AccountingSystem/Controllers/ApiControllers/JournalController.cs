@@ -46,7 +46,7 @@ namespace AccountingSystem.Controllers.ApiControllers
         public async Task<ActionResult> GetJournalReport(DateTime startDate, DateTime endDate, int? accountId, int? currencyId)
         {
             var data = new List<JournalViewModel>();
-            if (accountId.HasValue && accountId > 0)
+            if ((accountId.HasValue && accountId > 0) && currencyId == 0)
             {
                 data = (await _context.JournalEntries
                         .Include(x => x.AccountBalance.Account)
@@ -67,7 +67,7 @@ namespace AccountingSystem.Controllers.ApiControllers
                             TransactionTypeName = x.TransactionType.TypeName
                         }).ToList();
             }
-            else if (currencyId.HasValue && currencyId > 0)
+            else if ((currencyId.HasValue && currencyId > 0) && accountId == 0)
             {
                 data = (await _context.JournalEntries
                         .Include(x => x.AccountBalance.Account)
@@ -280,7 +280,7 @@ namespace AccountingSystem.Controllers.ApiControllers
 
                     if(creditAccount.AccountTypeID == 7)
                     {
-                        creditAccountBalance.Balance += request.Amount;
+                        creditAccountBalance.Balance -= request.Amount;
                         await _context.JournalEntries.AddAsync(new Models.Accounting.JournalEntry()
                         {
                             AccountBalanceID = creditAccountBalance.ID,
