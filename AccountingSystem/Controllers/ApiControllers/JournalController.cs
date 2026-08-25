@@ -187,7 +187,7 @@ namespace AccountingSystem.Controllers.ApiControllers
                 try
                 {
                     DateTime date = request.Date == DateTime.Now.Date ? DateTime.Now : request.Date;
-                    string fileName = "default.png";
+                    string fileName = "";
                     if (request.Image != null)
                     {
                         fileName = $"{Guid.NewGuid()}{Path.GetExtension(request.Image.FileName)}";
@@ -293,7 +293,13 @@ namespace AccountingSystem.Controllers.ApiControllers
                             ChequePhoto = fileName
                         });
                     }
-
+                    await _context.UserHistories.AddAsync(new Models.Identity.UserHistory()
+                    {
+                        CreatedByUserId = user,
+                        CreationDate = DateTime.Now,
+                        Details = $"د {debitAccount.Name} څخه {creditAccount.Name} ته {request.Amount} انتقال سو.",
+                        ModelName = "نقدي معاملات"
+                    });
                     await _context.SaveChangesAsync();
                     await transaction.CommitAsync();
                     return Ok();

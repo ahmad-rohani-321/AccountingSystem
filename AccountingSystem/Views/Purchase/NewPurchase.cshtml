@@ -95,7 +95,7 @@
                     <div class="col-lg-4 col-md-4 col-sm-12">
                         <div class="form-group">
                             <label for="purchaseAmount" class="form-label">مجموعه</label>
-                            <input type="number" id="purchaseAmount" class="form-control" />
+                            <input type="number" id="purchaseAmount" class="form-control" disabled />
                         </div>
                     </div>
                     <div class="col-lg-4 col-md-4 col-sm-12">
@@ -647,13 +647,14 @@ function GetAccountBalance(accountId, currencyId, textElement) {
     }
 
     $.get(`/api/Accounts/GetAccountCurrencyBalance/${currencyId}/${accountId}`, function (data) {
-        $(textElement).text(`اصلي حساب ${NumberToWords(data.balance, data.currencyName)}`);
+        $(textElement).text(`اصلي حساب ${NumberToWords(data.currencyName, data.balance)}`);
     });
 }
 
 function NumberToWords(currencyName, number){
     var humanized = window.humanizeNumberValue(number);
-    return `${number} ${currencyName} (${humanized})`;
+    var text = `${number} ${currencyName} (${humanized})`;
+    return text;
 }
 </script>
 }

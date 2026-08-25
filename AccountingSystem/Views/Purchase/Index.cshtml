@@ -116,26 +116,33 @@ function toGregorianDate(value) {
         : "";
 }
 
-$("body").on("click", ".btn-delete-purchase", function () {
-    var purchaseData = JSON.parse($(this).attr("data-id"));
-    sweetAlert("تاسو اطمناني یاست؟", "ایا تاسو ډاډه یاست چې دا خرید حذف کړئ؟")
+$(document).on("click", ".btn-delete-purchase", function(){
+    var id = $(this).data("id");
+    sweetAlert("تاسو اطمناني یاست؟", "تاسو اطمناني یاست، ترڅو انتخاب سوي خرید حذف کړئ؟")
         .then((result) => {
+
             if (result.isConfirmed) {
+
                 $.ajax({
-                    url: "/api/Purchase/DeletePurchase/" + purchaseData.id,
+                    url: "/api/Purchase/DeletePurchase/" + id,   
                     type: "DELETE",
-                    success: function () {
+
+                    success: function (response) {
+
+                        showToast("success", "انتخاب سوي خرید حذف سو.");
+
                         loadPurchases();
                     },
-                    error: function (xhr) {
-                        console.error(xhr.responseText);
-                        showToast("warning", "د خرید حذف کولو کې ستونزه پېښه شوه");
+
+                    error: function (responsive) {
+                        showToast("warning", responsive.responseText);
                     }
                 });
+
             }
+
         });
 });
-
 function loadPurchases() {
     $.ajax({
         url: "/api/Purchase/GetPurchaseList",
@@ -156,7 +163,6 @@ function loadPurchases() {
                     .appendTo(table);
                 return;
             }
-
             purchases.forEach(function (purchase) {
                 var row = $("<tr>");
                 $("<td>").text(purchase.purchaseNo).appendTo(row);
@@ -179,17 +185,22 @@ function loadPurchases() {
                     .appendTo(actions);
                 }
                 if(purchase.isHolded && !purchase.effectsStock){
-                    $("<button>").addClass("btn btn-sm btn-danger ms-2 btn-delete-purchase").attr("data-purchase", JSON.stringify({ id: purchase.purchaseId , effectsStock: purchase.effectsStock, isHolded: purchase.isHolded }))
+                    $("<button>").addClass("btn btn-sm btn-danger ms-2 btn-delete-purchase").attr("data-id", purchase.purchaseId)
                     .append($("<i>").addClass("fas fa-trash")).appendTo(actions);
                     
                 }
-                $("<button>").addClass("btn btn-sm btn-warning ms-2 btn-refund-purchase").attr("data-id", purchase.purchaseId).attr("type", "button").attr("title", "Refund")
-                    .append($("<i>").addClass("fas fa-undo")).appendTo(actions);
+                if(purchase.purchaseRecieved > 0){
+                    $("<button>").addClass("btn btn-sm btn-info ms-2 btn-received-purchase").attr("data-id", purchase.purchaseId).attr("type", "button").attr("title", "رسید")
+                        .append($("<i>").addClass("fas fa-hand-holding-usd")).appendTo(actions);
+                }
+                if(purchase.purchaseRemaining > 0){
+                    
+                    $("<button>").addClass("btn btn-sm btn-warning ms-2 btn-refund-purchase").attr("data-id", purchase.purchaseId).attr("type", "button").attr("title", "واپس")
+                        .append($("<i>").addClass("fas fa-undo")).appendTo(actions);
+                }
 
-                $("<button>").addClass("btn btn-sm btn-info ms-2 btn-received-purchase").attr("data-id", purchase.purchaseId).attr("type", "button").attr("title", "Received")
-                    .append($("<i>").addClass("fas fa-hand-holding-usd")).appendTo(actions);
 
-                $("<button>").addClass("btn btn-sm btn-success ms-2 btn-print-purchase").attr("data-id", purchase.purchaseId).attr("type", "button").attr("title", "Print")
+                $("<button>").addClass("btn btn-sm btn-success ms-2 btn-print-purchase").attr("data-id", purchase.purchaseId).attr("type", "button").attr("title", "چاپ")
                     .append($("<i>").addClass("fas fa-print")).appendTo(actions);
 
                 

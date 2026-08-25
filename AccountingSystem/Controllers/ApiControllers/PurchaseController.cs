@@ -139,6 +139,32 @@ public class PurchaseController(ApplicationDbContext context, IHttpContextAccess
                             TransactionTypeID = 6,
                             ChequePhoto = "default.png"
                         });
+
+                        var treasureAccount = await _context.AccountBalances.FirstOrDefaultAsync(x => x.AccountID == request.BankId && x.CurrencyID == request.CurrencyId);
+                        if(treasureAccount == null)
+                        {
+                            var account = await _context.AccountBalances.AddAsync(new Models.Accounts.AccountBalance()
+                            {
+                                AccountID = request.BankId,
+                                Balance = 0,
+                                CreatedByUserId = user,
+                                CreationDate = DateTime.Now,
+                                CurrencyID = request.CurrencyId
+                            });
+                            await _context.SaveChangesAsync();
+                            treasureAccount = account.Entity;
+                        }
+                        treasureAccount.Balance -= request.PurchaseRecieved;
+                        await _context.JournalEntries.AddAsync(new Models.Accounting.JournalEntry()
+                        {
+                            AccountBalanceID = treasureAccount.ID,
+                            Balance = treasureAccount.Balance,
+                            Debit = request.PurchaseRecieved,
+                            CreatedByUserId = user,
+                            CreationDate = date,
+                            Remarks = remarks,
+                            TransactionTypeID = 6
+                        });
                     }
                     await _context.SaveChangesAsync();
                 }
@@ -169,12 +195,12 @@ public class PurchaseController(ApplicationDbContext context, IHttpContextAccess
                                 CreationDate = DateTime.Now,
                                 ItemID = item.ItemId,
                                 WarehouseID = item.StockId,
-                                Remarks = item.Remarks,
-                                Quantity = realStock
+                                Remarks = item.Remarks
                             });
                             await _context.SaveChangesAsync();
                             stock = stockEntry.Entity;
                         }
+                        stock.Quantity += realStock;
                         await _context.StockTransactions.AddAsync(new Models.Inventory.StockTransactions()
                         {
                             CreatedByUserId = user,
@@ -189,6 +215,14 @@ public class PurchaseController(ApplicationDbContext context, IHttpContextAccess
                     }
                     await _context.SaveChangesAsync();
                 }
+                await _context.UserHistories.AddAsync(new Models.Identity.UserHistory()
+                    {
+                        CreatedByUserId = user,
+                        CreationDate = DateTime.Now,
+                        Details = $"په {request.PurchaseId} شمېره نوی خرید ثبت سو.",
+                        ModelName = "خرید"
+                    });
+                await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
                 return Ok();
             }
@@ -371,7 +405,6 @@ public class PurchaseController(ApplicationDbContext context, IHttpContextAccess
                         CreationDate = date,
                         Remarks = remarks,
                         TransactionTypeID = 6,
-                        ChequePhoto = "default.png"
                     });
                     if(request.PurchaseRecieved > 0)
                     {
@@ -385,7 +418,6 @@ public class PurchaseController(ApplicationDbContext context, IHttpContextAccess
                             CreationDate = DateTime.Now,
                             Remarks = remarks,
                             TransactionTypeID = 6,
-                            ChequePhoto = "default.png"
                         });
                     }
                     await _context.SaveChangesAsync();
@@ -468,7 +500,13 @@ public class PurchaseController(ApplicationDbContext context, IHttpContextAccess
                     }
                     _context.PurchaseDetails.Remove(removedDetail);
                 }
-
+                await _context.UserHistories.AddAsync(new Models.Identity.UserHistory()
+                {
+                    CreatedByUserId = user,
+                    CreationDate = DateTime.Now,
+                    Details = $"د {request.PurchaseId} تغیر سو.",
+                    ModelName = "خرید"
+                });
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
                 return Ok();
@@ -517,6 +555,7 @@ public class PurchaseController(ApplicationDbContext context, IHttpContextAccess
                 IsHolded = purchase.IsHolded,
                 PurchaseDetails = purchaseDetails.Select(pd => new PurchaseDetailsViewModel
                 {
+                    Id = pd.ID,
                     ItemId = pd.ItemID,
                     UnitId = pd.UnitConversionID,
                     StockId = pd.WarehouseID,
@@ -530,6 +569,49 @@ public class PurchaseController(ApplicationDbContext context, IHttpContextAccess
         }
     }
 
+    [HttpDelete("DeletePurchase/{id}")]
+    public async Task<ActionResult> DeletePurchase(int? id)
+    {
+        var user = _accessor.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier).Value;
+        if(id.HasValue && id == 0)
+        {
+            return BadRequest("خرید نه دی انتخاب سوی");
+        }
+        else if(!await _context.Purchases.AnyAsync(x => x.ID == id))
+        {
+            return BadRequest("صحیح خرید انتخاب سوی");
+        }
+        else if(!await _context.Purchases.AnyAsync(x => x.ID == id && x.IsHolded && !x.CanAffectStock))
+        {
+            return BadRequest("خرید ساتل سوی او په ګدام یې تاثیر سوی دی");
+        }
+        else
+        {
+            using var transaction = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                var purchase = await _context.Purchases.FindAsync(id);
+                var details = await _context.PurchaseDetails.Where(x => x.PurchaseID == id).ToListAsync();
+                _context.PurchaseDetails.RemoveRange(details);
+                _context.Purchases.Remove(purchase);
+                await _context.UserHistories.AddAsync(new Models.Identity.UserHistory()
+                {
+                    CreatedByUserId = user,
+                    CreationDate = DateTime.Now,
+                    Details = $"د {purchase.PurchaseNo} شمېره خرید حذف سو.",
+                    ModelName = "نقدي معاملات"
+                });
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+                return Ok();
+            }
+            catch(Exception ex)
+            {
+                await transaction.RollbackAsync();
+                return BadRequest(ex.Message);
+            }
+        }
+    }
     [HttpGet("GetPurchaseList")]
     public async Task<ActionResult> GetPurchaseList(int? personId, int? currencyId, DateTime? startDate, DateTime? endDate)
     {
