@@ -184,20 +184,18 @@ function loadPurchases() {
                     .append($("<i>").addClass("fas fa-edit"))
                     .appendTo(actions);
                 }
-                if(purchase.isHolded && !purchase.effectsStock){
+                if(!purchase.effectsStock){
                     $("<button>").addClass("btn btn-sm btn-danger ms-2 btn-delete-purchase").attr("data-id", purchase.purchaseId)
                     .append($("<i>").addClass("fas fa-trash")).appendTo(actions);
                     
                 }
-                if(purchase.purchaseRecieved > 0){
+                if(purchase.purchaseRecieved !== 0){
                     $("<button>").addClass("btn btn-sm btn-info ms-2 btn-received-purchase").attr("data-id", purchase.purchaseId).attr("type", "button").attr("title", "رسید")
                         .append($("<i>").addClass("fas fa-hand-holding-usd")).appendTo(actions);
                 }
-                if(purchase.purchaseRemaining > 0){
                     
-                    $("<button>").addClass("btn btn-sm btn-warning ms-2 btn-refund-purchase").attr("data-id", purchase.purchaseId).attr("type", "button").attr("title", "واپس")
-                        .append($("<i>").addClass("fas fa-undo")).appendTo(actions);
-                }
+                $("<button>").addClass("btn btn-sm btn-warning ms-2 btn-refund-purchase").attr("data-id", purchase.purchaseId).attr("type", "button").attr("title", "واپس")
+                    .append($("<i>").addClass("fas fa-undo")).appendTo(actions);
 
 
                 $("<button>").addClass("btn btn-sm btn-success ms-2 btn-print-purchase").attr("data-id", purchase.purchaseId).attr("type", "button").attr("title", "چاپ")

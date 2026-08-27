@@ -182,16 +182,20 @@ $(document).ready(async function(){
         for (const detail of data.purchaseDetails) {
             await addPurchaseRow(false);
             var lastRow = $("#purchaseItemsTableBody tr").last();
-            lastRow.find("td:first").text(detail.id)
-            lastRow.find('.items-select')[0].tomselect.setValue(detail.itemId);
-            lastRow.find('.units-select')[0].tomselect.setValue(detail.unitId);
+            var itemTomSelect = lastRow.find('.items-select')[0].tomselect;
+
+            // Prevent the item-change handler from clearing the units while
+            // the saved item and unit are restored.
+            itemTomSelect.setValue(detail.itemId, true);
+            await loadUnitsForItem(lastRow, detail.itemId, detail.unitId);
             lastRow.find('.control-quantity').val(detail.quantity);
             lastRow.find('.per-price').val(detail.perPrice);
             lastRow.find('.control-total-price').val(detail.totalPrice);
-            lastRow.find('.stock-select')[0].tomselect.setValue(detail.stockId);
+            lastRow.find('.stock-select')[0].tomselect.setValue(detail.stockId, true);
             lastRow.find('td').eq(0).text(detail.id);
             lastRow.find('td').eq(7).find("input").val(detail.remarks);
         }
+        CalculatePurchaseTotal();
     }
     catch (xhr) {
         showToast("warning", xhr.responseText || "خرید په سمه توګه بار نه سو");
@@ -367,7 +371,6 @@ async function addPurchaseRow(validateExisting = true){
         labelField: "subUnitName",
         searchField: "subUnitName"
     });
-    unitsTomSelect.addOptions(getItemsList);
     formValidator.addField(unitsSelect[0], [
         {
             validator: function(){
@@ -436,9 +439,6 @@ async function addPurchaseRow(validateExisting = true){
         searchField: "name"
     });
     stocksTomList.addOptions(getStocksList);
-    if (getStocksList.length > 0) {
-        stocksTomList.setValue(getStocksList[0].id);
-    }
     formValidator.addField(stocksList[0], [
         {
             validator: function(){
@@ -477,26 +477,31 @@ $(document).on("change", ".control-quantity", function () {
 
     CalculatePurchaseTotal();
 });
-$(document).on("change", ".items-select", function () {
-    var currentRow = $(this).closest("tr");
-    var itemId = this.tomselect.getValue(); 
-
-    var unitElement = currentRow.find('select[name="unitId"]')[0];
-    var unitTomSelect = unitElement.tomselect;
+async function loadUnitsForItem(row, itemId, selectedUnitId = null) {
+    var unitTomSelect = row.find('.units-select')[0].tomselect;
 
     unitTomSelect.clear(true);
     unitTomSelect.clearOptions();
-
 
     if (!itemId) {
         return;
     }
 
-    $.get("/api/Inventory/GetUnitConversionsOnly/" + itemId, function (units) {
-        unitTomSelect.addOptions(units);
-        unitTomSelect.refreshOptions(false);
-        unitTomSelect.setValue(units[0].id);
-    });
+    var units = await $.get("/api/Inventory/GetUnitConversionsOnly/" + itemId);
+    unitTomSelect.addOptions(units);
+    unitTomSelect.refreshOptions(false);
+
+    var savedUnitExists = units.some(unit => String(unit.id) === String(selectedUnitId));
+    var unitId = savedUnitExists ? selectedUnitId : units[0]?.id;
+
+    if (unitId !== undefined && unitId !== null) {
+        unitTomSelect.setValue(unitId, true);
+    }
+}
+
+$(document).on("change", ".items-select", async function () {
+    var currentRow = $(this).closest("tr");
+    await loadUnitsForItem(currentRow, this.tomselect.getValue());
     CalculatePurchaseTotal();
 });
 $(document).on("click", ".btn-delete-row", function(event){
