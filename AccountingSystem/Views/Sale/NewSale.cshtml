@@ -1,0 +1,662 @@
+@{
+    ViewData["title"] = "نوی فروش";
+    ViewData["Sale"] = "active";
+    ViewData["NewSale"] = "active";
+}
+
+
+@section Styles {
+    <link href="~/lib/flatpickr-jalali-support/dist/flatpickr.min.css" rel="stylesheet" />
+    <link href="~/lib/flatpickr-jalali-support/dist/themes/soft-card.css" rel="stylesheet" />
+    <link href="~/lib/tom-select/dist/css/tom-select.bootstrap5.css" rel="stylesheet" />
+}
+
+<div class="row row-deck row-cards">
+    <div class="card">
+        <form id="newSaleForm">
+            <div class="card-header d-flex align-items-center">
+                <h3 class="h3 mb-0">@ViewData["title"]</h3>
+                <div class="d-flex gap-2 ms-auto">
+                    <button type="submit" class="btn btn-primary" id="saveSaleButton">
+                        <i class="fas fa-save me-2"></i> ثبت
+                    </button>
+                    <button type="reset" class="btn btn-outline-secondary" id="backButton">
+                        <i class="fa-solid fa-eraser me-2"></i> فورم پاک
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-lg-6 col-md-6 col-sm-12">
+                        <div class="form-group">
+                            <label for="checkHold" class="form-check">
+                                <input type="checkbox" class="form-check-input" id="checkHold" />
+                                <span class="form-check-label">خرید ساتل</span>
+                            </label>
+                            <span id="checkHoldText" class="text-primary">خرید نه ساتل کیږي. د ثبت پر مهال به حسابونه او اړوند مالي اغېزې تطبیق سي.</span>
+                        </div>
+                    </div>
+                    <div class="col-lg-6 col-md-6 col-sm-12">
+                        <div class="form-group">
+                            <label for="checkAffectStock" class="form-check">
+                                <input type="checkbox" class="form-check-input" id="checkAffectStock" checked />
+                                <span class="form-check-label">پر ګدام تاثیر کول</span>
+                            </label>
+                            <span id="checkAffectStockText" class="text-primary">انتخاب سوي اجناس به په ټاکلې اندازه ګدام ته جمع سي</span>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row mb-2">
+                    <div class="col-lg-4 col-md-4 col-sm-12">
+                        <div class="form-group">
+                            <label for="saleNo" class="form-label">شمېره</label>
+                            <input type="number" id="saleNo" class="form-control">
+                        </div>
+                    </div>
+                    <div class="col-lg-4 col-md-4 col-sm-12">
+                        <div class="form-group">
+                            <label for="saleDate" class="form-label">نېټه</label>
+                            <input type="text" id="saleDate" class="form-control">
+                        </div>
+                    </div>
+                    <div class="col-lg-4 col-md-4 col-sm-12">
+                        <div class="form-group">
+                            <label for="personAccountId" class="form-label">شخص</label>
+                            <select id="personAccountId" class="form-control"></select>
+                            <span class="text-muted" id="personAccountIdText"></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-lg-4 col-md-4 col-sm-12">
+                        <div class="form-group">
+                            <label for="saleCurrency" class="form-label">اسعار</label>
+                            <select id="saleCurrency" class="form-control"></select>
+                        </div>
+                    </div>
+                    <div class="col-lg-4 col-md-4 col-sm-12">
+                        <div class="form-group">
+                            <label for="feesSourse" class="form-label">تجرۍ/بانک</label>
+                            <select id="feesSourse" class="form-control"></select>
+                            <span class="text-muted" id="feesSourceAccountIdText"></span>
+                        </div>
+                    </div>
+                    <div class="col-lg-4 col-md-4 col-sm-12">
+                        <div class="form-group">
+                            <label for="saleRemarks" class="form-label">تشریحات</label>
+                            <textarea id="saleRemarks" class="form-control"></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row mb-2">
+                    <div class="col-lg-4 col-md-4 col-sm-12">
+                        <div class="form-group">
+                            <label for="saleAmount" class="form-label">مجموعه</label>
+                            <input type="number" id="saleAmount" class="form-control" disabled />
+                        </div>
+                    </div>
+                    <div class="col-lg-4 col-md-4 col-sm-12">
+                        <div class="form-group">
+                            <label for="saleRecieved" class="form-label">رسید</label>
+                            <input type="number" id="saleRecieved" class="form-control" />
+                        </div>
+                    </div>
+                    <div class="col-lg-4 col-md-4 col-sm-12">
+                        <div class="form-group">
+                            <label for="saleRemaining" class="form-label">باقي</label>
+                            <input type="number" id="saleRemaining" class="form-control" disabled />
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <button type="button" class="btn btn-sm mb-2 btn-primary" id="addNewRowButton">
+                    <i class="fas fa-plus"></i>
+                </button>
+                <div class="row">
+                    <table class="table table-bordered table-responsive table-hover">
+                        <thead>
+                            <tr>
+                                <th>جنس</th>
+                                <th>واحد</th>
+                                <th>مقدار</th>
+                                <th>في قیمت</th>
+                                <th>مجموعه قیمت</th>
+                                <th>ګدام</th>
+                                <th>یاداښت</th>
+                                <th>حذف</th>
+                            </tr>
+                        </thead>
+                        <tbody id="saleItemsTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+@section Scripts {
+    <script src="~/lib/flatpickr-jalali-support/dist/flatpickr.min.js"></script>
+    <script src="~/lib/flatpickr-jalali-support/dist/l10n/fa.js"></script>
+    <script src="~/lib/tom-select/dist/js/tom-select.complete.min.js"></script>
+    <script src="~/lib/just-validate/dist/just-validate.production.min.js"></script>
+    <script src="~/lib/moment-jalali/dist/jalali-moment.browser.js"></script>
+    <script src="~/js/numberToWords.js"></script>
+
+    @* generals *@
+    <script>
+        $(document).ready(function() {
+            GetSaleNo();
+            $("#checkAffectStock").prop("disabled", true);
+        });
+
+        flatpickr("#saleDate", {
+            locale: "fa",
+            defaultDate: new Date(),
+            allowInput: true
+        });
+
+        var personAccount = new TomSelect("#personAccountId", {
+            valueField: 'id',
+            labelField: 'name',
+            searchField: ['name', 'code', 'accountTypeName'],
+            render: {
+                option: function(data, escape) {
+                    return `<div>${escape(accountDisplay(data))}</div>`;
+                },
+                item: function(data, escape) {
+                    return `<div>${escape(accountDisplay(data))}</div>`;
+                }
+            }
+        });
+        $.get("/api/Accounts/GetSuppliers", function(data) {
+            personAccount.addOptions(data);
+        });
+        function accountDisplay(data) {
+            return `${data.name} - ${data.code} - ${data.accountTypeName}`;
+        }
+        var saleCurrency = new TomSelect("#saleCurrency", {
+            valueField: 'id',
+            labelField: 'name',
+            searchField: 'name'
+        });
+        $.get("/api/Currency/Currencies/Simple/", function(rows) {
+            saleCurrency.addOptions(rows);
+            saleCurrency.setValue(rows[0].id);
+        });
+
+        var feesSourse = new TomSelect("#feesSourse", {
+            valueField: 'id',
+            labelField: 'name',
+            searchField: ['name', 'code', 'accountTypeName'],
+            render: {
+                option: function(data, escape) {
+                    return `<div>${escape(accountDisplay(data))}</div>`;
+                },
+                item: function(data, escape) {
+                    return `<div>${escape(accountDisplay(data))}</div>`;
+                }
+            }
+        });
+        $.get("/api/Accounts/GetBankAccounts", function(data) {
+            feesSourse.addOptions(data);
+        });
+
+        var getItemsList = [];
+        $.get("/api/Inventory/GetActiveItemsList", function(data) {
+            getItemsList = data;
+        });
+        var getStocksList = [];
+        $.get("/api/Inventory/GetActiveStockList/", function(data) {
+            getStocksList = data;
+        });
+    </script>
+
+    @* events *@
+    <script>
+        $("#checkHold").change(function(event) {
+            if (event.target.checked) {
+                $("#checkAffectStock").prop("disabled", false);
+                $("#checkHoldText").removeClass("text-primary").addClass("text-warning").text("خرید ساتل کیږي. د ثبت پر مهال به حسابونه او اړوند مالي اغېزې تطبیق نه سي.");
+            }
+            else {
+                $("#checkAffectStock").prop("disabled", true);
+                $("#checkHoldText").removeClass("text-warning").addClass("text-primary").text("خرید نه ساتل کیږي. د ثبت پر مهال به حسابونه او اړوند مالي اغېزې تطبیق سي.");
+            }
+        });
+        $("#checkAffectStock").change(function(event) {
+            if (event.target.checked) {
+                $("#checkAffectStockText").removeClass("text-warning").addClass("text-primary").text("انتخاب سوي اجناس به په ټاکلې اندازه ګدام ته جمع سي");
+            }
+            else {
+                $("#checkAffectStockText").removeClass("text-primary").addClass("text-warning").text("انتخاب سوي اجناس به په ټاکلې اندازه ګدام ته جمع نه سي");
+            }
+        });
+
+        $("#saleCurrency").change(function() {
+            GetAccountBalance(
+                Number(personAccount.getValue()),
+                Number(saleCurrency.getValue()),
+                "#personAccountIdText"
+            );
+
+            GetAccountBalance(
+                Number(feesSourse.getValue()),
+                Number(saleCurrency.getValue()),
+                "#feesSourceAccountIdText"
+            );
+        });
+
+        $("#personAccountId").change(function() {
+            GetAccountBalance(
+                Number(personAccount.getValue()),
+                Number(saleCurrency.getValue()),
+                "#personAccountIdText"
+            );
+        });
+
+        $("#feesSourse").change(function() {
+            GetAccountBalance(
+                Number(feesSourse.getValue()),
+                Number(saleCurrency.getValue()),
+                "#feesSourceAccountIdText"
+            );
+        });
+
+        $("#addNewRowButton").click(async function(event) {
+            event.preventDefault();
+            if ($("#saleItemsTableBody tr").length > 0) {
+                var currentRowsAreValid = await formValidator.revalidate();
+
+                if (!currentRowsAreValid) {
+                    return;
+                }
+            }
+            var dataTable = $("#saleItemsTableBody");
+            var newRow = $("<tr>");
+            var itemCell = $("<td>");
+            itemCell.appendTo(newRow);
+            var itemsSelect = $("<select>").addClass("form-control items-select").appendTo(itemCell);
+            var itemsTomSelect = new TomSelect(itemsSelect[0], {
+                valueField: "id",
+                labelField: "name",
+                searchField: "name"
+            });
+            itemsTomSelect.addOptions(getItemsList);
+
+            formValidator.addField(itemsSelect[0], [
+                {
+                    validator: function() {
+                        var data = itemsTomSelect.getValue();
+                        if (data === '') {
+                            return false;
+                        }
+                        else {
+                            return true;
+                        }
+                    },
+                    errorMessage: "جنس اړین دی"
+                }
+            ]);
+
+            var unitCell = $("<td>");
+            unitCell.appendTo(newRow);
+
+            var unitsSelect = $("<select>").addClass("form-control units-select").attr("name", "unitId").appendTo(unitCell);
+            var unitsTomSelect = new TomSelect(unitsSelect[0], {
+                valueField: "id",
+                labelField: "subUnitName",
+                searchField: "subUnitName"
+            });
+            unitsTomSelect.addOptions(getItemsList);
+            formValidator.addField(unitsSelect[0], [
+                {
+                    validator: function() {
+                        var data = unitsTomSelect.getValue();
+                        if (data === '') {
+                            return false;
+                        }
+                        else {
+                            return true;
+                        }
+                    },
+                    errorMessage: "واحد اړین دی"
+                }
+            ]);
+
+            var quantityCell = $("<td>");
+            quantityCell.appendTo(newRow);
+            var quantityInput = $("<input>").attr("type", "number").addClass("form-control control-quantity").appendTo(quantityCell);
+            formValidator.addField(quantityInput[0], [
+                {
+                    rule: 'required',
+                    errorMessage: 'مقدار اړین دی',
+                },
+                {
+                    rule: 'number',
+                    errorMessage: 'مقدار باید یو نمبر وي',
+                }
+            ]);
+
+            var perPriceCell = $("<td>");
+            perPriceCell.appendTo(newRow);
+            var perPriceInput = $("<input>").attr("type", "number").addClass("form-control per-price").appendTo(perPriceCell);
+            formValidator.addField(perPriceInput[0], [
+                {
+                    rule: 'required',
+                    errorMessage: 'في قیمت اړین دی',
+                },
+                {
+                    rule: 'number',
+                    errorMessage: 'في قیمت باید یو نمبر وي',
+                }
+            ]);
+
+
+            var totalPriceCell = $("<td>");
+            totalPriceCell.appendTo(newRow);
+            var totalPriceInput = $("<input>").attr("type", "number").addClass("form-control control-total-price").appendTo(totalPriceCell);
+            formValidator.addField(totalPriceInput[0], [
+                {
+                    rule: 'required',
+                    errorMessage: 'مجموعه قیمت اړین دی',
+                },
+                {
+                    rule: 'number',
+                    errorMessage: 'مجموعه قیمت باید یو نمبر وي',
+                }
+            ]);
+
+
+            var stockCell = $("<td>");
+            stockCell.appendTo(newRow);
+            var stocksList = $("<select>").addClass("form-control stock-select").appendTo(stockCell);
+            var stocksTomList = new TomSelect(stocksList[0], {
+                valueField: "id",
+                labelField: "name",
+                searchField: "name"
+            });
+            stocksTomList.addOptions(getStocksList);
+            stocksTomList.setValue(getStocksList[0].id);
+            formValidator.addField(stocksList[0], [
+                {
+                    validator: function() {
+                        var data = stocksTomList.getValue();
+                        if (data === '') {
+                            return false;
+                        }
+                        else {
+                            return true;
+                        }
+                    },
+                    errorMessage: "ګدام اړین دی"
+                }
+            ]);
+
+
+            var remarksCell = $("<td>");
+            remarksCell.appendTo(newRow);
+            $("<input>").attr("type", "text").addClass("form-control").appendTo(remarksCell);
+
+            var deleteCell = $("<td>");
+            deleteCell.appendTo(newRow);
+            var deleteButton = $("<button>").addClass("btn btn-sm btn-danger btn-delete-row").appendTo(deleteCell);
+            $("<i>").addClass("fas fa-trash").appendTo(deleteButton);
+
+            newRow.appendTo(dataTable);
+
+            CalculateSaleTotal();
+        });
+        $(document).on("change", ".items-select", function() {
+            var currentRow = $(this).closest("tr");
+            var itemId = this.tomselect.getValue();
+
+            var unitElement = currentRow.find('select[name="unitId"]')[0];
+            var unitTomSelect = unitElement.tomselect;
+
+            unitTomSelect.clear(true);
+            unitTomSelect.clearOptions();
+
+            CalculateSaleTotal();
+
+            if (!itemId) {
+                return;
+            }
+
+            $.get("/api/Inventory/GetUnitConversionsOnly/" + itemId, function(units) {
+                unitTomSelect.addOptions(units);
+                unitTomSelect.refreshOptions(false);
+                unitTomSelect.setValue(units[0].id);
+            });
+        });
+        $(document).on("click", ".btn-delete-row", function(event) {
+            event.preventDefault();
+            var row = $(this).closest("tr");
+            var itemSelect = row.find('.items-select');
+            var unitSelect = row.find('.units-select');
+            var quantity = row.find('.control-quantity');
+            var perprice = row.find('.per-price');
+            var controltotalprice = row.find('.control-total-price');
+            var stockselect = row.find('.stock-select');
+
+            formValidator.removeField(itemSelect[0]);
+            formValidator.removeField(unitSelect[0]);
+            formValidator.removeField(quantity[0]);
+            formValidator.removeField(perprice[0]);
+            formValidator.removeField(controltotalprice[0]);
+            formValidator.removeField(stockselect[0]);
+
+            row.remove();
+
+            CalculateSaleTotal();
+        });
+        $(document).on("change", ".per-price", function() {
+            var currentRow = $(this).closest("tr");
+            var quantity = currentRow.find('.control-quantity').val();
+            var price = $(this).val();
+            var totalPrice = quantity * price;
+            currentRow.find('.control-total-price').val(totalPrice);
+
+            CalculateSaleTotal();
+        });
+        $(document).on("change", ".control-total-price", function() {
+            CalculateSaleTotal();
+        });
+        $("#saleRecieved").change(function() {
+            CalculateSaleTotal();
+        });
+        const formValidator = new JustValidate('#newSaleForm');
+
+        formValidator.addField('#saleNo', [
+            {
+                rule: 'required',
+                errorMessage: 'شمېره اړینه ده',
+            },
+            {
+                rule: 'number',
+                errorMessage: 'شمېره باید یو نمبر وي',
+            }
+        ]);
+        formValidator.addField('#saleDate', [
+            {
+                rule: 'required',
+                errorMessage: 'نېټه اړینه ده',
+            }
+        ]);
+        formValidator.addField('#personAccountId', [
+            {
+                rule: 'required',
+                errorMessage: 'شخص اړینه ده',
+            }
+        ]);
+        formValidator.addField('#saleCurrency', [
+            {
+                rule: 'required',
+                errorMessage: 'اسعار اړینه ده',
+            }
+        ]);
+        formValidator.addField('#feesSourse', [
+            {
+                validator: function(value) {
+                    var feesRecieved = Number($("#saleRecieved").val());
+                    if (!($("#checkHold")[0].checked) && feesRecieved > 0 && !value) {
+                        return false;
+                    }
+                    else {
+                        return true;
+                    }
+                },
+                errorMessage: "که رسید ورکړل سوی وي، تجرۍ/بانک اړینه ده"
+            }
+        ]);
+        formValidator.addField('#saleItemsTableBody', [
+            {
+                validator: () => $('#saleItemsTableBody tr').length > 0,
+                errorMessage: 'د خرید لپاره لږ تر لږه یو جنس اړینه ده',
+            }
+        ]);
+        formValidator.addField("#saleRecieved",
+            [{
+                validator: function(value) {
+                    var total = Number($("#saleAmount").val());
+                    return value <= total;
+                },
+                errorMessage: "رسید مبلغ له مجموعه مبلغ څخه باید لوړ نه وي."
+            },
+            {
+                validator: function(value) {
+                    return value >= 0;
+                },
+                errorMessage: "رسید مبلغ باید له صفر څخه کوچنی نه وي."
+            },
+            {
+                validator: function(value) {
+                    if (!($("#checkHold")[0].checked) && value === 0 && Number(feesSourse.getValue() || 0) !== 0) {
+                        return false;
+                    }
+                    else {
+                        return true;
+                    }
+                },
+                errorMessage: "که بانک/تجرئ انتخاب سوې وي، رسید مبلغ ضروري دی"
+            }]);
+        formValidator.onSuccess(function(event) {
+            if (!event) {
+                return;
+            }
+
+            var currentDate = moment.from($("#saleDate").val(), 'fa', 'YYYY/MM/DD').format("YYYY-MM-DD");
+            var data = {
+                isHolded: $("#checkHold")[0].checked,
+                effectsStock: $("#checkAffectStock")[0].checked,
+                saleNo: Number($("#saleNo").val()),
+                saleDate: currentDate,
+                personId: Number(personAccount.getValue()),
+                currencyId: (saleCurrency.getValue() === '' ? 0 : Number(saleCurrency.getValue())),
+                bankId: Number(feesSourse.getValue() || 0),
+                remarks: $("#saleRemarks").val(),
+                saleTotal: Number($("#saleAmount").val()),
+                saleRecieved: Number($("#saleRecieved").val()),
+                saleRemaining: Number($("#saleRemaining").val()),
+                saleDetails: $("#saleItemsTableBody tr").map(function() {
+                    const cells = $(this).find("td");
+                    return {
+                        itemId: Number(cells.eq(0).find('.items-select')[0].tomselect.getValue()),
+                        unitId: Number(cells.eq(1).find("select")[0].tomselect.getValue()),
+                        quantity: Number(cells.eq(2).find("input").val() || 0),
+                        perPrice: Number(cells.eq(3).find("input").val()),
+                        totalPrice: Number(cells.eq(4).find("input").val()),
+                        stockId: Number(cells.eq(5).find('.stock-select')[0].tomselect.getValue()),
+                        remarks: cells.eq(6).find("input").val()
+                    };
+                }).get()
+            };
+            $.ajax({
+                url: "/api/Sale/SaveNewSale",
+                type: "POST",
+                data: JSON.stringify(data),
+                contentType: "application/json",
+                success: function() {
+                    showToast("success", "نوې خرید ثبت سو");
+                    $("#newSaleForm")[0].reset();
+                },
+                error: function(xhr) {
+                    showToast("warning", xhr.responseText);
+                    console.error(xhr.responseText);
+                }
+            });
+        });
+        $(document).on("reset", "#newSaleForm", function(event) {
+            var form = this;
+
+            setTimeout(function() {
+                $("#saleItemsTableBody tr").each(function() {
+                    var row = $(this);
+
+                    formValidator.removeField(row.find('.items-select')[0]);
+                    formValidator.removeField(row.find('.units-select')[0]);
+                    formValidator.removeField(row.find('.control-quantity')[0]);
+                    formValidator.removeField(row.find('.per-price')[0]);
+                    formValidator.removeField(row.find('.control-total-price')[0]);
+                    formValidator.removeField(row.find('.stock-select')[0]);
+                });
+
+                $("#saleItemsTableBody").empty();
+                $(form).find("input:not([type='checkbox']), textarea").val("");
+                personAccount.clear();
+                saleCurrency.clear();
+                feesSourse.clear();
+                $("#saleDate")[0]._flatpickr.setDate(new Date(), true);
+                $("#personAccountIdText, #feesSourceAccountIdText").empty();
+                $("#checkHold, #checkAffectStock").trigger("change");
+                GetSaleNo()
+                formValidator.clearErrors();
+            });
+        });
+
+    </script>
+
+    @* functions *@
+    <script>
+
+        function CalculateSaleTotal() {
+            var total = 0;
+            var data = $("#saleItemsTableBody tr").map(function() {
+                const cells = $(this).find("td");
+                total += Number(cells.eq(4).find("input").val());
+            }).get();
+
+            $("#saleAmount").val(total);
+            var recievedValue = Number($("#saleRecieved").val());
+            var result = total - recievedValue;
+            $("#saleRemaining").val(result);
+        }
+
+        function GetSaleNo() {
+            $.get("/api/Sale/Next-No", function(data) {
+                $("#saleNo").val(Number(data.saleNo));
+            });
+        }
+
+        function GetAccountBalance(accountId, currencyId, textElement) {
+            if (!accountId || !currencyId) {
+                $(textElement).text("اصلي حساب 0");
+                return;
+            }
+
+            $.get(`/api/Accounts/GetAccountCurrencyBalance/${currencyId}/${accountId}`, function(data) {
+                $(textElement).text(`اصلي حساب ${NumberToWords(data.currencyName, data.balance)}`);
+            });
+        }
+
+        function NumberToWords(currencyName, number) {
+            var humanized = window.humanizeNumberValue(number);
+            var text = `${number} ${currencyName} (${humanized})`;
+            return text;
+        }
+    </script>
+}

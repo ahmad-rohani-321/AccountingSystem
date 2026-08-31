@@ -3,6 +3,7 @@ public class PurchaseViewModel
 {
     public bool IsHolded { get; set; }
     public bool EffectsStock { get; set; }
+    public bool IsRefunded { get; set; }
     public int PurchaseId { get; set; }
     public int PurchaseNo { get; set; }
     public DateTime PurchaseDate { get; set; }

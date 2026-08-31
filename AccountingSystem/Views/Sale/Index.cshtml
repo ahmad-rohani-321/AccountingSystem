@@ -1,0 +1,495 @@
+@{
+    ViewData["title"] = "فروشات";
+    ViewData["Sale"] = "active";
+    ViewData["Index"] = "active";
+}
+@section Styles {
+    <link href="~/lib/flatpickr-jalali-support/dist/flatpickr.min.css" rel="stylesheet" />
+    <link href="~/lib/flatpickr-jalali-support/dist/themes/soft-card.css" rel="stylesheet" />
+    <link href="~/lib/tom-select/dist/css/tom-select.bootstrap5.css" rel="stylesheet" />
+}
+
+<div class="row row-deck row-cards">
+    <div class="card">
+        <div class="card-header d-flex align-items-center">
+            <h3 class="h3 mb-0">@ViewData["Title"]</h3>
+            <a asp-controller="Sale" asp-action="NewSale" class="btn btn-primary ms-auto">
+                نوی خرید <i class="fas fa-cart-shopping ms-3"></i>
+            </a>
+        </div>
+        <div class="card-body">
+            <form class="my-3" id="searchForm">
+                <div class="row align-items-end">
+                    <div class="col-auto">
+                        <div class="form-group">
+                            <label class="form-label" for="personId">شخص</label>
+                            <select id="personId" class="form-control"></select>
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <div class="form-group">
+                            <label class="form-label" for="currencyId">اسعار</label>
+                            <select id="currencyId" class="form-control"></select>
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <div class="form-group">
+                            <label class="form-label" for="startDate">شروع نېټه</label>
+                            <input type="text" id="startDate" class="form-control" />
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <div class="form-group">
+                            <label class="form-label" for="endDate">ختم نېټه</label>
+                            <input type="text" id="endDate" class="form-control" />
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-search pe-3"></i>پلټنه
+                        </button>
+                    </div>
+                </div>
+            </form>
+
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover table-striped">
+                    <thead>
+                        <tr>
+                            <th>شمېره</th>
+                            <th>حساب</th>
+                            <th>اسعار</th>
+                            <th>مجموعه</th>
+                            <th>رسید</th>
+                            <th>باقي</th>
+                            <th>جنس تعداد</th>
+                            <th>ملاحظات</th>
+                            <th>واپس سوی</th>
+                            <th>نېټه</th>
+                            <th>کړنی</th>
+                        </tr>
+                    </thead>
+                    <tbody id="saleList"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal for Received Sale -->
+<div class="modal fade" id="receivedSaleModal" tabindex="-1" aria-labelledby="receivedSaleModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="receivedSaleForm">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="receivedSaleModalLabel">رسید</h5>
+                    <button type="reset" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-primary">شخص: <span id="receivedPersonLabel"></span></p>
+                    <p class="text-primary">اسعار: <span id="receivedCurrencyLabel"></span></p>
+                    <p class="text-primary">بلانس: <span id="receivedBalanceLabel"></span></p>
+                    <p class="text-primary">مخکنی رسید: <span id="receivedOldRecieveLabel"></span></p>
+                    <div class="mb-3">
+                        <label for="saleTotal" class="form-label">خرید مجموعه</label>
+                        <input type="number" class="form-control" id="saleTotal" name="saleTotal" disabled>
+                        <span class="text-muted" id="saleTotalText"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label for="receivedAmount" class="form-label">رسید مقدار</label>
+                        <input type="number" class="form-control" id="receivedAmount" name="receivedAmount" min="0.01" step="any" required>
+                        <span class="text-muted" id="receivedAmountText"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label for="remainingAmount" class="form-label">باقي</label>
+                        <input type="number" class="form-control" id="remainingAmount" name="remainingAmount" disabled>
+                        <span class="text-muted" id="remainingAmountText"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label for="feesSource" class="form-label">بانک/تجرئ</label>
+                        <select class="form-control" id="feesSource" name="feesSource"></select>
+                        <span class="text-muted" id="feesSourceText"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label for="description" class="form-label">تشریح</label>
+                        <textarea class="form-control" id="description" name="description"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-primary">ثبت</button>
+                    <button type="reset" class="btn btn-secondary" data-bs-dismiss="modal">بندول</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+
+<!-- Modal for Sale Refund -->
+<div class="modal fade" id="refundSaleModal" tabindex="-1" aria-labelledby="refundSaleModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="refundSaleForm">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="refundSaleModalLabel">واپسي</h5>
+                    <button type="reset" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-primary">شخص: <span id="refundPersonLabel"></span></p>
+                    <p class="text-primary">اسعار: <span id="refundCurrencyLabel"></span></p>
+                    <p class="text-primary">بلانس: <span id="refundBalanceLabel"></span></p>
+                    <p class="text-primary">مجموعه: <span id="refundTotalLabel"></span></p>
+                    <p class="text-primary">رسید: <span id="refundRecieveLabel"></span></p>
+                    <p class="text-primary">باقي: <span id="refundRemainingLabel"></span></p>
+                    <div class="mb-3">
+                        <label for="refundReceivedAmount" class="form-label">رسید مقدار</label>
+                        <input type="number" class="form-control" id="refundReceivedAmount" name="refundReceivedAmount" required>
+                        <span class="text-muted" id="refundReceivedAmountText"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label for="refundFeesSource" class="form-label">بانک/تجرئ</label>
+                        <select class="form-control" id="refundFeesSource" name="refundFeesSource"></select>
+                        <span class="text-muted" id="refundFeesSourceText"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label for="refundDescription" class="form-label">تشریح</label>
+                        <textarea class="form-control" id="refundDescription" name="refundDescription"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-primary">ثبت</button>
+                    <button type="reset" class="btn btn-secondary" data-bs-dismiss="modal">بندول</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+
+@section Scripts {
+    <script src="~/lib/flatpickr-jalali-support/dist/flatpickr.min.js"></script>
+    <script src="~/lib/flatpickr-jalali-support/dist/l10n/fa.js"></script>
+    <script src="~/lib/tom-select/dist/js/tom-select.complete.min.js"></script>
+    <script src="~/lib/just-validate/dist/just-validate.production.min.js"></script>
+    <script src="~/lib/moment-jalali/dist/jalali-moment.browser.js"></script>
+    <script src="~/js/numberToWords.js"></script>
+
+    <script>
+        $(document).ready(function() {
+            flatpickr("#startDate", { locale: "fa", defaultDate: new Date(), allowInput: true });
+            flatpickr("#endDate", { locale: "fa", defaultDate: new Date(), allowInput: true });
+            loadTomSelect("/api/Accounts/GetSuppliers", "#personId", "id", "name");
+            loadTomSelect("/api/Currency/Currencies/Simple/", "#currencyId", "id", "name");
+            loadTomSelect("/api/Accounts/GetBankAccounts", "#feesSource", "id", "name");
+            loadTomSelect("/api/Accounts/GetBankAccounts", "#refundFeesSource", "id", "name");
+            loadSales();
+        });
+
+        function loadTomSelect(api, control, valueField, labelField) {
+            var select = new TomSelect(control, {
+                valueField: valueField,
+                labelField: labelField,
+                searchField: labelField,
+                allowEmptyOption: true
+            });
+
+            $.get(api, function(rows) {
+                select.addOptions(rows);
+            });
+        }
+
+        $("#searchForm").on("submit", function(event) {
+            event.preventDefault();
+            loadSales();
+        });
+
+        function toGregorianDate(value) {
+            return value
+                ? moment.from(value, "fa", "YYYY/MM/DD").locale("en").format("YYYY-MM-DDTHH:mm:ss")
+                : "";
+        }
+
+        $(document).on("click", ".btn-delete-sale", function() {
+            var id = $(this).data("id");
+            sweetAlert("تاسو اطمناني یاست؟", "تاسو اطمناني یاست، ترڅو انتخاب سوي خرید حذف کړئ؟")
+                .then((result) => {
+
+                    if (result.isConfirmed) {
+
+                        $.ajax({
+                            url: "/api/Sale/DeleteSale/" + id,
+                            type: "DELETE",
+
+                            success: function(response) {
+
+                                showToast("success", "انتخاب سوي خرید حذف سو.");
+
+                                loadSales();
+                            },
+
+                            error: function(responsive) {
+                                showToast("warning", responsive.responseText);
+                            }
+                        });
+
+                    }
+
+                });
+        });
+        var balance = null;
+        var selectedSale = {};
+        var treasureBalance = {};
+        $(document).on("click", ".btn-received-sale", async function() {
+            var sale = ($(this).data("sale")).sale;
+            selectedSale = sale;
+            balance = await $.get(`/api/Accounts/GetAccountCurrencyBalance/${sale.currencyId}/${sale.personId}`);
+            $("#receivedPersonLabel").text(sale.personName)
+            $("#receivedCurrencyLabel").text(sale.currencyName)
+            $("#receivedBalanceLabel").text(NumberToWords(balance.currencyName, balance.balance));
+            $("#receivedOldRecieveLabel").text(NumberToWords(balance.currencyName, sale.saleRecieved));
+            $("#saleTotal").val(sale.saleTotal);
+            @* $("#receivedAmount").val(sale.saleRecieved); *@
+                $("#remainingAmount").val(sale.saleRemaining);
+
+            $("#saleTotalText").text(window.humanizeNumberValue(sale.saleTotal));
+            $("#receivedAmountText").text(window.humanizeNumberValue(0));
+            $("#remainingAmountText").text(window.humanizeNumberValue(sale.saleRemaining));
+
+    
+            $("#receivedSaleModal").data("saleId", sale.saleId);
+
+            $("#receivedSaleModal").modal("show");
+        });
+        $("#receivedAmount").on("change", function() {
+            CalculateRecieved();
+        });
+        $("#feesSource").on("change", async function(event) {
+            var eventData = event.target.tomselect.items[0];
+
+            treasureBalance = await $.get(`/api/Accounts/GetAccountCurrencyBalance/${selectedSale.currencyId}/${eventData}`);
+            $("#feesSourceText").text(NumberToWords(treasureBalance.currencyName, treasureBalance.balance));
+        });
+        const recieveFormValidator = new JustValidate("#receivedSaleForm");
+        recieveFormValidator.addField("#saleTotal", [
+            {
+                rule: "required",
+                errorMessage: "مجموعه مبلغ اړین دی"
+            }, {
+                validator: function(value) {
+                    return value > 0;
+                },
+                errorMessage: "مجموعه مبلغ اړین دی"
+            }]);
+        recieveFormValidator.addField("#receivedAmount", [
+            {
+                rule: "required",
+                errorMessage: "رسید مبلغ اړین دی"
+            }, {
+                validator: function(value) {
+                    return value > 0;
+                },
+                errorMessage: "رسید مبلغ اړین دی"
+            }]);
+        recieveFormValidator.addField("#feesSource", [
+            {
+                rule: "required",
+                errorMessage: "بانک/تجرئ اړین دی"
+            }, {
+                validator: function(value) {
+                    return Number(value) > 0;
+                },
+                errorMessage: "بانک/تجرئ اړین دی"
+            }]);
+        recieveFormValidator.onSuccess(function(event) {
+            event.preventDefault();
+
+            var receiveAmount = Number($("#receivedAmount").val());
+            var feesSource = Number($("#feesSource").val());
+            var description = $("#description").val();
+            if (!selectedSale.saleId || receiveAmount > selectedSale.saleRemaining) {
+                showToast("warning", "رسید مبلغ د خرید له پاتې بلانس څخه زیاتېدلای نه سي.");
+                return;
+            }
+
+
+            $.ajax({
+                url: "/api/Sale/SalePayment",
+                type: "POST",
+                contentType: "application/json",
+                data: JSON.stringify({
+                    saleId: selectedSale.saleId,
+                    recieveAmount: receiveAmount,
+                    description: description || "",
+                    feesSource: feesSource
+                }),
+                success: function() {
+                    $("#receivedSaleModal").modal("hide");
+                    $("#receivedSaleForm")[0].reset();
+                    $("#receivedAmountText, #remainingAmountText, #feesSourceText").text("");
+                    showToast("success", "رسید ثبت سو.");
+                    loadSales();
+                },
+                error: function(xhr) {
+                    showToast("warning", xhr.responseText || "رسید ثبت نه سو .");
+                }
+            });
+        });
+        function CalculateRecieved() {
+            var remaining = Number($("#remainingAmount").val());
+            var recieve = Number($("#receivedAmount").val());
+            var total = Number($("#saleTotal").val());
+
+            var newRemaining = selectedSale.saleTotal - (recieve + selectedSale.saleRecieved);
+            $("#remainingAmount").val(newRemaining);
+            $("#receivedAmountText").text(window.humanizeNumberValue(recieve));
+            $("#remainingAmountText").text(window.humanizeNumberValue(newRemaining));
+        }
+        function NumberToWords(currencyName, number) {
+            var humanized = window.humanizeNumberValue(number);
+            var text = `${number} ${currencyName} (${humanized})`;
+            return text;
+        }
+
+        $(document).on("click", ".btn-refund-sale", async function() {
+            selectedSale = $(this).data("sale").sale;
+            var accountBalance = await $.get("/api/Accounts/GetAccountCurrencyBalance/" + selectedSale.currencyId + "/" + selectedSale.personId);
+
+            $("#refundPersonLabel").text(selectedSale.personName);
+            $("#refundCurrencyLabel").text(selectedSale.currencyName);
+            $("#refundBalanceLabel").text(NumberToWords(accountBalance.currencyName, accountBalance.balance));
+            $("#refundTotalLabel").text(NumberToWords(selectedSale.currencyName, selectedSale.saleTotal));
+            $("#refundRecieveLabel").text(NumberToWords(selectedSale.currencyName, selectedSale.saleRecieved));
+            $("#refundRemainingLabel").text(NumberToWords(selectedSale.currencyName, selectedSale.saleRemaining));
+            $("#refundReceivedAmount").val("");
+
+            $("#refundDescription").val("");
+            $("#refundSaleModal").modal("show");
+        });
+
+        const refundFormValidator = new JustValidate("#refundSaleForm");
+        refundFormValidator.addField("#refundReceivedAmount", [
+            {
+                validator: function(value) {
+                    return Number(value) >= 0;
+                },
+                errorMessage: "واپسۍ مبلغ باید د صفر څخه کم وي."
+            },
+            {
+                validator: function(value) {
+                    return Number(value) <= selectedSale.saleRecieved;
+                },
+                errorMessage: "واپسۍ مبلغ د مخکني رسید سوي مبلغ څخه زیاتېدلای نه سي."
+            }
+        ]);
+        refundFormValidator.addField("#refundFeesSource", [
+            {
+                validator: function(value) {
+                    return Number($("#refundReceivedAmount").val()) === 0 || !(!value);
+                },
+                errorMessage: "بانک/تجرئ اړین دی."
+            }
+        ]);
+        refundFormValidator.onSuccess(function(event) {
+            event.preventDefault();
+            var submitButton = $("#refundSaleForm button[type='submit']").prop("disabled", true);
+
+            $.ajax({
+                url: "/api/Sale/SaleRefund",
+                type: "POST",
+                contentType: "application/json",
+                data: JSON.stringify({
+                    saleId: selectedSale.saleId,
+                    recieveAmount: Number($("#refundReceivedAmount").val()),
+                    description: $("#refundDescription").val() || "",
+                    feesSource: Number($("#refundFeesSource").val())
+                }),
+                success: function() {
+                    $("#refundSaleModal").modal("hide");
+                    $("#refundSaleForm")[0].reset();
+                    showToast("success", "د خرید واپسۍ ثبت سوه.");
+                    loadSales();
+                },
+                error: function(xhr) {
+                    showToast("warning", xhr.responseText || "د خرید واپسۍ ثبت نه سوه.");
+                },
+                complete: function() {
+                    submitButton.prop("disabled", false);
+                }
+            });
+        });
+
+        function loadSales() {
+            $.ajax({
+                url: "/api/Sale/GetSaleList",
+                type: "GET",
+                data: $.param({
+                    personId: Number($("#personId").val() || 0),
+                    currencyId: Number($("#currencyId").val() || 0),
+                    startDate: toGregorianDate($("#startDate").val()),
+                    endDate: toGregorianDate($("#endDate").val())
+                }, true),
+                success: function(sales) {
+                    var table = $("#saleList");
+                    table.empty();
+
+                    if (!sales.length) {
+                        $("<tr>")
+                            .append($("<td>").attr("colspan", 11).addClass("text-center text-muted").text("هیڅ خرید ونه موندل شو"))
+                            .appendTo(table);
+                        return;
+                    }
+                    sales.forEach(function(sale) {
+                        var row = $("<tr>");
+                        $("<td>").text(sale.saleNo).appendTo(row);
+                        $("<td>").text(sale.personName).appendTo(row);
+                        $("<td>").text(sale.currencyName).appendTo(row);
+                        $("<td>").text(sale.saleTotal).appendTo(row);
+                        $("<td>").text(sale.saleRecieved).appendTo(row);
+                        $("<td>").text(sale.saleRemaining).appendTo(row);
+                        $("<td>").text(sale.saleItemsCount).appendTo(row);
+                        $("<td>").text(sale.remarks).appendTo(row);
+                        $("<td>").text(sale.isRefunded ? "هو" : "نه").appendTo(row);
+                        $("<td>").text(moment(sale.saleDate).format("jYYYY/jMM/jDD HH:mm:ss")).appendTo(row);
+
+                        var actions = $("<td>");
+
+                        if (!sale.isRefunded) {
+                            if (sale.isHolded) {
+                                $("<a>")
+                                    .attr("href", "/Sale/EditSale?saleId=" + sale.saleId)
+                                    .addClass("btn btn-sm btn-primary")
+                                    .append($("<i>").addClass("fas fa-edit"))
+                                    .appendTo(actions);
+                            }
+                            if (!sale.effectsStock) {
+                                $("<button>").addClass("btn btn-sm btn-danger ms-2 btn-delete-sale").attr("data-id", sale.saleId)
+                                    .append($("<i>").addClass("fas fa-trash")).appendTo(actions);
+
+                            }
+                            if (sale.saleRemaining > 0) {
+                                $("<button>").addClass("btn btn-sm btn-info ms-2 btn-received-sale").attr("data-sale", JSON.stringify({ sale: sale })).attr("type", "button").attr("title", "رسید")
+                                    .append($("<i>").addClass("fas fa-hand-holding-usd")).appendTo(actions);
+                            }
+
+                            $("<button>").addClass("btn btn-sm btn-warning ms-2 btn-refund-sale").attr("data-sale", JSON.stringify({ sale: sale })).attr("type", "button").attr("title", "واپس")
+                                .append($("<i>").addClass("fas fa-undo")).appendTo(actions);
+
+                        }
+
+                        $("<button>").addClass("btn btn-sm btn-success ms-2 btn-print-sale").attr("data-id", sale.saleId).attr("type", "button").attr("title", "چاپ")
+                            .append($("<i>").addClass("fas fa-print")).appendTo(actions);
+
+                
+
+                        actions.appendTo(row);
+                        row.appendTo(table);
+                    });
+                },
+                error: function(xhr) {
+                    console.error(xhr.responseText);
+                    $("#saleList").html('<tr><td colspan="11" class="text-center text-danger">د خرید لېست په ترلاسه کولو کې ستونزه پېښه شوه</td></tr>');
+                }
+            });
+        }
+    </script>
+}

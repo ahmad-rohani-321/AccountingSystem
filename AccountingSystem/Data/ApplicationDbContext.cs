@@ -189,7 +189,7 @@ namespace AccountingSystem.Data
                 new StockTransactionType
                 {
                     ID = 10,
-                    Name = "خرید تغیر"
+                    Name = "خرید واپسي"
                 },
 
                 new StockTransactionType
@@ -439,9 +439,7 @@ namespace AccountingSystem.Data
         #region Purchase
         public DbSet<Purchase> Purchases { get; set; }
         public DbSet<PurchaseDetails> PurchaseDetails { get; set; }
-        public DbSet<PurchaseExpences> PurchaseExpenses { get; set; }
-        public DbSet<PurchaseExpenseDetails> PurchaseExpenseDetails { get; set; }
-        public DbSet<PurchaseVariousExpenses> PurchaseVariousExpenses { get; set; }
+        
         #endregion
 
         #region Sales

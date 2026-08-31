@@ -65,6 +65,7 @@
                             <th>باقي</th>
                             <th>جنس تعداد</th>
                             <th>ملاحظات</th>
+                            <th>واپس سوی</th>
                             <th>نېټه</th>
                             <th>کړنی</th>
                         </tr>
@@ -76,11 +77,103 @@
     </div>
 </div>
 
+<!-- Modal for Received Purchase -->
+<div class="modal fade" id="receivedPurchaseModal" tabindex="-1" aria-labelledby="receivedPurchaseModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="receivedPurchaseForm">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="receivedPurchaseModalLabel">رسید</h5>
+                    <button type="reset" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-primary">شخص: <span id="receivedPersonLabel"></span></p>
+                    <p class="text-primary">اسعار: <span id="receivedCurrencyLabel"></span></p>
+                    <p class="text-primary">بلانس: <span id="receivedBalanceLabel"></span></p>
+                    <p class="text-primary">مخکنی رسید: <span id="receivedOldRecieveLabel"></span></p>
+                    <div class="mb-3">
+                        <label for="purchaseTotal" class="form-label">خرید مجموعه</label>
+                        <input type="number" class="form-control" id="purchaseTotal" name="purchaseTotal" disabled>
+                        <span class="text-muted" id="purchaseTotalText"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label for="receivedAmount" class="form-label">رسید مقدار</label>
+                        <input type="number" class="form-control" id="receivedAmount" name="receivedAmount" min="0.01" step="any" required>
+                        <span class="text-muted" id="receivedAmountText"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label for="remainingAmount" class="form-label">باقي</label>
+                        <input type="number" class="form-control" id="remainingAmount" name="remainingAmount" disabled>
+                        <span class="text-muted" id="remainingAmountText"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label for="feesSource" class="form-label">بانک/تجرئ</label>
+                        <select class="form-control" id="feesSource" name="feesSource"></select>
+                        <span class="text-muted" id="feesSourceText"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label for="description" class="form-label">تشریح</label>
+                        <textarea class="form-control" id="description" name="description"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-primary">ثبت</button>
+                    <button type="reset" class="btn btn-secondary" data-bs-dismiss="modal">بندول</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+
+<!-- Modal for Purchase Refund -->
+<div class="modal fade" id="refundPurchaseModal" tabindex="-1" aria-labelledby="refundPurchaseModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="refundPurchaseForm">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="refundPurchaseModalLabel">واپسي</h5>
+                    <button type="reset" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-primary">شخص: <span id="refundPersonLabel"></span></p>
+                    <p class="text-primary">اسعار: <span id="refundCurrencyLabel"></span></p>
+                    <p class="text-primary">بلانس: <span id="refundBalanceLabel"></span></p>
+                    <p class="text-primary">مجموعه: <span id="refundTotalLabel"></span></p>
+                    <p class="text-primary">رسید: <span id="refundRecieveLabel"></span></p>
+                    <p class="text-primary">باقي: <span id="refundRemainingLabel"></span></p>
+                    <div class="mb-3">
+                        <label for="refundReceivedAmount" class="form-label">رسید مقدار</label>
+                        <input type="number" class="form-control" id="refundReceivedAmount" name="refundReceivedAmount" required>
+                        <span class="text-muted" id="refundReceivedAmountText"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label for="refundFeesSource" class="form-label">بانک/تجرئ</label>
+                        <select class="form-control" id="refundFeesSource" name="refundFeesSource"></select>
+                        <span class="text-muted" id="refundFeesSourceText"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label for="refundDescription" class="form-label">تشریح</label>
+                        <textarea class="form-control" id="refundDescription" name="refundDescription"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-primary">ثبت</button>
+                    <button type="reset" class="btn btn-secondary" data-bs-dismiss="modal">بندول</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+
 @section Scripts {
 <script src="~/lib/flatpickr-jalali-support/dist/flatpickr.min.js"></script>
 <script src="~/lib/flatpickr-jalali-support/dist/l10n/fa.js"></script>
 <script src="~/lib/tom-select/dist/js/tom-select.complete.min.js"></script>
+<script src="~/lib/just-validate/dist/just-validate.production.min.js"></script>
 <script src="~/lib/moment-jalali/dist/jalali-moment.browser.js"></script>
+<script src="~/js/numberToWords.js"></script>
 
 <script>
 $(document).ready(function () {
@@ -88,6 +181,8 @@ $(document).ready(function () {
     flatpickr("#endDate", { locale: "fa", defaultDate: new Date(), allowInput: true });
     loadTomSelect("/api/Accounts/GetSuppliers", "#personId", "id", "name");
     loadTomSelect("/api/Currency/Currencies/Simple/", "#currencyId", "id", "name");
+    loadTomSelect("/api/Accounts/GetBankAccounts", "#feesSource", "id", "name");
+    loadTomSelect("/api/Accounts/GetBankAccounts", "#refundFeesSource", "id", "name");
     loadPurchases();
 });
 
@@ -100,7 +195,6 @@ function loadTomSelect(api, control, valueField, labelField) {
     });
 
     $.get(api, function (rows) {
-        select.addOption({ id: "", name: "ټول" });
         select.addOptions(rows);
     });
 }
@@ -143,16 +237,198 @@ $(document).on("click", ".btn-delete-purchase", function(){
 
         });
 });
+var balance = null;
+var selectedPurchase = {};
+var treasureBalance = {};
+$(document).on("click", ".btn-received-purchase", async function () {
+    var purchase = ($(this).data("purchase")).purchase;
+    selectedPurchase = purchase;
+    balance = await $.get(`/api/Accounts/GetAccountCurrencyBalance/${purchase.currencyId}/${purchase.personId}`);
+    $("#receivedPersonLabel").text(purchase.personName)
+    $("#receivedCurrencyLabel").text(purchase.currencyName)
+    $("#receivedBalanceLabel").text(NumberToWords(balance.currencyName, balance.balance));
+    $("#receivedOldRecieveLabel").text(NumberToWords(balance.currencyName, purchase.purchaseRecieved));
+    $("#purchaseTotal").val(purchase.purchaseTotal);
+    @* $("#receivedAmount").val(purchase.purchaseRecieved); *@
+    $("#remainingAmount").val(purchase.purchaseRemaining);
+
+    $("#purchaseTotalText").text(window.humanizeNumberValue(purchase.purchaseTotal));
+    $("#receivedAmountText").text(window.humanizeNumberValue(0));
+    $("#remainingAmountText").text(window.humanizeNumberValue(purchase.purchaseRemaining));
+    
+
+    $("#receivedPurchaseModal").data("purchaseId", purchase.purchaseId);
+
+    $("#receivedPurchaseModal").modal("show");
+});
+$("#receivedAmount").on("change", function(){
+    CalculateRecieved();
+});
+$("#feesSource").on("change", async function(event){
+    var eventData = event.target.tomselect.items[0];
+
+    treasureBalance = await $.get(`/api/Accounts/GetAccountCurrencyBalance/${selectedPurchase.currencyId}/${eventData}`);
+    $("#feesSourceText").text(NumberToWords(treasureBalance.currencyName, treasureBalance.balance));
+});
+const recieveFormValidator = new JustValidate("#receivedPurchaseForm");
+recieveFormValidator.addField("#purchaseTotal", [
+{
+    rule: "required", 
+    errorMessage: "مجموعه مبلغ اړین دی"
+}, {
+    validator: function(value){
+        return value > 0;
+    }, 
+    errorMessage: "مجموعه مبلغ اړین دی"
+}]);
+recieveFormValidator.addField("#receivedAmount", [
+{
+    rule: "required", 
+    errorMessage: "رسید مبلغ اړین دی"
+}, {
+    validator: function(value){
+        return value > 0;
+    }, 
+    errorMessage: "رسید مبلغ اړین دی"
+}]);
+recieveFormValidator.addField("#feesSource", [
+{
+    rule: "required", 
+    errorMessage: "بانک/تجرئ اړین دی"
+}, {
+    validator: function(value){
+        return Number(value) > 0;
+    }, 
+    errorMessage: "بانک/تجرئ اړین دی"
+}]);
+recieveFormValidator.onSuccess(function(event){
+    event.preventDefault();
+
+    var receiveAmount = Number($("#receivedAmount").val());
+    var feesSource = Number($("#feesSource").val());
+    var description = $("#description").val();
+    if (!selectedPurchase.purchaseId || receiveAmount > selectedPurchase.purchaseRemaining) {
+        showToast("warning", "رسید مبلغ د خرید له پاتې بلانس څخه زیاتېدلای نه سي.");
+        return;
+    }
+
+
+    $.ajax({
+        url: "/api/Purchase/PurchasePayment",
+        type: "POST",
+        contentType: "application/json",
+        data: JSON.stringify({
+            purchaseId: selectedPurchase.purchaseId,
+            recieveAmount: receiveAmount,
+            description: description || "",
+            feesSource: feesSource
+        }),
+        success: function () {
+            $("#receivedPurchaseModal").modal("hide");
+            $("#receivedPurchaseForm")[0].reset();
+            $("#receivedAmountText, #remainingAmountText, #feesSourceText").text("");
+            showToast("success", "رسید ثبت سو.");
+            loadPurchases();
+        },
+        error: function (xhr) {
+            showToast("warning", xhr.responseText || "رسید ثبت نه سو .");
+        }
+    });
+});
+function CalculateRecieved(){
+    var remaining = Number($("#remainingAmount").val());
+    var recieve = Number($("#receivedAmount").val());
+    var total = Number($("#purchaseTotal").val());
+    
+    var newRemaining = selectedPurchase.purchaseTotal - (recieve + selectedPurchase.purchaseRecieved);
+    $("#remainingAmount").val(newRemaining);    
+    $("#receivedAmountText").text(window.humanizeNumberValue(recieve));
+    $("#remainingAmountText").text(window.humanizeNumberValue(newRemaining));
+}
+function NumberToWords(currencyName, number){
+    var humanized = window.humanizeNumberValue(number);
+    var text = `${number} ${currencyName} (${humanized})`;
+    return text;
+}
+
+$(document).on("click", ".btn-refund-purchase", async function () {
+    selectedPurchase = $(this).data("purchase").purchase;
+    var accountBalance = await $.get("/api/Accounts/GetAccountCurrencyBalance/" + selectedPurchase.currencyId + "/" + selectedPurchase.personId);
+
+    $("#refundPersonLabel").text(selectedPurchase.personName);
+    $("#refundCurrencyLabel").text(selectedPurchase.currencyName);
+    $("#refundBalanceLabel").text(NumberToWords(accountBalance.currencyName, accountBalance.balance));
+    $("#refundTotalLabel").text(NumberToWords(selectedPurchase.currencyName, selectedPurchase.purchaseTotal));
+    $("#refundRecieveLabel").text(NumberToWords(selectedPurchase.currencyName, selectedPurchase.purchaseRecieved));
+    $("#refundRemainingLabel").text(NumberToWords(selectedPurchase.currencyName, selectedPurchase.purchaseRemaining));
+    $("#refundReceivedAmount").val("");
+    
+    $("#refundDescription").val("");
+    $("#refundPurchaseModal").modal("show");
+});
+
+const refundFormValidator = new JustValidate("#refundPurchaseForm");
+refundFormValidator.addField("#refundReceivedAmount", [
+    {
+        validator: function(value){
+            return Number(value) >= 0;
+        },
+        errorMessage: "واپسۍ مبلغ باید د صفر څخه کم وي."
+    },
+    { 
+        validator: function(value){
+            return Number(value) <= selectedPurchase.purchaseRecieved;
+        }, 
+        errorMessage: "واپسۍ مبلغ د مخکني رسید سوي مبلغ څخه زیاتېدلای نه سي." 
+    }
+]);
+refundFormValidator.addField("#refundFeesSource", [
+    {
+        validator: function(value){
+            return Number($("#refundReceivedAmount").val()) === 0 || !(!value);
+        }, 
+        errorMessage: "بانک/تجرئ اړین دی."
+    }
+]);
+refundFormValidator.onSuccess(function (event) {
+    event.preventDefault();
+    var submitButton = $("#refundPurchaseForm button[type='submit']").prop("disabled", true);
+
+    $.ajax({
+        url: "/api/Purchase/PurchaseRefund",
+        type: "POST",
+        contentType: "application/json",
+        data: JSON.stringify({
+            purchaseId: selectedPurchase.purchaseId,
+            recieveAmount: Number($("#refundReceivedAmount").val()),
+            description: $("#refundDescription").val() || "",
+            feesSource: Number($("#refundFeesSource").val())
+        }),
+        success: function () {
+            $("#refundPurchaseModal").modal("hide");
+            $("#refundPurchaseForm")[0].reset();
+            showToast("success", "د خرید واپسۍ ثبت سوه.");
+            loadPurchases();
+        },
+        error: function (xhr) {
+            showToast("warning", xhr.responseText || "د خرید واپسۍ ثبت نه سوه.");
+        },
+        complete: function () {
+            submitButton.prop("disabled", false);
+        }
+    });
+});
+
 function loadPurchases() {
     $.ajax({
         url: "/api/Purchase/GetPurchaseList",
         type: "GET",
-        data: {
+        data: $.param({
             personId: Number($("#personId").val() || 0),
             currencyId: Number($("#currencyId").val() || 0),
             startDate: toGregorianDate($("#startDate").val()),
             endDate: toGregorianDate($("#endDate").val())
-        },
+        }, true),
         success: function (purchases) {
             var table = $("#purchaseList");
             table.empty();
@@ -173,30 +449,33 @@ function loadPurchases() {
                 $("<td>").text(purchase.purchaseRemaining).appendTo(row);
                 $("<td>").text(purchase.purchaseItemsCount).appendTo(row);
                 $("<td>").text(purchase.remarks).appendTo(row);
+                $("<td>").text(purchase.isRefunded ? "هو" : "نه").appendTo(row);
                 $("<td>").text(moment(purchase.purchaseDate).format("jYYYY/jMM/jDD HH:mm:ss")).appendTo(row);
 
                 var actions = $("<td>");
                 
-                if(purchase.isHolded) {
-                    $("<a>")
-                    .attr("href", "/Purchase/EditPurchase?purchaseId=" + purchase.purchaseId)
-                    .addClass("btn btn-sm btn-primary")
-                    .append($("<i>").addClass("fas fa-edit"))
-                    .appendTo(actions);
-                }
-                if(!purchase.effectsStock){
-                    $("<button>").addClass("btn btn-sm btn-danger ms-2 btn-delete-purchase").attr("data-id", purchase.purchaseId)
-                    .append($("<i>").addClass("fas fa-trash")).appendTo(actions);
-                    
-                }
-                if(purchase.purchaseRecieved !== 0){
-                    $("<button>").addClass("btn btn-sm btn-info ms-2 btn-received-purchase").attr("data-id", purchase.purchaseId).attr("type", "button").attr("title", "رسید")
-                        .append($("<i>").addClass("fas fa-hand-holding-usd")).appendTo(actions);
-                }
-                    
-                $("<button>").addClass("btn btn-sm btn-warning ms-2 btn-refund-purchase").attr("data-id", purchase.purchaseId).attr("type", "button").attr("title", "واپس")
-                    .append($("<i>").addClass("fas fa-undo")).appendTo(actions);
+                if(!purchase.isRefunded){
+                    if(purchase.isHolded) {
+                        $("<a>")
+                        .attr("href", "/Purchase/EditPurchase?purchaseId=" + purchase.purchaseId)
+                        .addClass("btn btn-sm btn-primary")
+                        .append($("<i>").addClass("fas fa-edit"))
+                        .appendTo(actions);
+                    }
+                    if(!purchase.effectsStock){
+                        $("<button>").addClass("btn btn-sm btn-danger ms-2 btn-delete-purchase").attr("data-id", purchase.purchaseId)
+                        .append($("<i>").addClass("fas fa-trash")).appendTo(actions);
+                        
+                    }
+                    if(purchase.purchaseRemaining > 0){
+                        $("<button>").addClass("btn btn-sm btn-info ms-2 btn-received-purchase").attr("data-purchase", JSON.stringify({ purchase: purchase })).attr("type", "button").attr("title", "رسید")
+                            .append($("<i>").addClass("fas fa-hand-holding-usd")).appendTo(actions);
+                    }
+                        
+                    $("<button>").addClass("btn btn-sm btn-warning ms-2 btn-refund-purchase").attr("data-purchase", JSON.stringify({ purchase: purchase })).attr("type", "button").attr("title", "واپس")
+                        .append($("<i>").addClass("fas fa-undo")).appendTo(actions);
 
+                }
 
                 $("<button>").addClass("btn btn-sm btn-success ms-2 btn-print-purchase").attr("data-id", purchase.purchaseId).attr("type", "button").attr("title", "چاپ")
                     .append($("<i>").addClass("fas fa-print")).appendTo(actions);

@@ -200,7 +200,7 @@
 
                         </li>
 
-                        <li class="nav-item dropdown">
+                        <li class="nav-item dropdown @ViewData["Sale"]">
                             <a class="nav-link dropdown-toggle"
                                id="navbarDropdown"
                                role="button"
@@ -213,31 +213,18 @@
                             </a>
 
                             <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
-                                <li>
-                                    <a class="dropdown-item">
-                                        <i class="fa-solid fa-cart-shopping"></i>
-                                        نوی فروش
-                                    </a>
-                                </li>
 
                                 <li>
-                                    <a class="dropdown-item">
+                                    <a class="dropdown-item @ViewData["Index"]" asp-controller="Sale" asp-action="Index">
                                         <i class="fa-solid fa-clipboard-list"></i>
                                         فروش لیست
                                     </a>
                                 </li>
 
                                 <li>
-                                    <a class="dropdown-item">
-                                        <i class="fa-solid fa-file-invoice-dollar"></i>
-                                        نوی فروش آرډر
-                                    </a>
-                                </li>
-
-                                <li>
-                                    <a class="dropdown-item">
-                                        <i class="fa-solid fa-file-lines"></i>
-                                        فروش آرډر لیست
+                                    <a class="dropdown-item @ViewData["NewSale"]" asp-controller="Sale" asp-action="NewSale">
+                                        <i class="fa-solid fa-cart-shopping"></i>
+                                        نوی فروش
                                     </a>
                                 </li>
 
