@@ -600,7 +600,7 @@ public class PurchaseController(ApplicationDbContext context, IHttpContextAccess
                     CreatedByUserId = user,
                     CreationDate = DateTime.Now,
                     Details = $"د {purchase.PurchaseNo} شمېره خرید حذف سو.",
-                    ModelName = "نقدي معاملات"
+                    ModelName = "خرید"
                 });
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
@@ -615,14 +615,14 @@ public class PurchaseController(ApplicationDbContext context, IHttpContextAccess
     }
     
     [HttpPost("PurchasePayment")]
-    public async Task<ActionResult> PurchasePayment(PurchasePaymentRequest request)
+    public async Task<ActionResult> PurchasePayment(PaymentRequest request)
     {
         if (request == null)
         {
             return BadRequest("د تادیې معلومات اړین دي.");
         }
 
-        var purchaseId = request.PurchaseId;
+        var purchaseId = request.Id;
         var recieveAmount = request.RecieveAmount;
         var description = request.Description;
         var feesSource = request.FeesSource;
@@ -726,13 +726,13 @@ public class PurchaseController(ApplicationDbContext context, IHttpContextAccess
     }
 
     [HttpPost("PurchaseRefund")]
-    public async Task<ActionResult> PurchaseRefund([FromBody] PurchasePaymentRequest request)
+    public async Task<ActionResult> PurchaseRefund([FromBody] PaymentRequest request)
     {
         if (request == null)
         {
             return BadRequest("خالي خرید واپسي نه کیږي");
         }
-        else if (!await _context.Purchases.AnyAsync(x => x.ID == request.PurchaseId))
+        else if (!await _context.Purchases.AnyAsync(x => x.ID == request.Id))
         {
             return BadRequest("ټاکل سوی خرید موجود نه دی.");
         }
@@ -740,11 +740,11 @@ public class PurchaseController(ApplicationDbContext context, IHttpContextAccess
         {
             return BadRequest("یو صحیح فعال بانک/نغدي حساب انتخاب کړئ.");
         }
-        else if(!await _context.Purchases.AnyAsync(x => x.ID == request.PurchaseId && !x.IsRefunded))
+        else if(!await _context.Purchases.AnyAsync(x => x.ID == request.Id && !x.IsRefunded))
         {
             return BadRequest("دا خرید مخکي واپس سوی دی.");
         }
-        else if(!await _context.Purchases.AnyAsync(x => x.ID == request.PurchaseId && x.ReceivedAmount >= request.RecieveAmount))
+        else if(!await _context.Purchases.AnyAsync(x => x.ID == request.Id && x.ReceivedAmount >= request.RecieveAmount))
         {
             return BadRequest("د واپسۍ لپاره د ورکړل سوي مبلغ باید د خرید د رسید مبلغ څخه زیات نه وي.");
         }
@@ -753,7 +753,7 @@ public class PurchaseController(ApplicationDbContext context, IHttpContextAccess
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
-                var purchase = await _context.Purchases.FirstOrDefaultAsync(x => x.ID == request.PurchaseId);
+                var purchase = await _context.Purchases.FirstOrDefaultAsync(x => x.ID == request.Id);
 
                 var remarks = $"خرید نمبر {purchase.PurchaseNo} | {request.Description}";
 

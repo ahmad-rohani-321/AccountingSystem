@@ -133,8 +133,7 @@ public class SaleController(ApplicationDbContext context, IHttpContextAccessor a
                         CreatedByUserId = user,
                         CreationDate = date,
                         Remarks = remarks,
-                        TransactionTypeID = 5,
-                        ChequePhoto = "default.png"
+                        TransactionTypeID = 5
                     });
                     if (request.SaleRecieved > 0)
                     {
@@ -147,8 +146,7 @@ public class SaleController(ApplicationDbContext context, IHttpContextAccessor a
                             CreatedByUserId = user,
                             CreationDate = date,
                         Remarks = remarks,
-                            TransactionTypeID = 5,
-                            ChequePhoto = "default.png"
+                            TransactionTypeID = 5
                         });
 
                         var treasureAccount = await _context.AccountBalances.FirstOrDefaultAsync(x => x.AccountID == request.BankId && x.CurrencyID == request.CurrencyId);
@@ -174,8 +172,7 @@ public class SaleController(ApplicationDbContext context, IHttpContextAccessor a
                             CreatedByUserId = user,
                             CreationDate = date,
                         Remarks = remarks,
-                            TransactionTypeID = 5,
-                            ChequePhoto = "default.png"
+                            TransactionTypeID = 5
                         });
                     }
                     await _context.SaveChangesAsync();
@@ -206,7 +203,7 @@ public class SaleController(ApplicationDbContext context, IHttpContextAccessor a
                         decimal realStock = item.Quantity / unitExchange.ExchangedAmount;
                         if (stock == null || stock.Quantity < realStock)
                         {
-                            return BadRequest("د فروش لپاره په ګدام کې کافي موجودي نشته.");
+                            return BadRequest("د فروش لپاره په ګدام کې کافي موجودي نسته.");
                         }
 
                         stock.Quantity -= realStock;
@@ -246,65 +243,44 @@ public class SaleController(ApplicationDbContext context, IHttpContextAccessor a
     [HttpPost("EditSale")]
     public async Task<IActionResult> EditSale(SaleViewModel request)
     {
-        if (request?.SaleDetails == null || request.SaleId <= 0 || request.SaleNo <= 0 || request.SaleRecieved < 0 || request.SaleRecieved > request.SaleTotal || request.SaleTotal != request.SaleDetails.Sum(x => x.TotalPrice)) return BadRequest("د فروش معلومات ناسم دي.");
-        var sale = await _context.Sales.FirstOrDefaultAsync(x => x.ID == request.SaleId);
-        if (sale == null) return NotFound("ناسم فروش شمېره");
-        if (!sale.IsHolded || !request.IsHolded || sale.IsRefunded) return BadRequest("یوازې ساتل سوی فروش د تغیر وړ دی.");
-        if (await _context.Sales.AnyAsync(x => x.ID != sale.ID && x.SaleNo == request.SaleNo)) return BadRequest("ټاکل سوې د فروش شمېره تکراري ده.");
-        if (!await _context.Accounts.AnyAsync(x => x.ID == request.PersonId) || !await _context.Currencies.AnyAsync(x => x.ID == request.CurrencyId) || (request.SaleRecieved > 0 && (request.BankId == 0 || !await _context.Accounts.AnyAsync(x => x.ID == request.BankId)))) return BadRequest("د حساب معلومات ناسم دي.");
-        using var transaction = await _context.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
-        try
-        {
-            var date = request.SaleDate == DateTime.Now.Date ? DateTime.Now : request.SaleDate;
-            var user = _accessor.HttpContext!.User.FindFirstValue(ClaimTypes.NameIdentifier)!;
-            var oldDetails = await _context.SalesDetails.Where(x => x.SaleID == sale.ID).ToListAsync();
-            sale.AccountID = request.PersonId; sale.CurrencyID = request.CurrencyId; sale.SaleNo = request.SaleNo; sale.Remarks = request.Remarks; sale.TotalAmount = request.SaleTotal; sale.ReceivedAmount = request.SaleRecieved; sale.RemainingAmount = request.SaleTotal - request.SaleRecieved; sale.IsHolded = request.IsHolded; sale.CanAffectStock = request.EffectsStock; sale.CreationDate = date;
-            _context.SalesDetails.RemoveRange(oldDetails);
-            foreach (var item in request.SaleDetails)
-            {
-                await _context.SalesDetails.AddAsync(new Models.Sales.SaleDetails { SaleID = sale.ID, ItemID = item.ItemId, WarehouseID = item.StockId, UnitConversionID = item.UnitId, Quantity = item.Quantity, PerPrice = item.PerPrice, TotalPrice = item.TotalPrice, Remarks = item.Remarks, CreatedByUserId = user, CreationDate = date });
-            }
-            await _context.UserHistories.AddAsync(new Models.Identity.UserHistory { CreatedByUserId = user, CreationDate = date, Details = $"د {request.SaleNo} شمېره فروش تغیر سو.", ModelName = "فروش" });
-            await _context.SaveChangesAsync(); await transaction.CommitAsync(); return Ok();
-        }
-        catch (Exception ex) { await transaction.RollbackAsync(); return BadRequest(ex.Message); }
+        return Ok();
     }
 
-    [HttpGet("GetPurchaseById/{id}")]
-    public async Task<ActionResult> GetPurchaseById(int? id)
+    [HttpGet("GetSaleById/{id}")]
+    public async Task<ActionResult> GetSaleById(int? id)
     {
         if (id.HasValue && id.Value <= 0)
         {
-            return BadRequest("ناسم خرید شمېره");
+            return BadRequest("ناسم فروش شمېره");
         }
-        else if (!await _context.Purchases.AnyAsync(x => x.ID == id.Value))
+        else if (!await _context.Sales.AnyAsync(x => x.ID == id.Value))
         {
-            return NotFound("خرید ونه موندل سو");
+            return NotFound("فروش ونه موندل سو");
         }
-        else if (!(await _context.Purchases.FirstOrDefaultAsync(x => x.ID == id.Value)).IsHolded)
+        else if (!(await _context.Sales.FindAsync(id.Value))?.IsHolded ?? false)
         {
-            return NotFound("انتخاب سوی خرید نه دی ساتل سوی، د تغیر وړ نه دی");
+            return NotFound("انتخاب سوی فروش نه دی ساتل سوی، د تغیر وړ نه دی");
         }
         else
         {
-            var purchase = await _context.Purchases.FirstOrDefaultAsync(p => p.ID == id);
-            var purchaseDetails = await _context.PurchaseDetails
-                .Where(pd => pd.PurchaseID == id)
+            var sale = await _context.Sales.FindAsync(id);
+            var saleDetails = await _context.SalesDetails
+                .Where(pd => pd.SaleID == id)
                 .ToListAsync();
-            var purchaseViewModel = new PurchaseViewModel
+            var saleViewModel = new SaleViewModel
             {
-                PurchaseId = purchase.ID,
-                PurchaseNo = purchase.PurchaseNo,
-                PersonId = purchase.AccountID,
-                CurrencyId = purchase.CurrencyID,
-                PurchaseTotal = purchase.TotalAmount,
-                PurchaseRecieved = purchase.ReceivedAmount,
-                PurchaseRemaining = purchase.RemainingAmount,
-                Remarks = purchase.Remarks,
-                PurchaseDate = purchase.CreationDate,
-                EffectsStock = purchase.CanAffectStock,
-                IsHolded = purchase.IsHolded,
-                PurchaseDetails = purchaseDetails.Select(pd => new PurchaseDetailsViewModel
+                SaleId = sale.ID,
+                SaleNo = sale.SaleNo,
+                PersonId = sale.AccountID,
+                CurrencyId = sale.CurrencyID,
+                SaleTotal = sale.TotalAmount,
+                SaleRecieved = sale.ReceivedAmount,
+                SaleRemaining = sale.RemainingAmount,
+                Remarks = sale.Remarks,
+                SaleDate = sale.CreationDate,
+                EffectsStock = sale.CanAffectStock,
+                IsHolded = sale.IsHolded,
+                SaleDetails = saleDetails.Select(pd => new SaleDetailsViewModel
                 {
                     Id = pd.ID,
                     ItemId = pd.ItemID,
@@ -316,41 +292,41 @@ public class SaleController(ApplicationDbContext context, IHttpContextAccessor a
                     Remarks = pd.Remarks
                 }).ToList()
             };
-            return Ok(purchaseViewModel);
+            return Ok(saleViewModel);
         }
     }
 
-    [HttpDelete("DeletePurchase/{id}")]
-    public async Task<ActionResult> DeletePurchase(int? id)
+    [HttpDelete("DeleteSale/{id}")]
+    public async Task<ActionResult> DeleteSale(int? id)
     {
         var user = _accessor.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier).Value;
         if (id.HasValue && id == 0)
         {
-            return BadRequest("خرید نه دی انتخاب سوی");
+            return BadRequest("فروش نه دی انتخاب سوی");
         }
-        else if (!await _context.Purchases.AnyAsync(x => x.ID == id))
+        else if (!await _context.Sales.AnyAsync(x => x.ID == id))
         {
-            return BadRequest("صحیح خرید انتخاب سوی");
+            return BadRequest("صحیح فروش انتخاب سوی");
         }
-        else if (!await _context.Purchases.AnyAsync(x => x.ID == id && x.IsHolded && !x.CanAffectStock))
+        else if (!await _context.Sales.AnyAsync(x => x.ID == id && x.IsHolded && !x.CanAffectStock))
         {
-            return BadRequest("خرید ساتل سوی او په ګدام یې تاثیر سوی دی");
+            return BadRequest("فروش ساتل سوی او په ګدام یې تاثیر سوی دی");
         }
         else
         {
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
-                var purchase = await _context.Purchases.FindAsync(id);
-                var details = await _context.PurchaseDetails.Where(x => x.PurchaseID == id).ToListAsync();
-                _context.PurchaseDetails.RemoveRange(details);
-                _context.Purchases.Remove(purchase);
+                var sale = await _context.Sales.FindAsync(id);
+                var details = await _context.SalesDetails.Where(x => x.SaleID == id).ToListAsync();
+                _context.SalesDetails.RemoveRange(details);
+                _context.Sales.Remove(sale);
                 await _context.UserHistories.AddAsync(new Models.Identity.UserHistory()
                 {
                     CreatedByUserId = user,
                     CreationDate = DateTime.Now,
-                    Details = $"د {purchase.PurchaseNo} شمېره خرید حذف سو.",
-                    ModelName = "نقدي معاملات"
+                    Details = $"د {sale.SaleNo} شمېره فروش حذف سو.",
+                    ModelName = "فروش"
                 });
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
@@ -364,28 +340,22 @@ public class SaleController(ApplicationDbContext context, IHttpContextAccessor a
         }
     }
 
-    [HttpPost("PurchasePayment")]
-    public async Task<ActionResult> PurchasePayment(PurchasePaymentRequest request)
+    [HttpPost("SalePayment")]
+    public async Task<ActionResult> SalePayment(PaymentRequest request)
     {
         if (request == null)
         {
             return BadRequest("د تادیې معلومات اړین دي.");
         }
-
-        var purchaseId = request.PurchaseId;
-        var recieveAmount = request.RecieveAmount;
-        var description = request.Description;
-        var feesSource = request.FeesSource;
-
-        if (!await _context.Purchases.AnyAsync(x => x.ID == purchaseId))
+        else if (!await _context.Sales.AnyAsync(x => x.ID == request.Id))
         {
-            return BadRequest("خرید انتخاب کړئ");
+            return BadRequest("فروش انتخاب کړئ");
         }
-        else if (recieveAmount <= 0)
+        else if (request.RecieveAmount <= 0)
         {
             return BadRequest("رسید مبلغ باید له صفر څخه لوړ وي");
         }
-        else if (!await _context.Accounts.AnyAsync(x => x.ID == feesSource && x.IsActive))
+        else if (!await _context.Accounts.AnyAsync(x => x.ID == request.FeesSource && x.IsActive))
         {
             return BadRequest("صحیح دخل/بانک انتخاب کړئ");
         }
@@ -394,37 +364,37 @@ public class SaleController(ApplicationDbContext context, IHttpContextAccessor a
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
-                var purchase = await _context.Purchases.FirstAsync(x => x.ID == purchaseId);
-                var newReceivedAmount = purchase.ReceivedAmount + recieveAmount;
-                if (newReceivedAmount > purchase.TotalAmount)
+                var sale = await _context.Sales.FirstAsync(x => x.ID == request.Id);
+                var newReceivedAmount = sale.ReceivedAmount + request.RecieveAmount;
+                if (newReceivedAmount > sale.TotalAmount)
                 {
-                    return BadRequest("رسید مبلغ نشي کولی ډیر وی ځانګړي خرید موندلو ته.");
+                    return BadRequest("رسید مبلغ باید د فروش د مجموعې څخه لوړ نه وي");
                 }
 
                 var user = _accessor.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier).Value;
-                var purchaserBalance = await _context.AccountBalances
-                    .FirstOrDefaultAsync(x => x.AccountID == purchase.AccountID && x.CurrencyID == purchase.CurrencyID);
-                if (purchaserBalance == null)
+                var salerBalance = await _context.AccountBalances
+                    .FirstOrDefaultAsync(x => x.AccountID == sale.AccountID && x.CurrencyID == sale.CurrencyID);
+                if (salerBalance == null)
                 {
                     var balance = await _context.AccountBalances.AddAsync(new Models.Accounts.AccountBalance
                     {
-                        AccountID = purchase.AccountID,
-                        CurrencyID = purchase.CurrencyID,
+                        AccountID = sale.AccountID,
+                        CurrencyID = sale.CurrencyID,
                         Balance = 0,
                         CreatedByUserId = user,
                         CreationDate = DateTime.Now
                     });
-                    purchaserBalance = balance.Entity;
+                    salerBalance = balance.Entity;
                 }
 
                 var feesSourceBalance = await _context.AccountBalances
-                    .FirstOrDefaultAsync(x => x.AccountID == feesSource && x.CurrencyID == purchase.CurrencyID);
+                    .FirstOrDefaultAsync(x => x.AccountID == request.FeesSource && x.CurrencyID == sale.CurrencyID);
                 if (feesSourceBalance == null)
                 {
                     var balance = await _context.AccountBalances.AddAsync(new Models.Accounts.AccountBalance
                     {
-                        AccountID = feesSource,
-                        CurrencyID = purchase.CurrencyID,
+                        AccountID = request.FeesSource,
+                        CurrencyID = sale.CurrencyID,
                         Balance = 0,
                         CreatedByUserId = user,
                         CreationDate = DateTime.Now
@@ -434,33 +404,31 @@ public class SaleController(ApplicationDbContext context, IHttpContextAccessor a
 
                 await _context.SaveChangesAsync();
 
-                feesSourceBalance.Balance -= recieveAmount;
-                purchaserBalance.Balance += recieveAmount;
-                purchase.ReceivedAmount = newReceivedAmount;
-                purchase.RemainingAmount = purchase.TotalAmount - newReceivedAmount;
+                feesSourceBalance.Balance += request.RecieveAmount;
+                salerBalance.Balance -= request.RecieveAmount;
+                sale.ReceivedAmount = newReceivedAmount;
+                sale.RemainingAmount = sale.TotalAmount - newReceivedAmount;
 
-                var remarks = $"خرید نمبر {purchase.PurchaseNo} رسید| {description}";
+                var remarks = $"فروش نمبر {sale.SaleNo} رسید| {request.Description}";
                 await _context.JournalEntries.AddAsync(new Models.Accounting.JournalEntry
                 {
                     AccountBalanceID = feesSourceBalance.ID,
                     Balance = feesSourceBalance.Balance,
-                    Debit = recieveAmount,
-                    Credit = 0,
+                    Credit = request.RecieveAmount,
                     CreatedByUserId = user,
                     CreationDate = DateTime.Now,
                     Remarks = remarks,
-                    TransactionTypeID = 6
+                    TransactionTypeID = 5
                 });
                 await _context.JournalEntries.AddAsync(new Models.Accounting.JournalEntry
                 {
-                    AccountBalanceID = purchaserBalance.ID,
-                    Balance = purchaserBalance.Balance,
-                    Debit = 0,
-                    Credit = recieveAmount,
+                    AccountBalanceID = salerBalance.ID,
+                    Balance = salerBalance.Balance,
+                    Debit = request.RecieveAmount,
                     CreatedByUserId = user,
                     CreationDate = DateTime.Now,
                     Remarks = remarks,
-                    TransactionTypeID = 6
+                    TransactionTypeID = 5
                 });
 
                 await _context.SaveChangesAsync();
@@ -475,60 +443,60 @@ public class SaleController(ApplicationDbContext context, IHttpContextAccessor a
         }
     }
 
-    [HttpPost("PurchaseRefund")]
-    public async Task<ActionResult> PurchaseRefund([FromBody] PurchasePaymentRequest request)
+    [HttpPost("SaleRefund")]
+    public async Task<ActionResult> SaleRefund([FromBody] PaymentRequest request)
     {
         if (request == null)
         {
-            return BadRequest("خالي خرید واپسي نه کیږي");
+            return BadRequest("خالي فروش واپسي نه کیږي");
         }
-        else if (!await _context.Purchases.AnyAsync(x => x.ID == request.PurchaseId))
+        else if (!await _context.Sales.AnyAsync(x => x.ID == request.Id))
         {
-            return BadRequest("ټاکل سوی خرید موجود نه دی.");
+            return BadRequest("ټاکل سوی فروش موجود نه دی.");
         }
         else if (!await _context.Accounts.AnyAsync(x => x.ID == request.FeesSource && x.IsActive) && request.RecieveAmount > 0)
         {
             return BadRequest("یو صحیح فعال بانک/نغدي حساب انتخاب کړئ.");
         }
-        else if (!await _context.Purchases.AnyAsync(x => x.ID == request.PurchaseId && !x.IsRefunded))
+        else if (!await _context.Sales.AnyAsync(x => x.ID == request.Id && !x.IsRefunded))
         {
-            return BadRequest("دا خرید مخکي واپس سوی دی.");
+            return BadRequest("دا فروش مخکي واپس سوی دی.");
         }
-        else if (!await _context.Purchases.AnyAsync(x => x.ID == request.PurchaseId && x.ReceivedAmount >= request.RecieveAmount))
+        else if (!await _context.Sales.AnyAsync(x => x.ID == request.Id && x.ReceivedAmount >= request.RecieveAmount))
         {
-            return BadRequest("د واپسۍ لپاره د ورکړل سوي مبلغ باید د خرید د رسید مبلغ څخه زیات نه وي.");
+            return BadRequest("د واپسۍ لپاره د ورکړل سوي مبلغ باید د فروش د رسید مبلغ څخه زیات نه وي.");
         }
         else
         {
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
-                var purchase = await _context.Purchases.FirstOrDefaultAsync(x => x.ID == request.PurchaseId);
+                var sale = await _context.Sales.FirstOrDefaultAsync(x => x.ID == request.Id);
 
-                var remarks = $"خرید نمبر {purchase.PurchaseNo} | {request.Description}";
+                var remarks = $"فروش نمبر {sale.SaleNo} | {request.Description}";
 
-                if (request.RecieveAmount > purchase.ReceivedAmount)
+                if (request.RecieveAmount > sale.ReceivedAmount)
                 {
                     return BadRequest("د واپسۍ مبلغ د ورکړل سوي مبلغ څخه زیاتېدلای نه سي.");
                 }
-                if (purchase.IsRefunded)
+                if (sale.IsRefunded)
                 {
-                    return BadRequest("دا خرید مخکي واپس سوی دی.");
+                    return BadRequest("دا فروش مخکي واپس سوی دی.");
                 }
 
                 var user = _accessor.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier).Value;
 
-                if (!purchase.IsHolded)
+                if (!sale.IsHolded)
                 {
-                    var purchaserBalance = await _context.AccountBalances
-                    .FirstOrDefaultAsync(x => x.AccountID == purchase.AccountID && x.CurrencyID == purchase.CurrencyID);
+                    var salerBalance = await _context.AccountBalances
+                    .FirstOrDefaultAsync(x => x.AccountID == sale.AccountID && x.CurrencyID == sale.CurrencyID);
 
-                    if (purchaserBalance == null)
+                    if (salerBalance == null)
                     {
                         var balance = await _context.AccountBalances.AddAsync(new Models.Accounts.AccountBalance
                         {
-                            AccountID = purchase.AccountID,
-                            CurrencyID = purchase.CurrencyID,
+                            AccountID = sale.AccountID,
+                            CurrencyID = sale.CurrencyID,
                             Balance = 0,
                             CreatedByUserId = user,
                             CreationDate = DateTime.Now
@@ -536,18 +504,18 @@ public class SaleController(ApplicationDbContext context, IHttpContextAccessor a
 
                         await _context.SaveChangesAsync();
 
-                        purchaserBalance = balance.Entity;
+                        salerBalance = balance.Entity;
                     }
 
                     var feesSourceBalance = await _context.AccountBalances
-                        .FirstOrDefaultAsync(x => x.AccountID == request.FeesSource && x.CurrencyID == purchase.CurrencyID);
+                        .FirstOrDefaultAsync(x => x.AccountID == request.FeesSource && x.CurrencyID == sale.CurrencyID);
 
                     if (feesSourceBalance == null && request.RecieveAmount > 0)
                     {
                         var balance = await _context.AccountBalances.AddAsync(new Models.Accounts.AccountBalance
                         {
                             AccountID = request.FeesSource,
-                            CurrencyID = purchase.CurrencyID,
+                            CurrencyID = sale.CurrencyID,
                             Balance = 0,
                             CreatedByUserId = user,
                             CreationDate = DateTime.Now
@@ -558,47 +526,45 @@ public class SaleController(ApplicationDbContext context, IHttpContextAccessor a
                         feesSourceBalance = balance.Entity;
                     }
 
-                    purchaserBalance.Balance += purchase.TotalAmount;
+                    salerBalance.Balance -= sale.TotalAmount;
 
                     await _context.SaveChangesAsync();
 
                     await _context.JournalEntries.AddAsync(new Models.Accounting.JournalEntry
                     {
-                        AccountBalanceID = purchaserBalance.ID,
-                        Balance = purchaserBalance.Balance,
-                        Debit = 0,
-                        Credit = purchase.TotalAmount,
+                        AccountBalanceID = salerBalance.ID,
+                        Balance = salerBalance.Balance,
+                        Debit = sale.TotalAmount,
                         CreatedByUserId = user,
                         CreationDate = DateTime.Now,
                         Remarks = remarks,
-                        TransactionTypeID = 10
+                        TransactionTypeID = 9
                     });
 
                     await _context.SaveChangesAsync();
 
                     if (request.RecieveAmount > 0)
                     {
-                        purchaserBalance.Balance -= request.RecieveAmount;
+                        salerBalance.Balance += request.RecieveAmount;
 
                         await _context.SaveChangesAsync();
 
                         await _context.JournalEntries.AddAsync(new Models.Accounting.JournalEntry
                         {
-                            AccountBalanceID = purchaserBalance.ID,
-                            Balance = purchaserBalance.Balance,
-                            Debit = request.RecieveAmount,
-                            Credit = 0,
+                            AccountBalanceID = salerBalance.ID,
+                            Balance = salerBalance.Balance,
+                            Credit = request.RecieveAmount,
                             CreatedByUserId = user,
                             CreationDate = DateTime.Now,
                             Remarks = remarks,
-                            TransactionTypeID = 10
+                            TransactionTypeID = 9
                         });
 
                         await _context.SaveChangesAsync();
 
                         if (feesSourceBalance != null)
                         {
-                            feesSourceBalance.Balance += request.RecieveAmount;
+                            feesSourceBalance.Balance -= request.RecieveAmount;
 
                             await _context.SaveChangesAsync();
 
@@ -606,55 +572,54 @@ public class SaleController(ApplicationDbContext context, IHttpContextAccessor a
                             {
                                 AccountBalanceID = feesSourceBalance.ID,
                                 Balance = feesSourceBalance.Balance,
-                                Debit = 0,
-                                Credit = request.RecieveAmount,
+                                Debit = request.RecieveAmount,
                                 CreatedByUserId = user,
                                 CreationDate = DateTime.Now,
                                 Remarks = remarks,
-                                TransactionTypeID = 10
+                                TransactionTypeID = 9
                             });
 
                             await _context.SaveChangesAsync();
                         }
                     }
-                    purchase.RemainingAmount = purchase.TotalAmount - purchase.ReceivedAmount;
+                    sale.RemainingAmount = sale.TotalAmount - sale.ReceivedAmount;
 
-                    purchase.IsRefunded = true;
+                    sale.IsRefunded = true;
 
                     await _context.SaveChangesAsync();
 
                 }
 
-                if (purchase.CanAffectStock)
+                if (sale.CanAffectStock)
                 {
-                    var purchaseDetails = await _context.PurchaseDetails
-                        .Where(x => x.PurchaseID == purchase.ID)
+                    var saleDetails = await _context.SalesDetails
+                        .Where(x => x.SaleID == sale.ID)
                         .ToListAsync();
 
-                    foreach (var detail in purchaseDetails)
+                    foreach (var detail in saleDetails)
                     {
                         var unit = await _context.UnitConversion
                             .FirstOrDefaultAsync(x => x.ID == detail.UnitConversionID);
                         if (unit == null || unit.ExchangedAmount == 0)
                         {
-                            throw new InvalidOperationException("د خرید د واحد د تبدیل معلومات ناسم دي.");
+                            throw new InvalidOperationException("د فروش د واحد د تبدیل معلومات ناسم دي.");
                         }
 
                         var stock = await _context.StockBalances.FirstOrDefaultAsync(x =>
                             x.ItemID == detail.ItemID && x.WarehouseID == detail.WarehouseID);
                         if (stock == null)
                         {
-                            throw new InvalidOperationException("د خرید اړوند د ګدام موجودي ونه موندل سوه.");
+                            throw new InvalidOperationException("د فروش اړوند د ګدام موجودي ونه موندل سوه.");
                         }
 
-                        stock.Quantity -= detail.Quantity / unit.ExchangedAmount;
+                        stock.Quantity += detail.Quantity / unit.ExchangedAmount;
                         await _context.StockTransactions.AddAsync(new Models.Inventory.StockTransactions
                         {
                             CreatedByUserId = user,
                             CreationDate = DateTime.Now,
                             Quantity = detail.Quantity,
                             StockBalanceID = stock.ID,
-                            TransactionID = 10,
+                            TransactionID = 8,
                             Remarks = remarks,
                             UnitID = detail.UnitConversionID
                         });
@@ -673,42 +638,42 @@ public class SaleController(ApplicationDbContext context, IHttpContextAccessor a
         }
     }
 
-    [HttpGet("GetPurchaseList")]
-    public async Task<ActionResult> GetPurchaseList(int? personId, int? currencyId, DateTime? startDate, DateTime? endDate)
+    [HttpGet("GetSaleList")]
+    public async Task<ActionResult> GetSaleList(int? personId, int? currencyId, DateTime? startDate, DateTime? endDate)
     {
-        var purchases = _context.Purchases.AsQueryable();
+        var sales = _context.Sales.AsQueryable();
 
         if (personId.HasValue && personId.Value > 0)
-            purchases = purchases.Where(x => x.AccountID == personId.Value);
+            sales = sales.Where(x => x.AccountID == personId.Value);
 
         if (currencyId.HasValue && currencyId.Value > 0)
-            purchases = purchases.Where(x => x.CurrencyID == currencyId.Value);
+            sales = sales.Where(x => x.CurrencyID == currencyId.Value);
 
         if (startDate.HasValue)
-            purchases = purchases.Where(x => x.CreationDate >= startDate.Value.Date);
+            sales = sales.Where(x => x.CreationDate >= startDate.Value.Date);
 
         if (endDate.HasValue)
         {
             var endOfDay = endDate.Value.Date.AddDays(1);
-            purchases = purchases.Where(x => x.CreationDate < endOfDay);
+            sales = sales.Where(x => x.CreationDate < endOfDay);
         }
 
-        var result = await purchases
+        var result = await sales
             .OrderByDescending(x => x.CreationDate)
-            .Select(x => new PurchaseViewModel
+            .Select(x => new SaleViewModel
             {
-                PurchaseId = x.ID,
-                PurchaseNo = x.PurchaseNo,
+                SaleId = x.ID,
+                SaleNo = x.SaleNo,
                 PersonId = x.AccountID,
                 PersonName = x.Account.Name,
                 CurrencyId = x.CurrencyID,
                 CurrencyName = x.Currency.CurrencyName,
-                PurchaseTotal = x.TotalAmount,
-                PurchaseRecieved = x.ReceivedAmount,
-                PurchaseRemaining = x.RemainingAmount,
-                PurchaseItemsCount = _context.PurchaseDetails.Count(d => d.PurchaseID == x.ID),
+                SaleTotal = x.TotalAmount,
+                SaleRecieved = x.ReceivedAmount,
+                SaleRemaining = x.RemainingAmount,
+                SaleItemsCount = _context.SalesDetails.Count(d => d.SaleID == x.ID),
                 Remarks = x.Remarks,
-                PurchaseDate = x.CreationDate,
+                SaleDate = x.CreationDate,
                 IsHolded = x.IsHolded,
                 EffectsStock = x.CanAffectStock,
                 IsRefunded = x.IsRefunded
@@ -716,39 +681,5 @@ public class SaleController(ApplicationDbContext context, IHttpContextAccessor a
             .ToListAsync();
 
         return Ok(result);
-    }
-    [HttpPost("SalePayment")]
-    public async Task<ActionResult> SalePayment(PurchasePaymentRequest request)
-    {
-        if (request == null || request.PurchaseId <= 0 || request.RecieveAmount <= 0 || request.FeesSource <= 0) return BadRequest("د رسید معلومات ناسم دي.");
-        var sale = await _context.Sales.FirstOrDefaultAsync(x => x.ID == request.PurchaseId);
-        if (sale == null || sale.IsHolded || sale.IsRefunded) return BadRequest("د فروش معلومات ناسم دي.");
-        if (request.RecieveAmount > sale.RemainingAmount || !await _context.Accounts.AnyAsync(x => x.ID == request.FeesSource && x.IsActive)) return BadRequest("د رسید مبلغ يا بانک ناسم دی.");
-        using var transaction = await _context.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
-        try
-        {
-            var user = _accessor.HttpContext!.User.FindFirstValue(ClaimTypes.NameIdentifier)!; var date = DateTime.Now;
-            var customer = await _context.AccountBalances.FirstOrDefaultAsync(x => x.AccountID == sale.AccountID && x.CurrencyID == sale.CurrencyID);
-            var bank = await _context.AccountBalances.FirstOrDefaultAsync(x => x.AccountID == request.FeesSource && x.CurrencyID == sale.CurrencyID);
-            if (customer == null || bank == null) throw new InvalidOperationException("د فروش اړوند حساب بیلانس ونه موندل سو.");
-            customer.Balance -= request.RecieveAmount; bank.Balance += request.RecieveAmount; sale.ReceivedAmount += request.RecieveAmount; sale.RemainingAmount -= request.RecieveAmount;
-            var remarks = $"فروش نمبر: {sale.SaleNo} | {request.Description}";
-            await _context.JournalEntries.AddRangeAsync(
-                new Models.Accounting.JournalEntry { AccountBalanceID = customer.ID, Balance = customer.Balance, Debit = request.RecieveAmount, TransactionTypeID = 5, Remarks = remarks, ChequePhoto = "default.png", CreatedByUserId = user, CreationDate = date },
-                new Models.Accounting.JournalEntry { AccountBalanceID = bank.ID, Balance = bank.Balance, Credit = request.RecieveAmount, TransactionTypeID = 5, Remarks = remarks, ChequePhoto = "default.png", CreatedByUserId = user, CreationDate = date });
-            await _context.SaveChangesAsync(); await transaction.CommitAsync(); return Ok();
-        }
-        catch (Exception ex) { await transaction.RollbackAsync(); return BadRequest(ex.Message); }
-    }
-
-    [HttpGet("GetSaleList")]
-    public async Task<ActionResult> GetSaleList(int? personId, int? currencyId, DateTime? startDate, DateTime? endDate)
-    {
-        var sales = _context.Sales.AsQueryable();
-        if (personId > 0) sales = sales.Where(x => x.AccountID == personId);
-        if (currencyId > 0) sales = sales.Where(x => x.CurrencyID == currencyId);
-        if (startDate.HasValue) sales = sales.Where(x => x.CreationDate >= startDate.Value.Date);
-        if (endDate.HasValue) sales = sales.Where(x => x.CreationDate < endDate.Value.Date.AddDays(1));
-        return Ok(await sales.OrderByDescending(x => x.CreationDate).Select(x => new SaleViewModel { SaleId=x.ID, SaleNo=x.SaleNo, PersonId=x.AccountID, PersonName=x.Account.Name, CurrencyId=x.CurrencyID, CurrencyName=x.Currency.CurrencyName, SaleTotal=x.TotalAmount, SaleRecieved=x.ReceivedAmount, SaleRemaining=x.RemainingAmount, SaleDate=x.CreationDate, Remarks=x.Remarks, IsHolded=x.IsHolded, EffectsStock=x.CanAffectStock, IsRefunded=x.IsRefunded, SaleItemsCount=_context.SalesDetails.Count(d => d.SaleID==x.ID) }).ToListAsync());
     }
 }

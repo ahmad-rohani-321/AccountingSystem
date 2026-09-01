@@ -2,20 +2,9 @@
 using AccountingSystem.Models.Inventory;
 using AccountingSystem.ViewModels;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Query;
-using Microsoft.VisualBasic;
-using System.ComponentModel;
-using System.Diagnostics.CodeAnalysis;
-using System.Diagnostics.Eventing.Reader;
-using System.Net.NetworkInformation;
-using System.Reflection.Metadata.Ecma335;
-using System.Runtime.CompilerServices;
 using System.Security.Claims;
-using System.Text.Json;
-using static System.Net.Mime.MediaTypeNames;
 
 namespace AccountingSystem.Controllers.ApiControllers
 {
@@ -28,13 +17,14 @@ namespace AccountingSystem.Controllers.ApiControllers
         private readonly IHttpContextAccessor _accessor = accessor;
         private readonly IWebHostEnvironment _environemnt = environment;
         #region stock related
+
         [HttpPost("CreateStock")]
         public async Task<ActionResult> CreateStock(StockViewModel model)
         {
             string user = _accessor.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier).Value;
             if (model.Name == null || model.Name.Equals(string.Empty))
             {
-                return BadRequest("نوم حتمی لیکل حتمي دي..");
+                return BadRequest("نوم حتمی لیکل حتمي دي.");
             }
             else if (await _context.WareHouses.AnyAsync(m => m.Name == model.Name))
             {

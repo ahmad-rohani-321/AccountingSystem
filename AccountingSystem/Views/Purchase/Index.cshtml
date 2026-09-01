@@ -318,7 +318,7 @@ recieveFormValidator.onSuccess(function(event){
         type: "POST",
         contentType: "application/json",
         data: JSON.stringify({
-            purchaseId: selectedPurchase.purchaseId,
+            id: selectedPurchase.purchaseId,
             recieveAmount: receiveAmount,
             description: description || "",
             feesSource: feesSource
