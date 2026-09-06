@@ -11,5 +11,7 @@ public class PurchaseDetailsViewModel
     public decimal TotalPrice { get; set; }
     public int StockId { get; set; }
     public string Remarks { get; set; }
+
+    public decimal SalePrice { get; set; }
     
 }

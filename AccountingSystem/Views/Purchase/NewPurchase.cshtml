@@ -127,6 +127,7 @@
                                 <th>مجموعه قیمت</th>
                                 <th>ګدام</th>
                                 <th>یاداښت</th>
+                                <th>فروش في قیمت</th>
                                 <th>حذف</th>
                             </tr>
                         </thead>
@@ -400,6 +401,27 @@ $("#addNewRowButton").click(async function(event){
     remarksCell.appendTo(newRow);
     $("<input>").attr("type", "text").addClass("form-control").appendTo(remarksCell);
 
+    var sellingPriceCell = $("<td>");
+    sellingPriceCell.appendTo(newRow);
+    var sellingPriceInput = $("<input>").attr("type", "number").addClass("form-control selling-price").appendTo(sellingPriceCell);
+    formValidator.addField(sellingPriceInput[0], [
+        {
+            rule: 'number',
+            errorMessage: 'فروش في قیمت باید یو نمبر وي',
+        }, 
+        {
+            validator: function(value){
+                if(value === ''){
+                    return true;
+                }
+                else {
+                    return Number(value) >= 0;
+                }
+            },
+            errorMessage: 'فروش في قیمت باید له صفر څخه کوچنی نه وي',
+        }
+    ]);
+
     var deleteCell = $("<td>");
     deleteCell.appendTo(newRow);
     var deleteButton = $("<button>").addClass("btn btn-sm btn-danger btn-delete-row").appendTo(deleteCell);
@@ -440,6 +462,7 @@ $(document).on("click", ".btn-delete-row", function(event){
     var perprice = row.find('.per-price');
     var controltotalprice = row.find('.control-total-price');
     var stockselect = row.find('.stock-select');
+    var sellingPrice = row.find('.selling-price');
 
     formValidator.removeField(itemSelect[0]);
     formValidator.removeField(unitSelect[0]);
@@ -447,7 +470,7 @@ $(document).on("click", ".btn-delete-row", function(event){
     formValidator.removeField(perprice[0]);
     formValidator.removeField(controltotalprice[0]);
     formValidator.removeField(stockselect[0]);
-
+    formValidator.removeField(sellingPrice[0]);
     row.remove();
 
     CalculatePurchaseTotal();
@@ -569,7 +592,8 @@ formValidator.onSuccess(function(event){
                 perPrice: Number(cells.eq(3).find("input").val()),
                 totalPrice: Number(cells.eq(4).find("input").val()),
                 stockId: Number(cells.eq(5).find('.stock-select')[0].tomselect.getValue()),
-                remarks: cells.eq(6).find("input").val()
+                remarks: cells.eq(6).find("input").val(), 
+                salePrice: Number(cells.eq(7).find("input").val() || 0)
             };
         }).get()
     };
@@ -601,6 +625,7 @@ $(document).on("reset", "#newPurchaseForm", function(event){
             formValidator.removeField(row.find('.per-price')[0]);
             formValidator.removeField(row.find('.control-total-price')[0]);
             formValidator.removeField(row.find('.stock-select')[0]);
+            formValidator.removeField(row.find('.selling-price')[0]);
         });
 
         $("#purchaseItemsTableBody").empty();

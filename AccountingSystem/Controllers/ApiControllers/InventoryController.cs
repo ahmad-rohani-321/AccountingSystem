@@ -998,24 +998,24 @@ namespace AccountingSystem.Controllers.ApiControllers
                         var itemUnit = await _context.UnitConversion.FindAsync(item.UnitId);
                         decimal calculatedQuantity = Math.Round(item.Quantity / itemUnit.ExchangedAmount, Defaults.DefaultDecimals);
                         var currentStockItem = await _context.StockBalances.FirstOrDefaultAsync(x => x.ItemID == item.ItemId && x.WarehouseID == item.StockId);
-                        if (currentStockItem  == null)
+                        decimal basePrice = 0;
+                        if (item.BaseCurrencyPurchasePrice > 0)
                         {
-                            var newEntry = await _context.StockBalances.AddAsync(new StockBalance()
-                            {
-                                CreatedByUserId = user,
-                                ItemID = item.ItemId,
-                                Quantity = calculatedQuantity,
-                                CreationDate = date,
-                                WarehouseID = item.StockId,
-                                Remarks = item.Remarks
-                            });
-                            await _context.SaveChangesAsync();
-                            currentStockItem = newEntry.Entity;
+                            basePrice = Math.Round(item.BaseCurrencyPurchasePrice / itemUnit.ExchangedAmount, 2);
                         }
-                        else
+                        
+                        var newEntry = await _context.StockBalances.AddAsync(new StockBalance()
                         {
-                            currentStockItem.Quantity += calculatedQuantity;
-                        }
+                            CreatedByUserId = user,
+                            ItemID = item.ItemId,
+                            Quantity = calculatedQuantity,
+                            CreationDate = date,
+                            WarehouseID = item.StockId,
+                            Remarks = item.Remarks, 
+                            PurchaseBaseCurrencyPrice = basePrice
+                        });
+                        await _context.SaveChangesAsync();
+                        currentStockItem = newEntry.Entity;
                         
                         await _context.StockTransactions.AddAsync(new StockTransactions()
                         {
@@ -1057,6 +1057,33 @@ namespace AccountingSystem.Controllers.ApiControllers
                         .Include(x => x.Warehouse)
                         .Where(x => x.Quantity > 0)
                         .ToArrayAsync())
+                        .GroupBy(x => new
+                        {
+                            x.ItemID, x.WarehouseID
+                        })
+                        .Select(x => new StockItemsViewModel()
+                        {
+                            ItemID = x.First().Item.ID,
+                            ItemName = x.First().Item.NativeName,
+                            Quantity = x.Sum(s => s.Quantity),
+                            StockID = x.First().WarehouseID,
+                            StockName = x.First().Warehouse.Name,
+                            UnitID = x.First().Item.Unit.ID,
+                            UnitName = x.First().Item.Unit.Name
+                        }).ToList();
+            return Ok(data);
+        }
+        
+
+        [HttpGet("GetStockItemsDetailed")]
+        public async Task<ActionResult> GetStockItemsDetailed()
+        {
+            var data = (await _context.StockBalances
+                        .Include(x => x.Item)
+                        .ThenInclude(x => x.Unit)
+                        .Include(x => x.Warehouse)
+                        .Where(x => x.Quantity > 0)
+                        .ToArrayAsync())
                         .Select(x => new StockItemsViewModel()
                         {
                             Id = x.ID,
@@ -1066,7 +1093,8 @@ namespace AccountingSystem.Controllers.ApiControllers
                             StockID = x.WarehouseID,
                             StockName = x.Warehouse.Name,
                             UnitID = x.Item.Unit.ID,
-                            UnitName = x.Item.Unit.Name
+                            UnitName = x.Item.Unit.Name,
+                            PurchaseBaseCurrencyPrice = x.PurchaseBaseCurrencyPrice
                         }).ToList();
             return Ok(data);
         }
@@ -1106,26 +1134,20 @@ namespace AccountingSystem.Controllers.ApiControllers
                         return BadRequest("د جنس د انتقال لپاره په کافي اندازه تعداد نسته");
                     }
                    
-                    var toStock = await _context.StockBalances.FirstOrDefaultAsync(x => x.ItemID == stockItem.ItemID && x.WarehouseID == request.StockID);
+                   
                     stockItem.Quantity -= calculatedQuantity;
-                    if (toStock == null)
+                    
+                    var toStockNewEntry = await _context.StockBalances.AddAsync(new StockBalance()
                     {
-                        var newEntry = await _context.StockBalances.AddAsync(new StockBalance()
-                        {
-                            CreatedByUserId = user,
-                            ItemID = stockItem.ItemID,
-                            Quantity = calculatedQuantity,
-                            CreationDate = date,
-                            WarehouseID = request.StockID,
-                            Remarks = request.Remarks
-                        });
-                        await _context.SaveChangesAsync();
-                        toStock = newEntry.Entity;
-                    }
-                    else
-                    {
-                        toStock.Quantity += calculatedQuantity;
-                    }
+                        CreatedByUserId = user,
+                        ItemID = stockItem.ItemID,
+                        Quantity = calculatedQuantity,
+                        CreationDate = date,
+                        WarehouseID = request.StockID,
+                        Remarks = request.Remarks, 
+                        PurchaseBaseCurrencyPrice = stockItem.PurchaseBaseCurrencyPrice
+                    });
+                    await _context.SaveChangesAsync();
 
                     await _context.StockTransactions.AddAsync(new StockTransactions()
                     {
@@ -1144,7 +1166,7 @@ namespace AccountingSystem.Controllers.ApiControllers
                         CreationDate = date,
                         Quantity = request.Quantity,
                         Remarks = request.Remarks,
-                        StockBalanceID = toStock.ID,
+                        StockBalanceID = toStockNewEntry.Entity.ID,
                         TransactionID = 12, 
                         UnitID = request.UnitID
                     });

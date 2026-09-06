@@ -7,6 +7,7 @@ public class StockBalance : BaseEntity
     public string Remarks { get; set; }
     public int WarehouseID { get; set; }
     public int ItemID { get; set; }
+    public decimal PurchaseBaseCurrencyPrice { get; set; }
 
     [ForeignKey(nameof(ItemID))]
     public Item Item { get; set; }

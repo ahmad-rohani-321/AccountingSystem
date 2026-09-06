@@ -14,5 +14,6 @@ public class StockItemsViewModel
     public string Remarks { get; set; }
     public int TransactionType { get; set; }
     public DateTime CreationDate { get; set; }
-    
+    public decimal PurchaseBaseCurrencyPrice { get; internal set; }
+
 }

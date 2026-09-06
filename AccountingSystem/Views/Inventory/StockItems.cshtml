@@ -21,11 +21,11 @@
         <table class="table table-hover table-bordered table-responsive table-striped">
             <thead>
                 <tr>
-                    <th>#</th>
                     <th>جنس</th>
                     <th>عمومي واحد</th>
                     <th>ګدام</th>
                     <th>موجودي</th>
+                    <th>في قیمت</th>
                     <th style="width: 100px;">کړني</th>
                 </tr>
             </thead>
@@ -61,6 +61,7 @@
                                 <th style="width: 180px;">واحد</th>
                                 <th style="width: 180px;">ګدام</th>
                                 <th>تعداد</th>
+                                <th>خرید في قیمت</th>
                                 <th>ملاحظات</th>
                                 <th style="width: 50px;">حذف</th>
                             </tr>
@@ -350,6 +351,11 @@ $("#addNewStockItemRow").click(async function(event){
     quantityField.appendTo(quantityCell);
     quantityCell.appendTo(newRow);
 
+    var priceCell = $("<td>");
+    var priceField = $("<input>").addClass("form-control form-control-price").attr("type", "number");
+    priceField.appendTo(priceCell);
+    priceCell.appendTo(newRow);
+
     $("<td>").html('<input type="text" class="form-control" name="remarks">').appendTo(newRow);
 
     var deleteCell = $("<td>");
@@ -417,7 +423,8 @@ stockItemsValidator.onSuccess(function(event){
                 unitId: Number(cells.eq(2).find("select").val()),
                 stockId: Number(cells.eq(3).find("select").val()),
                 quantity: Number(cells.eq(4).find("input").val() || 0),
-                remarks: cells.eq(5).find("input").val()
+                purchaseBaseCurrencyPrice: Number(cells.eq(5).find("input").val() || 0),
+                remarks: cells.eq(6).find("input").val()
             };
         }).get()
     };

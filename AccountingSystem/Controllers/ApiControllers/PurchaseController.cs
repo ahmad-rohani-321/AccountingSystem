@@ -123,8 +123,7 @@ public class PurchaseController(ApplicationDbContext context, IHttpContextAccess
                         CreatedByUserId = user,
                         CreationDate = date,
                         Remarks = remarks,
-                        TransactionTypeID = 6,
-                        ChequePhoto = "default.png"
+                        TransactionTypeID = 6
                     });
                     if(request.PurchaseRecieved > 0)
                     {
@@ -137,8 +136,7 @@ public class PurchaseController(ApplicationDbContext context, IHttpContextAccess
                             CreatedByUserId = user,
                             CreationDate = date,
                             Remarks = remarks,
-                            TransactionTypeID = 6,
-                            ChequePhoto = "default.png"
+                            TransactionTypeID = 6
                         });
 
                         var treasureAccount = await _context.AccountBalances.FirstOrDefaultAsync(x => x.AccountID == request.BankId && x.CurrencyID == request.CurrencyId);
@@ -171,6 +169,18 @@ public class PurchaseController(ApplicationDbContext context, IHttpContextAccess
                 }
                 foreach (var item in request.PurchaseDetails)
                 {
+                    if (item.SalePrice > 0)
+                    {
+                        await _context.ItemsPrices.AddAsync(new Models.Inventory.ItemPrice()
+                        {
+                            CreatedByUserId = user,
+                            CreationDate = date,
+                            ItemID = item.ItemId,
+                            SalePrice = item.SalePrice, 
+                            Remarks = $"د خرید نمبر {request.PurchaseNo} لپاره د اجناس قیمت ثبت سو"
+                        });
+                        await _context.SaveChangesAsync();
+                    }
                     await _context.PurchaseDetails.AddAsync(new Models.Purchase.PurchaseDetails()
                     {
                         CreatedByUserId = user,
@@ -426,6 +436,19 @@ public class PurchaseController(ApplicationDbContext context, IHttpContextAccess
 
                 foreach (var item in request.PurchaseDetails)
                 {
+                    if (item.SalePrice > 0)
+                    {
+                        await _context.ItemsPrices.AddAsync(new Models.Inventory.ItemPrice()
+                        {
+                            CreatedByUserId = user,
+                            CreationDate = date,
+                            ItemID = item.ItemId,
+                            SalePrice = item.SalePrice, 
+                            Remarks = $"د خرید نمبر {request.PurchaseNo} لپاره د اجناس قیمت ثبت سو"
+                        });
+                        await _context.SaveChangesAsync();
+                    }
+                    
                     Models.Purchase.PurchaseDetails existingDetail = null;
                     if (item.Id != 0 && !oldDetailsById.TryGetValue(item.Id, out existingDetail))
                     {

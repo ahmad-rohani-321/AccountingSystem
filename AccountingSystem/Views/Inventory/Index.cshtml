@@ -272,7 +272,7 @@
         <div class="modal-content">
             <div class="modal-header">
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                <h2>نوی جنس</h2>
+                <h2>ابتایی موجودي</h2>
             </div>
             <form id="newStockForm">
                 <input type="hidden" id="newStockItemId">
@@ -292,6 +292,7 @@
                                 <th>واحد</th>
                                 <th>تعداد</th>
                                 <th>ګدام</th>
+                                <th>في قیمت</th>
                                 <th>ملاحظات</th>
                                 <th>حذف</th>
                             </tr>
@@ -812,6 +813,11 @@ $("#addNewStockRow").click(async function(event){
     stockField.appendTo(stockCell);
     stockCell.appendTo(rowTemplate);
 
+    var priceCell = $("<td>");
+    var priceField = $("<input>").attr("type", "number").addClass("form-control form-control-price");
+    priceField.appendTo(priceCell);
+    priceCell.appendTo(rowTemplate);
+
     var remarksCell = $("<td>");
     var remarksField = $("<input>").attr("type", "text").addClass("form-control");
     remarksField.appendTo(remarksCell);
@@ -889,7 +895,8 @@ newStockValidator.onSuccess(function(event){
                 unitId: Number(cells.eq(0).find("select").val()),
                 quantity: Number(cells.eq(1).find("input").val() || 0),
                 stockId: Number(cells.eq(2).find("select").val()),
-                remarks: cells.eq(3).find("input").val()
+                baseCurrencyPurchasePrice: Number(cells.eq(3).find("input").val() || 0),
+                remarks: cells.eq(4).find("input").val()
             };
         }).get()
     };
