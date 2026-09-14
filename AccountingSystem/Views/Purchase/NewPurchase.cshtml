@@ -484,6 +484,15 @@ $(document).on("change", ".per-price", function () {
 
     CalculatePurchaseTotal();
 });
+$(document).on("change", ".control-quantity", function() {
+            var currentRow = $(this).closest("tr");
+            var quantity = Number(currentRow.find('.control-quantity').val() || 0);
+            var price = Number(currentRow.find('.per-price').val() || 0);
+            var totalPrice = quantity * price;
+            currentRow.find('.control-total-price').val(totalPrice);
+
+            CalculatePurchaseTotal();
+        });
 $(document).on("change", ".control-total-price", function(){
     CalculatePurchaseTotal();
 });

@@ -16,7 +16,12 @@ public class SaleController(ApplicationDbContext context, IHttpContextAccessor a
     private readonly ApplicationDbContext _context = context;
     private readonly IHttpContextAccessor _accessor = accessor;
 
-
+    [HttpGet("GetSalePrice/{itemId}")]
+    public async Task<IActionResult> GetSalePrice(int itemId)
+    {
+        var itemprice = await _context.ItemsPrices.OrderByDescending(x => x.CreationDate).FirstOrDefaultAsync(x => x.ItemID == itemId);
+        return Ok(itemprice != null ? itemprice.SalePrice : 0);
+    }
 
     [HttpGet("Next-No")]
     public async Task<IActionResult> GetNextNo()
@@ -26,6 +31,43 @@ public class SaleController(ApplicationDbContext context, IHttpContextAccessor a
             .MaxAsync() ?? 0;
 
         return Ok(new { SaleNo = lastSaleNo + 1 });
+    }
+
+    [HttpGet("HasStockQuantity")]
+    public async Task<IActionResult> HasStockQuantity(int itemId, int unitId, int stockId, decimal quantity)
+    {
+        if(!await _context.Items.AnyAsync(x => x.ID == itemId))
+        {
+            return BadRequest("صحیح جنس انتخاب کړئ");
+        }
+        else if(!await _context.UnitConversion.AnyAsync(x => x.ID == unitId))
+        {
+            return BadRequest("صحیح واحد انتخاب کړئ");
+        }
+        else if(!await _context.WareHouses.AnyAsync(x => x.ID == stockId))
+        {
+            return BadRequest("صحیح ګدام انتخاب کړئ");
+        }
+        else if(quantity <= 0)
+        {
+            return BadRequest("صحیح مقدار داخل کړئ");
+        }
+        else
+        {
+            
+            var unit = await _context.UnitConversion.FirstOrDefaultAsync(x => x.ID == unitId);
+            if (unit == null || unit.ItemID != itemId || unit.ExchangedAmount <= 0)
+            {
+                return BadRequest("د جنس او واحد د تبدیل معلومات ناسم دي");
+            }
+
+            var stockBalance = await _context.StockBalances.Where(x => x.ItemID == itemId && x.WarehouseID == stockId).ToListAsync();
+
+            var baseQuantity = quantity / unit.ExchangedAmount;
+            var hasStock = stockBalance.Any(s => s.Quantity >= baseQuantity);
+
+            return Ok(new { HasStock = hasStock });
+        }
     }
 
     [HttpPost("SaveNewSale")]
@@ -72,13 +114,6 @@ public class SaleController(ApplicationDbContext context, IHttpContextAccessor a
         {
             return BadRequest("هیله ده د فروش اجناس اصلاح کړئ");
         }
-        else if (await _context.UnitConversion.CountAsync(u =>
-                            request.SaleDetails.Select(x => x.UnitId).Distinct().Contains(u.ID) &&
-                            request.SaleDetails.Any(x => x.UnitId == u.ID && x.ItemId == u.ItemID))
-                 != request.SaleDetails.Select(x => x.UnitId).Distinct().Count())
-        {
-            return BadRequest("هیله ده واحدونه اصلاح کړئ!");
-        }
         else if (await _context.WareHouses.CountAsync(s => request.SaleDetails.Select(w => w.StockId).Distinct().Contains(s.ID))
                  != request.SaleDetails.Select(w => w.StockId).Distinct().Count())
         {
@@ -92,6 +127,60 @@ public class SaleController(ApplicationDbContext context, IHttpContextAccessor a
                 DateTime date = request.SaleDate == DateTime.Now.Date ? DateTime.Now : request.SaleDate;
                 var user = _accessor.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier).Value;
                 string remarks = $"فروش نمبر: {request.SaleNo} | {request.Remarks}";
+
+                // A stock balance is stored in the item's base unit.  Resolve every
+                // requested unit first, then total all lines for the same item and
+                // warehouse before changing anything in the database.  This prevents
+                // separate lines from collectively selling more than the available stock.
+                var unitIds = request.SaleDetails.Select(x => x.UnitId).Distinct().ToArray();
+                var units = await _context.UnitConversion
+                    .Where(x => unitIds.Contains(x.ID))
+                    .ToDictionaryAsync(x => x.ID);
+
+                if (units.Count != unitIds.Length || request.SaleDetails.Any(x =>
+                    !units.TryGetValue(x.UnitId, out var unit) ||
+                    unit.ItemID != x.ItemId ||
+                    unit.ExchangedAmount <= 0))
+                {
+                    return BadRequest("د واحد د تبدیل معلومات ناسم دي.");
+                }
+
+                var saleLines = request.SaleDetails
+                    .Select(x => new
+                    {
+                        Detail = x,
+                        BaseQuantity = x.Quantity / units[x.UnitId].ExchangedAmount
+                    })
+                    .ToList();
+
+                var itemIds = request.SaleDetails.Select(x => x.ItemId).Distinct().ToArray();
+                var warehouseIds = request.SaleDetails.Select(x => x.StockId).Distinct().ToArray();
+                var stockBalances = await _context.StockBalances
+                    .Where(x => itemIds.Contains(x.ItemID) && warehouseIds.Contains(x.WarehouseID))
+                    .ToListAsync();
+
+                var stockByItemAndWarehouse = stockBalances
+                    .GroupBy(x => (x.ItemID, x.WarehouseID))
+                    .ToDictionary(x => x.Key, x => x.First());
+
+                var requiredStock = saleLines
+                    .GroupBy(x => (x.Detail.ItemId, x.Detail.StockId))
+                    .Select(x => new
+                    {
+                        x.Key,
+                        Quantity = x.Sum(line => line.BaseQuantity)
+                    })
+                    .ToList();
+
+                foreach (var requirement in requiredStock)
+                {
+                    if (!stockByItemAndWarehouse.TryGetValue(requirement.Key, out var stock) ||
+                        stock.Quantity < requirement.Quantity)
+                    {
+                        return BadRequest("د فروش لپاره په ګدام کې کافي موجودي نسته.");
+                    }
+                }
+
                 var sale = await _context.Sales.AddAsync(new Models.Sales.Sales()
                 {
                     AccountID = request.PersonId,
@@ -177,8 +266,11 @@ public class SaleController(ApplicationDbContext context, IHttpContextAccessor a
                     }
                     await _context.SaveChangesAsync();
                 }
-                foreach (var item in request.SaleDetails)
+                foreach (var line in saleLines)
                 {
+                    var item = line.Detail;
+                    var stock = stockByItemAndWarehouse[(item.ItemId, item.StockId)];
+
                     await _context.SalesDetails.AddAsync(new Models.Sales.SaleDetails()
                     {
                         CreatedByUserId = user,
@@ -189,24 +281,12 @@ public class SaleController(ApplicationDbContext context, IHttpContextAccessor a
                         Quantity = item.Quantity,
                         TotalPrice = item.TotalPrice,
                         UnitConversionID = item.UnitId,
-                        WarehouseID = item.StockId, 
+                        WarehouseID = item.StockId,
+                        StockItemId = stock.ID,
+                        Remarks = item.Remarks
                     });
                     if (!request.IsHolded && request.EffectsStock)
                     {
-                        var stock = await _context.StockBalances.FirstOrDefaultAsync(x => x.ItemID == item.ItemId && x.WarehouseID == item.StockId);
-                        var unitExchange = await _context.UnitConversion.FirstOrDefaultAsync(x => x.ID == item.UnitId);
-                        if (unitExchange == null || unitExchange.ItemID != item.ItemId || unitExchange.ExchangedAmount <= 0)
-                        {
-                            return BadRequest("د واحد د تبدیل معلومات ناسم دي.");
-                        }
-
-                        decimal realStock = item.Quantity / unitExchange.ExchangedAmount;
-                        if (stock == null || stock.Quantity < realStock)
-                        {
-                            return BadRequest("د فروش لپاره په ګدام کې کافي موجودي نسته.");
-                        }
-
-                        stock.Quantity -= realStock;
                         await _context.StockTransactions.AddAsync(new Models.Inventory.StockTransactions()
                         {
                             CreatedByUserId = user,
@@ -217,9 +297,15 @@ public class SaleController(ApplicationDbContext context, IHttpContextAccessor a
                             Remarks = item.Remarks,
                             UnitID = item.UnitId
                         });
-                        await _context.SaveChangesAsync();
                     }
-                    await _context.SaveChangesAsync();
+                }
+
+                if (!request.IsHolded && request.EffectsStock)
+                {
+                    foreach (var requirement in requiredStock)
+                    {
+                        stockByItemAndWarehouse[requirement.Key].Quantity -= requirement.Quantity;
+                    }
                 }
                 await _context.UserHistories.AddAsync(new Models.Identity.UserHistory()
                 {

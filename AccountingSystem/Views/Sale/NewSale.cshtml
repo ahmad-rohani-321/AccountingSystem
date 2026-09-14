@@ -31,9 +31,9 @@
                         <div class="form-group">
                             <label for="checkHold" class="form-check">
                                 <input type="checkbox" class="form-check-input" id="checkHold" />
-                                <span class="form-check-label">خرید ساتل</span>
+                                <span class="form-check-label">فروش ساتل</span>
                             </label>
-                            <span id="checkHoldText" class="text-primary">خرید نه ساتل کیږي. د ثبت پر مهال به حسابونه او اړوند مالي اغېزې تطبیق سي.</span>
+                            <span id="checkHoldText" class="text-primary">فروش نه ساتل کیږي. د ثبت پر مهال به حسابونه او اړوند مالي اغېزې تطبیق سي.</span>
                         </div>
                     </div>
                     <div class="col-lg-6 col-md-6 col-sm-12">
@@ -173,7 +173,7 @@
                 }
             }
         });
-        $.get("/api/Accounts/GetSuppliers", function(data) {
+        $.get("/api/Accounts/GetCustomers", function(data) {
             personAccount.addOptions(data);
         });
         function accountDisplay(data) {
@@ -218,22 +218,59 @@
 
     @* events *@
     <script>
+        function saleAffectsStock() {
+            return !$('#checkHold')[0].checked && $('#checkAffectStock')[0].checked;
+        }
+
+        // Calls the API for one sale row and returns whether its requested quantity is available.
+        async function hasStockQuantity(row) {
+            var itemId = Number(row.find('.items-select')[0]?.tomselect?.getValue() || 0);
+            var unitId = Number(row.find('.units-select')[0]?.tomselect?.getValue() || 0);
+            var stockId = Number(row.find('.stock-select')[0]?.tomselect?.getValue() || 0);
+            var quantity = Number(row.find('.control-quantity').val() || 0);
+
+            // Required and number rules report incomplete values separately.
+            if (!saleAffectsStock() || !itemId || !unitId || !stockId || quantity <= 0) {
+                return true;
+            }
+
+            try {
+                var response = await $.get('/api/Sale/HasStockQuantity', {
+                    itemId: itemId,
+                    unitId: unitId,
+                    stockId: stockId,
+                    quantity: quantity
+                });
+
+                return response.hasStock === true;
+            } catch {
+                return false;
+            }
+        }
+
+        // JustValidate expects an async validator to return a function that returns a Promise.
+        function stockQuantityValidator(quantityInput) {
+            return function() {
+                return hasStockQuantity(quantityInput.closest('tr'));
+            };
+        }
+
         $("#checkHold").change(function(event) {
             if (event.target.checked) {
                 $("#checkAffectStock").prop("disabled", false);
-                $("#checkHoldText").removeClass("text-primary").addClass("text-warning").text("خرید ساتل کیږي. د ثبت پر مهال به حسابونه او اړوند مالي اغېزې تطبیق نه سي.");
+                $("#checkHoldText").removeClass("text-primary").addClass("text-warning").text("فروش ساتل کیږي. د ثبت پر مهال به حسابونه او اړوند مالي اغېزې تطبیق نه سي.");
             }
             else {
                 $("#checkAffectStock").prop("disabled", true);
-                $("#checkHoldText").removeClass("text-warning").addClass("text-primary").text("خرید نه ساتل کیږي. د ثبت پر مهال به حسابونه او اړوند مالي اغېزې تطبیق سي.");
+                $("#checkHoldText").removeClass("text-warning").addClass("text-primary").text("فروش نه ساتل کیږي. د ثبت پر مهال به حسابونه او اړوند مالي اغېزې تطبیق سي.");
             }
         });
         $("#checkAffectStock").change(function(event) {
             if (event.target.checked) {
-                $("#checkAffectStockText").removeClass("text-warning").addClass("text-primary").text("انتخاب سوي اجناس به په ټاکلې اندازه ګدام ته جمع سي");
+                $("#checkAffectStockText").removeClass("text-warning").addClass("text-primary").text("انتخاب سوي اجناس به په ټاکلې اندازه ګدام څخه منفي سي");
             }
             else {
-                $("#checkAffectStockText").removeClass("text-primary").addClass("text-warning").text("انتخاب سوي اجناس به په ټاکلې اندازه ګدام ته جمع نه سي");
+                $("#checkAffectStockText").removeClass("text-primary").addClass("text-warning").text("انتخاب سوي اجناس به په ټاکلې اندازه ګدام څخه منفي نه سي");
             }
         });
 
@@ -339,6 +376,12 @@
                 {
                     rule: 'number',
                     errorMessage: 'مقدار باید یو نمبر وي',
+                },
+                {
+                    validator: function() {
+                        return stockQuantityValidator(quantityInput);
+                    },
+                    errorMessage: 'کافي موجودي په ټاکلي ګدام کي نشته.'
                 }
             ]);
 
@@ -422,6 +465,8 @@
             unitTomSelect.clearOptions();
 
             CalculateSaleTotal();
+            
+            var perPriceField = currentRow.find('.per-price');
 
             if (!itemId) {
                 return;
@@ -432,6 +477,15 @@
                 unitTomSelect.refreshOptions(false);
                 unitTomSelect.setValue(units[0].id);
             });
+
+            $.get(`/api/Sale/GetSalePrice/${itemId}`, function(value){
+                perPriceField.val(value);
+            });
+
+        });
+        $(document).on("change", ".items-select, .units-select, .stock-select", function() {
+            var quantityInput = $(this).closest('tr').find('.control-quantity')[0];
+            formValidator.revalidateField(quantityInput);
         });
         $(document).on("click", ".btn-delete-row", function(event) {
             event.preventDefault();
@@ -458,6 +512,15 @@
             var currentRow = $(this).closest("tr");
             var quantity = currentRow.find('.control-quantity').val();
             var price = $(this).val();
+            var totalPrice = quantity * price;
+            currentRow.find('.control-total-price').val(totalPrice);
+
+            CalculateSaleTotal();
+        });
+        $(document).on("change", ".control-quantity", function() {
+            var currentRow = $(this).closest("tr");
+            var quantity = Number(currentRow.find('.control-quantity').val() || 0);
+            var price = Number(currentRow.find('.per-price').val() || 0);
             var totalPrice = quantity * price;
             currentRow.find('.control-total-price').val(totalPrice);
 
@@ -516,7 +579,7 @@
         formValidator.addField('#saleItemsTableBody', [
             {
                 validator: () => $('#saleItemsTableBody tr').length > 0,
-                errorMessage: 'د خرید لپاره لږ تر لږه یو جنس اړینه ده',
+                errorMessage: 'د فروش لپاره لږ تر لږه یو جنس اړینه ده',
             }
         ]);
         formValidator.addField("#saleRecieved",
@@ -544,9 +607,18 @@
                 },
                 errorMessage: "که بانک/تجرئ انتخاب سوې وي، رسید مبلغ ضروري دی"
             }]);
-        formValidator.onSuccess(function(event) {
+        formValidator.onSuccess(async function(event) {
             if (!event) {
                 return;
+            }
+
+            if (saleAffectsStock()) {
+                for (const rowElement of $('#saleItemsTableBody tr').toArray()) {
+                    if (!await hasStockQuantity($(rowElement))) {
+                        showToast('warning', 'کافي موجودي په ټاکلي ګدام کي نشته.');
+                        return;
+                    }
+                }
             }
 
             var currentDate = moment.from($("#saleDate").val(), 'fa', 'YYYY/MM/DD').format("YYYY-MM-DD");
@@ -581,7 +653,7 @@
                 data: JSON.stringify(data),
                 contentType: "application/json",
                 success: function() {
-                    showToast("success", "نوې خرید ثبت سو");
+                    showToast("success", "نوې فروش ثبت سو");
                     $("#newSaleForm")[0].reset();
                 },
                 error: function(xhr) {

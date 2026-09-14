@@ -116,6 +116,27 @@ namespace AccountingSystem.Controllers.ApiControllers
             return Ok(data);
         }
 
+        [HttpGet("GetCustomers")]
+        public async Task<ActionResult> GetCustomers()
+        {
+            int[] accountTypeLimits = [ 3, 5 ];
+            var data = (await _context
+                        .Accounts
+                        .Include(c => c.AccountType)
+                        .Where(a => a.IsActive && accountTypeLimits.Contains(a.AccountTypeID)).ToArrayAsync())
+                        .Select(a => new PeopleAccountViewModel()
+                        {
+                            AccountTypeId = a.AccountTypeID,
+                            AccountTypeName = a.AccountType.Name,
+                            Code = a.Code,
+                            Id = a.ID,
+                            Name = a.Name,
+                            IsActive = a.IsActive,
+                            Balance = null
+                        }).ToList();
+            return Ok(data);
+        }
+
         [HttpGet("GetBankAccounts")]
         public async Task<ActionResult> GetBankAccounts()
         {

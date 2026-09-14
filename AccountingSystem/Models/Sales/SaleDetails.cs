@@ -7,6 +7,7 @@ namespace AccountingSystem.Models.Sales;
 public class SaleDetails : BaseEntity
 {
     public int ItemID { get; set; }
+    public int StockItemId { get; set; }
     public int SaleID { get; set; }
     public decimal Quantity { get; set; }
     public decimal PerPrice { get; set; }
@@ -18,6 +19,9 @@ public class SaleDetails : BaseEntity
 
     [ForeignKey(nameof(ItemID))]
     public Item Item { get; set; }
+
+    [ForeignKey(nameof(StockItemId))]
+    public StockBalance StockItem { get; set; }
 
     [ForeignKey(nameof(SaleID))]
     public Sales Sale { get; set; }
