@@ -1,0 +1,129 @@
+@{
+    ViewData["title"] = "د اجناسو قیمتونه";
+    ViewData["Accounting"] = "active";
+    ViewData["ItemPrices"] = "active";
+}
+
+<div class="row row-deck row-cards">
+    <div class="card">
+        <div class="card-header">
+            <h3 class="h3 mb-0">@ViewData["title"]</h3>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover table-bordered table-striped">
+                    <thead>
+                        <tr>
+                            <th>د جنس نوم</th>
+                            <th>قیمت</th>
+                            <th>کړنی</th>
+                        </tr>
+                    </thead>
+                    <tbody id="itemPricesList"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            loadItemPrices();
+        });
+
+        function loadItemPrices() {
+            $.ajax({
+                url: "/api/Journal/GetItemPrices",
+                type: "GET",
+                success: function(data) {
+                    var table = $("#itemPricesList");
+                    table.empty();
+
+                    if (!data.length) {
+                        $("<tr>")
+                            .append($("<td>").attr("colspan", 3).addClass("text-center text-muted").text("هیڅ فعال جنس ونه موندل سو."))
+                            .appendTo(table);
+                        return;
+                    }
+
+                    data.forEach(function(item) {
+                        var row = $("<tr>").attr("data-id", item.itemId).attr("data-price", item.price);
+                        $("<td>").text(item.itemName).appendTo(row);
+                        $("<td>").addClass("item-price").text(item.price).appendTo(row);
+
+                        var actions = $("<td>");
+                        $("<button>")
+                            .attr("type", "button")
+                            .addClass("btn btn-sm btn-primary btn-update-price")
+                            .append($("<i>").addClass("fas fa-edit me-1"))
+                            .append("تغیر")
+                            .appendTo(actions);
+                        actions.appendTo(row);
+                        row.appendTo(table);
+                    });
+                },
+                error: function(xhr) {
+                    showToast("warning", xhr.responseText || "د اجناسو قیمتونه بار نه سول.");
+                }
+            });
+        }
+
+        $(document).on("click", ".btn-update-price", function() {
+            var row = $(this).closest("tr");
+            var price = Number(row.attr("data-price"));
+            var priceCell = row.find(".item-price");
+            var actions = $(this).closest("td");
+
+            priceCell.empty().append($("<input>")
+                .attr("type", "number")
+                .attr("min", "0")
+                .attr("step", "any")
+                .addClass("form-control form-control-sm edit-item-price")
+                .val(price));
+
+            actions.empty();
+            $("<button>")
+                .attr("type", "button")
+                .addClass("btn btn-sm btn-primary btn-save-price")
+                .append($("<i>").addClass("fas fa-save me-1"))
+                .append("ثبت")
+                .appendTo(actions);
+            $("<button>")
+                .attr("type", "button")
+                .addClass("btn btn-sm btn-secondary ms-2 btn-cancel-price")
+                .append($("<i>").addClass("fas fa-times me-1"))
+                .append("لغوه")
+                .appendTo(actions);
+        });
+
+        $(document).on("click", ".btn-cancel-price", function() {
+            loadItemPrices();
+        });
+
+        $(document).on("click", ".btn-save-price", function() {
+            var row = $(this).closest("tr");
+            var itemId = Number(row.attr("data-id"));
+            var price = Number(row.find(".edit-item-price").val());
+
+            if (!itemId || Number.isNaN(price) || price < 0) {
+                showToast("warning", "صحیح قیمت داخل کړئ.");
+                return;
+            }
+
+            var saveButton = $(this).prop("disabled", true);
+            $.ajax({
+                url: "/api/Journal/SaveItemPrice?itemId=" + encodeURIComponent(itemId) + "&price=" + encodeURIComponent(price),
+                type: "POST",
+                success: function() {
+                    showToast("success", "د جنس قیمت ثبت سو.");
+                    loadItemPrices();
+                },
+                error: function(xhr) {
+                    showToast("warning", xhr.responseText || "د جنس قیمت ثبت نه سو.");
+                    saveButton.prop("disabled", false);
+                }
+            });
+        });
+    </script>
+}

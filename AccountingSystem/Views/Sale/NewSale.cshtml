@@ -234,25 +234,14 @@
                 return true;
             }
 
-            try {
-                var response = await $.get('/api/Sale/HasStockQuantity', {
-                    itemId: itemId,
-                    unitId: unitId,
-                    stockId: stockId,
-                    quantity: quantity
-                });
+            var response = await $.get('/api/Sale/HasStockQuantity', {
+                itemId: itemId,
+                unitId: unitId,
+                stockId: stockId,
+                quantity: quantity
+            });
 
-                return response.hasStock === true;
-            } catch {
-                return false;
-            }
-        }
-
-        // JustValidate expects an async validator to return a function that returns a Promise.
-        function stockQuantityValidator(quantityInput) {
-            return function() {
-                return hasStockQuantity(quantityInput.closest('tr'));
-            };
+            return response.hasStock;
         }
 
         $("#checkHold").change(function(event) {
@@ -379,9 +368,11 @@
                 },
                 {
                     validator: function() {
-                        return stockQuantityValidator(quantityInput);
+                        return function() {
+                            return hasStockQuantity(quantityInput.closest('tr'));
+                        };
                     },
-                    errorMessage: 'کافي موجودي په ټاکلي ګدام کي نشته.'
+                    errorMessage: 'کافي موجودي په ټاکلي ګدام کي نسته.'
                 }
             ]);
 
@@ -485,7 +476,6 @@
         });
         $(document).on("change", ".items-select, .units-select, .stock-select", function() {
             var quantityInput = $(this).closest('tr').find('.control-quantity')[0];
-            formValidator.revalidateField(quantityInput);
         });
         $(document).on("click", ".btn-delete-row", function(event) {
             event.preventDefault();
@@ -610,15 +600,6 @@
         formValidator.onSuccess(async function(event) {
             if (!event) {
                 return;
-            }
-
-            if (saleAffectsStock()) {
-                for (const rowElement of $('#saleItemsTableBody tr').toArray()) {
-                    if (!await hasStockQuantity($(rowElement))) {
-                        showToast('warning', 'کافي موجودي په ټاکلي ګدام کي نشته.');
-                        return;
-                    }
-                }
             }
 
             var currentDate = moment.from($("#saleDate").val(), 'fa', 'YYYY/MM/DD').format("YYYY-MM-DD");

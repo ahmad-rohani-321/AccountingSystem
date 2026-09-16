@@ -285,7 +285,7 @@ public class SaleController(ApplicationDbContext context, IHttpContextAccessor a
                         StockItemId = stock.ID,
                         Remarks = item.Remarks
                     });
-                    if (!request.IsHolded && request.EffectsStock)
+                    if (request.EffectsStock)
                     {
                         await _context.StockTransactions.AddAsync(new Models.Inventory.StockTransactions()
                         {
@@ -300,7 +300,7 @@ public class SaleController(ApplicationDbContext context, IHttpContextAccessor a
                     }
                 }
 
-                if (!request.IsHolded && request.EffectsStock)
+                if ( request.EffectsStock)
                 {
                     foreach (var requirement in requiredStock)
                     {
@@ -329,7 +329,343 @@ public class SaleController(ApplicationDbContext context, IHttpContextAccessor a
     [HttpPost("EditSale")]
     public async Task<IActionResult> EditSale(SaleViewModel request)
     {
-        return Ok();
+        if (request == null || request.SaleDetails == null || request.SaleDetails.Count == 0)
+        {
+            return BadRequest("خالي فروش نه ثبت کیږي.");
+        }
+        else if (request.SaleId <= 0 || request.SaleNo <= 0 || request.SaleTotal < 0 || request.SaleRecieved < 0 ||
+                 request.SaleRecieved > request.SaleTotal ||
+                 request.SaleDetails.Any(x => x.ItemId <= 0 || x.UnitId <= 0 || x.StockId <= 0 ||
+                                              x.Quantity <= 0 || x.PerPrice < 0 ||
+                                              x.TotalPrice != x.PerPrice * x.Quantity))
+        {
+            return BadRequest("د فروش معلومات ناسم دي.");
+        }
+        else if (request.SaleRecieved > 0 && request.BankId == 0)
+        {
+            return BadRequest("د رسيد مبلغ لپاره بانک انتخاب کړئ.");
+        }
+        else if (request.BankId != 0 && !await _context.Accounts.AnyAsync(x => x.ID == request.BankId))
+        {
+            return BadRequest("ناسم بانک انتخاب سوی دی");
+        }
+        else if (!await _context.Accounts.AnyAsync(x => x.ID == request.PersonId))
+        {
+            return BadRequest("ناسم شخص انتخاب سوی دی");
+        }
+        else if (!await _context.Currencies.AnyAsync(x => x.ID == request.CurrencyId))
+        {
+            return BadRequest("ناسم اسعار انتخاب سوی دی");
+        }
+        else if (!await _context.Sales.AnyAsync(x => x.ID == request.SaleId))
+        {
+            return NotFound("ناسم فروش شمېره");
+        }
+        else if (await _context.Sales.AnyAsync(x => x.ID != request.SaleId && x.SaleNo == request.SaleNo))
+        {
+            return BadRequest("ټاکل سوې د فروش شمېره تکراري ده");
+        }
+        else if (request.SaleTotal != request.SaleDetails.Sum(x => x.TotalPrice))
+        {
+            return BadRequest("د فروش مجموعه ناسم محاسبه سوې ده");
+        }
+        else if (await _context.Items.CountAsync(x => request.SaleDetails.Select(i => i.ItemId).Distinct().Contains(x.ID))
+                 != request.SaleDetails.Select(i => i.ItemId).Distinct().Count())
+        {
+            return BadRequest("هیله ده د فروش اجناس اصلاح کړئ");
+        }
+        else if (await _context.WareHouses.CountAsync(x => request.SaleDetails.Select(i => i.StockId).Distinct().Contains(x.ID))
+                 != request.SaleDetails.Select(i => i.StockId).Distinct().Count())
+        {
+            return BadRequest("هیله ده ګدامونه اصلاح کړی!");
+        }
+        else
+        {
+            using var transaction = await _context.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
+            try
+            {
+                DateTime date = request.SaleDate == DateTime.Now.Date ? DateTime.Now : request.SaleDate;
+                var user = _accessor.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier).Value;
+                var sale = await _context.Sales.FirstAsync(x => x.ID == request.SaleId);
+
+                if (sale.IsRefunded)
+                {
+                    return BadRequest("واپس سوی فروش د تغیر وړ نه دی.");
+                }
+
+                var oldSaleDetails = await _context.SalesDetails
+                    .Where(x => x.SaleID == sale.ID)
+                    .ToListAsync();
+                var oldDetailsById = oldSaleDetails.ToDictionary(x => x.ID);
+                var submittedDetailIds = request.SaleDetails.Where(x => x.Id != 0).Select(x => x.Id).ToHashSet();
+
+                if (submittedDetailIds.Count != request.SaleDetails.Count(x => x.Id != 0))
+                {
+                    return BadRequest("د فروش یو جز له یو ځل څخه زیات ثبت سوی دی.");
+                }
+                else if (request.SaleDetails.Any(x => x.Id != 0 && !oldDetailsById.ContainsKey(x.Id)))
+                {
+                    return BadRequest("د فروش دا جز له دې فروش سره تړاو نه لري.");
+                }
+
+                var unitIds = request.SaleDetails.Select(x => x.UnitId)
+                    .Concat(oldSaleDetails.Select(x => x.UnitConversionID))
+                    .Distinct()
+                    .ToArray();
+                var units = await _context.UnitConversion
+                    .Where(x => unitIds.Contains(x.ID))
+                    .ToDictionaryAsync(x => x.ID);
+
+                if (units.Count != unitIds.Length || request.SaleDetails.Any(x =>
+                    !units.TryGetValue(x.UnitId, out var unit) ||
+                    unit.ItemID != x.ItemId || unit.ExchangedAmount <= 0))
+                {
+                    return BadRequest("د واحد د تبدیل معلومات ناسم دي.");
+                }
+
+                var oldAffectsStock = sale.CanAffectStock;
+                var newAffectsStock = request.EffectsStock;
+                var stockKeys = oldSaleDetails.Select(x => (x.ItemID, x.WarehouseID))
+                    .Concat(request.SaleDetails.Select(x => (x.ItemId, x.StockId)))
+                    .Distinct()
+                    .ToArray();
+                var itemIds = stockKeys.Select(x => x.Item1).Distinct().ToArray();
+                var warehouseIds = stockKeys.Select(x => x.Item2).Distinct().ToArray();
+                var stocks = await _context.StockBalances
+                    .Where(x => itemIds.Contains(x.ItemID) && warehouseIds.Contains(x.WarehouseID))
+                    .ToListAsync();
+                var stockByItemAndWarehouse = stocks
+                    .GroupBy(x => (x.ItemID, x.WarehouseID))
+                    .ToDictionary(x => x.Key, x => x.First());
+
+                if ((oldAffectsStock || newAffectsStock) && stockKeys.Any(x => !stockByItemAndWarehouse.ContainsKey(x)))
+                {
+                    return BadRequest("د فروش لپاره په ګدام کې کافي موجودي نسته.");
+                }
+
+                // Restore the previous sale first, then verify and apply the edited sale.
+                // This also handles changed items, units, warehouses, and removed rows.
+                if (oldAffectsStock)
+                {
+                    foreach (var oldDetail in oldSaleDetails)
+                    {
+                        var stock = stockByItemAndWarehouse[(oldDetail.ItemID, oldDetail.WarehouseID)];
+                        stock.Quantity += oldDetail.Quantity / units[oldDetail.UnitConversionID].ExchangedAmount;
+
+                        await _context.StockTransactions.AddAsync(new Models.Inventory.StockTransactions()
+                        {
+                            CreatedByUserId = user,
+                            CreationDate = date,
+                            Quantity = oldDetail.Quantity,
+                            StockBalanceID = stock.ID,
+                            TransactionID = 8,
+                            Remarks = $"فروش نمبر: {sale.SaleNo} تغیر پخوانی مقدار واپس سو | {oldDetail.Remarks}",
+                            UnitID = oldDetail.UnitConversionID
+                        });
+                    }
+                }
+
+                var requiredStock = request.SaleDetails
+                    .GroupBy(x => (x.ItemId, x.StockId))
+                    .Select(x => new
+                    {
+                        x.Key,
+                        Quantity = x.Sum(line => line.Quantity / units[line.UnitId].ExchangedAmount)
+                    })
+                    .ToList();
+
+                if (newAffectsStock)
+                {
+                    foreach (var requirement in requiredStock)
+                    {
+                        if (stockByItemAndWarehouse[requirement.Key].Quantity < requirement.Quantity)
+                        {
+                            return BadRequest("د فروش لپاره په ګدام کې کافي موجودي نسته.");
+                        }
+                    }
+                }
+
+                var oldJournalRemarks = $"فروش نمبر: {sale.SaleNo} | {sale.Remarks}";
+                var editJournalPrefix = $"فروش تغیر شمېره: {sale.ID} |";
+                var previousJournalEntries = await _context.JournalEntries
+                    .Where(x => (x.TransactionTypeID == 5 && x.Remarks == oldJournalRemarks) ||
+                                (x.TransactionTypeID == 8 && x.Remarks.StartsWith(editJournalPrefix)))
+                    .ToListAsync();
+
+                // Reverse only the original sale posting (or the last edit posting).
+                // Payment and refund entries have different remarks and remain untouched.
+                foreach (var previousJournalEntry in previousJournalEntries)
+                {
+                    var balance = await _context.AccountBalances.FindAsync(previousJournalEntry.AccountBalanceID);
+                    if (balance == null)
+                    {
+                        throw new InvalidOperationException("د فروش اړوند حساب موجود نه دی.");
+                    }
+
+                    balance.Balance += previousJournalEntry.Debit - previousJournalEntry.Credit;
+                    await _context.JournalEntries.AddAsync(new Models.Accounting.JournalEntry()
+                    {
+                        AccountBalanceID = balance.ID,
+                        Balance = balance.Balance,
+                        Debit = previousJournalEntry.Credit,
+                        Credit = previousJournalEntry.Debit,
+                        CreatedByUserId = user,
+                        CreationDate = date,
+                        Remarks = $"فروش تغیر شمېره: {sale.ID} - عكس پخوانی ثبت",
+                        TransactionTypeID = 8
+                    });
+                }
+
+                async Task<Models.Accounts.AccountBalance> GetAccountBalance(int accountId, int currencyId)
+                {
+                    var accountBalance = await _context.AccountBalances
+                        .FirstOrDefaultAsync(x => x.AccountID == accountId && x.CurrencyID == currencyId);
+                    if (accountBalance != null)
+                    {
+                        return accountBalance;
+                    }
+
+                    var newAccountBalance = await _context.AccountBalances.AddAsync(new Models.Accounts.AccountBalance()
+                    {
+                        AccountID = accountId,
+                        CurrencyID = currencyId,
+                        Balance = 0,
+                        CreatedByUserId = user,
+                        CreationDate = date
+                    });
+                    await _context.SaveChangesAsync();
+                    return newAccountBalance.Entity;
+                }
+
+                string remarks = $"{editJournalPrefix} {request.Remarks}";
+                if (!request.IsHolded)
+                {
+                    var personAccount = await GetAccountBalance(request.PersonId, request.CurrencyId);
+                    personAccount.Balance += request.SaleTotal;
+                    await _context.JournalEntries.AddAsync(new Models.Accounting.JournalEntry()
+                    {
+                        AccountBalanceID = personAccount.ID,
+                        Balance = personAccount.Balance,
+                        Credit = request.SaleTotal,
+                        CreatedByUserId = user,
+                        CreationDate = date,
+                        Remarks = remarks,
+                        TransactionTypeID = 8
+                    });
+
+                    if (request.SaleRecieved > 0)
+                    {
+                        personAccount.Balance -= request.SaleRecieved;
+                        await _context.JournalEntries.AddAsync(new Models.Accounting.JournalEntry()
+                        {
+                            AccountBalanceID = personAccount.ID,
+                            Balance = personAccount.Balance,
+                            Debit = request.SaleRecieved,
+                            CreatedByUserId = user,
+                            CreationDate = date,
+                            Remarks = remarks,
+                            TransactionTypeID = 8
+                        });
+
+                        var treasureAccount = await GetAccountBalance(request.BankId, request.CurrencyId);
+                        treasureAccount.Balance += request.SaleRecieved;
+                        await _context.JournalEntries.AddAsync(new Models.Accounting.JournalEntry()
+                        {
+                            AccountBalanceID = treasureAccount.ID,
+                            Balance = treasureAccount.Balance,
+                            Credit = request.SaleRecieved,
+                            CreatedByUserId = user,
+                            CreationDate = date,
+                            Remarks = remarks,
+                            TransactionTypeID = 8
+                        });
+                    }
+                }
+
+                sale.AccountID = request.PersonId;
+                sale.CanAffectStock = request.EffectsStock;
+                sale.CreatedByUserId = user;
+                sale.CreationDate = date;
+                sale.CurrencyID = request.CurrencyId;
+                sale.IsHolded = request.IsHolded;
+                sale.IsRefunded = false;
+                sale.SaleNo = request.SaleNo;
+                sale.Remarks = request.Remarks;
+                sale.TotalAmount = request.SaleTotal;
+                sale.ReceivedAmount = request.SaleRecieved;
+                sale.RemainingAmount = request.SaleTotal - request.SaleRecieved;
+
+                foreach (var item in request.SaleDetails)
+                {
+                    var stock = stockByItemAndWarehouse[(item.ItemId, item.StockId)];
+                    if (newAffectsStock)
+                    {
+                        stock.Quantity -= item.Quantity / units[item.UnitId].ExchangedAmount;
+                        await _context.StockTransactions.AddAsync(new Models.Inventory.StockTransactions()
+                        {
+                            CreatedByUserId = user,
+                            CreationDate = date,
+                            Quantity = item.Quantity,
+                            StockBalanceID = stock.ID,
+                            TransactionID = 11,
+                            Remarks = $"فروش نمبر: {request.SaleNo} تغیر | {item.Remarks}",
+                            UnitID = item.UnitId
+                        });
+                    }
+
+                    if (item.Id == 0)
+                    {
+                        await _context.SalesDetails.AddAsync(new Models.Sales.SaleDetails()
+                        {
+                            CreatedByUserId = user,
+                            CreationDate = date,
+                            ItemID = item.ItemId,
+                            PerPrice = item.PerPrice,
+                            SaleID = sale.ID,
+                            Quantity = item.Quantity,
+                            TotalPrice = item.TotalPrice,
+                            UnitConversionID = item.UnitId,
+                            WarehouseID = item.StockId,
+                            StockItemId = stock.ID,
+                            Remarks = item.Remarks
+                        });
+                    }
+                    else
+                    {
+                        var existingDetail = oldDetailsById[item.Id];
+                        existingDetail.ItemID = item.ItemId;
+                        existingDetail.UnitConversionID = item.UnitId;
+                        existingDetail.WarehouseID = item.StockId;
+                        existingDetail.StockItemId = stock.ID;
+                        existingDetail.Quantity = item.Quantity;
+                        existingDetail.PerPrice = item.PerPrice;
+                        existingDetail.TotalPrice = item.TotalPrice;
+                        existingDetail.Remarks = item.Remarks;
+                    }
+                }
+
+                foreach (var removedDetail in oldSaleDetails.Where(x => !submittedDetailIds.Contains(x.ID)))
+                {
+                    _context.SalesDetails.Remove(removedDetail);
+                }
+
+                await _context.UserHistories.AddAsync(new Models.Identity.UserHistory()
+                {
+                    CreatedByUserId = user,
+                    CreationDate = DateTime.Now,
+                    Details = $"د {request.SaleId} فروش تغیر سو.",
+                    ModelName = "فروش"
+                });
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+                return Ok();
+            }
+            catch (System.Exception ex)
+            {
+                await transaction.RollbackAsync();
+                return BadRequest(ex.Message);
+            }
+        }
     }
 
     [HttpGet("GetSaleById/{id}")]

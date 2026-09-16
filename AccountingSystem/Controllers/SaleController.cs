@@ -6,6 +6,6 @@ namespace AccountingSystem.Controllers
     {
         public IActionResult Index() => View();
         public IActionResult NewSale() => View();
-        public IActionResult EditSale(int id) => View(id);
+        public IActionResult EditSale(int saleId) => View(saleId);
     }
 }

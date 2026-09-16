@@ -15,5 +15,11 @@ namespace AccountingSystem.Controllers
         {
             return View();
         }
+
+        public IActionResult ItemPrices()
+        {
+            return View();
+        }
+
     }
 }

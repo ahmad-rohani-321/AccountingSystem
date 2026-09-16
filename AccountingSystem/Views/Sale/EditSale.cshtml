@@ -10,7 +10,6 @@
     <link href="~/lib/flatpickr-jalali-support/dist/themes/soft-card.css" rel="stylesheet" />
     <link href="~/lib/tom-select/dist/css/tom-select.bootstrap5.css" rel="stylesheet" />
 }
-
 <div class="row row-deck row-cards">
     <div class="card">
         <form id="newSaleForm">
@@ -32,9 +31,9 @@
                         <div class="form-group">
                             <label for="checkHold" class="form-check">
                                 <input type="checkbox" class="form-check-input" id="checkHold" />
-                                <span class="form-check-label">خرید ساتل</span>
+                                <span class="form-check-label">فروش ساتل</span>
                             </label>
-                            <span id="checkHoldText" class="text-primary">خرید نه ساتل کیږي. د ثبت پر مهال به حسابونه او اړوند مالي اغېزې تطبیق سي.</span>
+                            <span id="checkHoldText" class="text-primary">فروش نه ساتل کیږي. د ثبت پر مهال به حسابونه او اړوند مالي اغېزې تطبیق سي.</span>
                         </div>
                     </div>
                     <div class="col-lg-6 col-md-6 col-sm-12">
@@ -43,7 +42,7 @@
                                 <input type="checkbox" class="form-check-input" id="checkAffectStock" checked />
                                 <span class="form-check-label">پر ګدام تاثیر کول</span>
                             </label>
-                            <span id="checkAffectStockText" class="text-primary">انتخاب سوي اجناس به په ټاکلې اندازه ګدام ته جمع سي</span>
+                            <span id="checkAffectStockText" class="text-primary">انتخاب سوي اجناس به په ټاکلې اندازه ګدام څخه منفي سي</span>
 
                         </div>
                     </div>
@@ -98,7 +97,7 @@
                     <div class="col-lg-4 col-md-4 col-sm-12">
                         <div class="form-group">
                             <label for="saleAmount" class="form-label">مجموعه</label>
-                            <input type="number" id="saleAmount" class="form-control" />
+                            <input type="number" id="saleAmount" class="form-control" readonly />
                         </div>
                     </div>
                     <div class="col-lg-4 col-md-4 col-sm-12">
@@ -169,15 +168,15 @@
 
                 if (data.isHolded) {
                     $("#checkAffectStock").prop("disabled", false);
-                    $("#checkHoldText").removeClass("text-primary").addClass("text-warning").text("خرید ساتل کیږي. د ثبت پر مهال به حسابونه او اړوند مالي اغېزې تطبیق نه سي.");
+                    $("#checkHoldText").removeClass("text-primary").addClass("text-warning").text("غروش ساتل کیږي. د ثبت پر مهال به حسابونه او اړوند مالي اغېزې تطبیق نه سي.");
                 }
                 else {
                     $("#checkAffectStock").prop("disabled", true);
-                    $("#checkHoldText").removeClass("text-warning").addClass("text-primary").text("خرید نه ساتل کیږي. د ثبت پر مهال به حسابونه او اړوند مالي اغېزې تطبیق سي.");
+                    $("#checkHoldText").removeClass("text-warning").addClass("text-primary").text("فروش نه ساتل کیږي. د ثبت پر مهال به حسابونه او اړوند مالي اغېزې تطبیق سي.");
                 }
 
                 if (!data.effectsStock) {
-                    $("#checkAffectStockText").removeClass("text-primary").addClass("text-warning").text("انتخاب سوي اجناس به په ټاکلې اندازه ګدام ته جمع نه سي");
+                    $("#checkAffectStockText").removeClass("text-primary").addClass("text-warning").text("انتخاب سوي اجناس به په ټاکلې اندازه ګدام څخه منفي نه سي");
                 }
                 $("#saleItemsTableBody").empty();
                 for (const detail of data.saleDetails) {
@@ -199,7 +198,7 @@
                 CalculateSaleTotal();
             }
             catch (xhr) {
-                showToast("warning", xhr.responseText || "خرید په سمه توګه بار نه سو");
+                showToast("warning", xhr.responseText || "فروش په سمه توګه بار نه سو");
                 console.error(xhr);
             }
             CalculateSaleTotal();
@@ -224,7 +223,7 @@
                 }
             }
         });
-        var suppliersRequest = $.get("/api/Accounts/GetSuppliers", function(data) {
+        var suppliersRequest = $.get("/api/Accounts/GetCustomers", function(data) {
             personAccount.addOptions(data);
         });
         function accountDisplay(data) {
@@ -271,14 +270,44 @@
 
     @* events *@
     <script>
+        function saleAffectsStock() {
+            return !$("#checkHold")[0].checked && $("#checkAffectStock")[0].checked;
+        }
+
+        async function hasStockQuantity(row) {
+            var itemId = Number(row.find('.items-select')[0]?.tomselect?.getValue() || 0);
+            var unitId = Number(row.find('.units-select')[0]?.tomselect?.getValue() || 0);
+            var stockId = Number(row.find('.stock-select')[0]?.tomselect?.getValue() || 0);
+            var quantity = Number(row.find('.control-quantity').val() || 0);
+
+            // The required and positive-number validators handle incomplete rows.
+            if (!saleAffectsStock() || !itemId || !unitId || !stockId || quantity <= 0) {
+                return true;
+            }
+
+            try {
+                var response = await $.get('/api/Sale/HasStockQuantity', {
+                    itemId: itemId,
+                    unitId: unitId,
+                    stockId: stockId,
+                    quantity: quantity
+                });
+
+                return response.hasStock === true;
+            } catch (xhr) {
+                console.error(xhr);
+                return false;
+            }
+        }
+
         $("#checkHold").change(function(event) {
             if (event.target.checked) {
                 $("#checkAffectStock").prop("disabled", false);
-                $("#checkHoldText").removeClass("text-primary").addClass("text-warning").text("خرید ساتل کیږي. د ثبت پر مهال به حسابونه او اړوند مالي اغېزې تطبیق نه سي.");
+                $("#checkHoldText").removeClass("text-primary").addClass("text-warning").text("فروش ساتل کیږي. د ثبت پر مهال به حسابونه او اړوند مالي اغېزې تطبیق نه سي.");
             }
             else {
                 $("#checkAffectStock").prop("disabled", true);
-                $("#checkHoldText").removeClass("text-warning").addClass("text-primary").text("خرید نه ساتل کیږي. د ثبت پر مهال به حسابونه او اړوند مالي اغېزې تطبیق سي.");
+                $("#checkHoldText").removeClass("text-warning").addClass("text-primary").text("فروش نه ساتل کیږي. د ثبت پر مهال به حسابونه او اړوند مالي اغېزې تطبیق سي.");
             }
         });
         $("#checkAffectStock").change(function(event) {
@@ -398,6 +427,18 @@
                 {
                     rule: 'number',
                     errorMessage: 'مقدار باید یو نمبر وي',
+                },
+                {
+                    validator: function(value) {
+                        return Number(value) > 0;
+                    },
+                    errorMessage: 'مقدار باید له صفر څخه لوړ وي',
+                },
+                {
+                    validator: async function() {
+                        return await hasStockQuantity(quantityInput.closest('tr'));
+                    },
+                    errorMessage: 'کافي موجودي په ټاکلي ګدام کي نسته.'
                 }
             ]);
 
@@ -412,6 +453,12 @@
                 {
                     rule: 'number',
                     errorMessage: 'في قیمت باید یو نمبر وي',
+                },
+                {
+                    validator: function(value) {
+                        return Number(value) >= 0;
+                    },
+                    errorMessage: 'في قیمت باید منفي نه وي',
                 }
             ]);
 
@@ -427,6 +474,15 @@
                 {
                     rule: 'number',
                     errorMessage: 'مجموعه قیمت باید یو نمبر وي',
+                },
+                {
+                    validator: function(value) {
+                        var row = totalPriceInput.closest('tr');
+                        var quantity = Number(row.find('.control-quantity').val() || 0);
+                        var perPrice = Number(row.find('.per-price').val() || 0);
+                        return Number(value) >= 0 && Math.abs(Number(value) - (quantity * perPrice)) < 0.000001;
+                    },
+                    errorMessage: 'مجموعه قیمت باید د مقدار او في قیمت سره برابره وي',
                 }
             ]);
 
@@ -588,7 +644,7 @@
         formValidator.addField('#saleItemsTableBody', [
             {
                 validator: () => $('#saleItemsTableBody tr').length > 0,
-                errorMessage: 'د خرید لپاره لږ تر لږه یو جنس اړینه ده',
+                errorMessage: 'د فروش لپاره لږ تر لږه یو جنس اړینه ده',
             }
         ]);
         formValidator.addField("#saleRecieved",
@@ -607,7 +663,7 @@
             },
             {
                 validator: function(value) {
-                    if (!($("#checkHold")[0].checked) && value === 0 && Number(feesSourse.getValue() || 0) !== 0) {
+                    if (!($("#checkHold")[0].checked) && Number(value || 0) === 0 && Number(feesSourse.getValue() || 0) !== 0) {
                         return false;
                     }
                     else {
@@ -655,7 +711,7 @@
                 data: JSON.stringify(data),
                 contentType: "application/json",
                 success: function() {
-                    showToast("success", "خرید تغیر ثبت سو");
+                    showToast("success", "فروش تغیر ثبت سو");
                     setTimeout(function() {
                         history.back();
                     }, 2000);

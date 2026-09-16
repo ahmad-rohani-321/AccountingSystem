@@ -91,7 +91,7 @@
                     <p class="text-primary">بلانس: <span id="receivedBalanceLabel"></span></p>
                     <p class="text-primary">مخکنی رسید: <span id="receivedOldRecieveLabel"></span></p>
                     <div class="mb-3">
-                        <label for="saleTotal" class="form-label">خرید مجموعه</label>
+                        <label for="saleTotal" class="form-label">فروش مجموعه</label>
                         <input type="number" class="form-control" id="saleTotal" name="saleTotal" disabled>
                         <span class="text-muted" id="saleTotalText"></span>
                     </div>
@@ -143,7 +143,7 @@
                     <p class="text-primary">باقي: <span id="refundRemainingLabel"></span></p>
                     <div class="mb-3">
                         <label for="refundReceivedAmount" class="form-label">رسید مقدار</label>
-                        <input type="number" class="form-control" id="refundReceivedAmount" name="refundReceivedAmount" required>
+                        <input type="number" class="form-control" id="refundReceivedAmount" name="refundReceivedAmount" min="0" step="any" required>
                         <span class="text-muted" id="refundReceivedAmountText"></span>
                     </div>
                     <div class="mb-3">
@@ -242,6 +242,9 @@
         $(document).on("click", ".btn-received-sale", async function() {
             var sale = ($(this).data("sale")).sale;
             selectedSale = sale;
+            $("#receivedSaleForm")[0].reset();
+            $("#feesSource")[0].tomselect.clear(true);
+            $("#feesSourceText").text("");
             balance = await $.get(`/api/Accounts/GetAccountCurrencyBalance/${sale.currencyId}/${sale.personId}`);
             $("#receivedPersonLabel").text(sale.personName)
             $("#receivedCurrencyLabel").text(sale.currencyName)
@@ -264,22 +267,23 @@
             CalculateRecieved();
         });
         $("#feesSource").on("change", async function(event) {
-            var eventData = event.target.tomselect.items[0];
+            var eventData = event.target.tomselect.getValue();
 
-            treasureBalance = await $.get(`/api/Accounts/GetAccountCurrencyBalance/${selectedSale.currencyId}/${eventData}`);
-            $("#feesSourceText").text(NumberToWords(treasureBalance.currencyName, treasureBalance.balance));
+            if (!eventData) {
+                $("#feesSourceText").text("");
+                return;
+            }
+
+            try {
+                treasureBalance = await $.get(`/api/Accounts/GetAccountCurrencyBalance/${selectedSale.currencyId}/${eventData}`);
+                $("#feesSourceText").text(NumberToWords(treasureBalance.currencyName, treasureBalance.balance));
+            }
+            catch (xhr) {
+                $("#feesSourceText").text("");
+                showToast("warning", xhr.responseText || "د بانک بلانس بار نه سو.");
+            }
         });
         const recieveFormValidator = new JustValidate("#receivedSaleForm");
-        recieveFormValidator.addField("#saleTotal", [
-            {
-                rule: "required",
-                errorMessage: "مجموعه مبلغ اړین دی"
-            }, {
-                validator: function(value) {
-                    return value > 0;
-                },
-                errorMessage: "مجموعه مبلغ اړین دی"
-            }]);
         recieveFormValidator.addField("#receivedAmount", [
             {
                 rule: "required",
@@ -289,6 +293,11 @@
                     return value > 0;
                 },
                 errorMessage: "رسید مبلغ اړین دی"
+            }, {
+                validator: function(value) {
+                    return Number(value) <= Number(selectedSale.saleRemaining);
+                },
+                errorMessage: "رسید مبلغ د فروش له پاتې بلانس څخه زیاتېدلای نه سي."
             }]);
         recieveFormValidator.addField("#feesSource", [
             {
@@ -306,8 +315,8 @@
             var receiveAmount = Number($("#receivedAmount").val());
             var feesSource = Number($("#feesSource").val());
             var description = $("#description").val();
-            if (!selectedSale.saleId || receiveAmount > selectedSale.saleRemaining) {
-                showToast("warning", "رسید مبلغ د خرید له پاتې بلانس څخه زیاتېدلای نه سي.");
+            if (!selectedSale.saleId || receiveAmount <= 0 || receiveAmount > selectedSale.saleRemaining) {
+                showToast("warning", "رسید مبلغ د فروش له پاتې بلانس څخه زیاتېدلای نه سي.");
                 return;
             }
 
@@ -317,7 +326,7 @@
                 type: "POST",
                 contentType: "application/json",
                 data: JSON.stringify({
-                    saleId: selectedSale.saleId,
+                    id: selectedSale.saleId,
                     recieveAmount: receiveAmount,
                     description: description || "",
                     feesSource: feesSource
@@ -352,6 +361,9 @@
 
         $(document).on("click", ".btn-refund-sale", async function() {
             selectedSale = $(this).data("sale").sale;
+            $("#refundSaleForm")[0].reset();
+            $("#refundFeesSource")[0].tomselect.clear(true);
+            $("#refundFeesSourceText").text("");
             var accountBalance = await $.get("/api/Accounts/GetAccountCurrencyBalance/" + selectedSale.currencyId + "/" + selectedSale.personId);
 
             $("#refundPersonLabel").text(selectedSale.personName);
@@ -369,14 +381,18 @@
         const refundFormValidator = new JustValidate("#refundSaleForm");
         refundFormValidator.addField("#refundReceivedAmount", [
             {
-                validator: function(value) {
-                    return Number(value) >= 0;
-                },
-                errorMessage: "واپسۍ مبلغ باید د صفر څخه کم وي."
+                rule: "required",
+                errorMessage: "واپسۍ مبلغ اړین دی."
             },
             {
                 validator: function(value) {
-                    return Number(value) <= selectedSale.saleRecieved;
+                    return Number(value) >= 0;
+                },
+                errorMessage: "واپسۍ مبلغ باید د صفر څخه کم نه وي."
+            },
+            {
+                validator: function(value) {
+                    return Number(value) <= Number(selectedSale.saleRecieved);
                 },
                 errorMessage: "واپسۍ مبلغ د مخکني رسید سوي مبلغ څخه زیاتېدلای نه سي."
             }
@@ -384,7 +400,7 @@
         refundFormValidator.addField("#refundFeesSource", [
             {
                 validator: function(value) {
-                    return Number($("#refundReceivedAmount").val()) === 0 || !(!value);
+                    return Number($("#refundReceivedAmount").val() || 0) === 0 || Number(value) > 0;
                 },
                 errorMessage: "بانک/تجرئ اړین دی."
             }
@@ -398,7 +414,7 @@
                 type: "POST",
                 contentType: "application/json",
                 data: JSON.stringify({
-                    saleId: selectedSale.saleId,
+                    id: selectedSale.saleId,
                     recieveAmount: Number($("#refundReceivedAmount").val()),
                     description: $("#refundDescription").val() || "",
                     feesSource: Number($("#refundFeesSource").val())
@@ -406,11 +422,11 @@
                 success: function() {
                     $("#refundSaleModal").modal("hide");
                     $("#refundSaleForm")[0].reset();
-                    showToast("success", "د خرید واپسۍ ثبت سوه.");
+                    showToast("success", "د فروش واپسۍ ثبت سوه.");
                     loadSales();
                 },
                 error: function(xhr) {
-                    showToast("warning", xhr.responseText || "د خرید واپسۍ ثبت نه سوه.");
+                    showToast("warning", xhr.responseText || "د فروش واپسۍ ثبت نه سوه.");
                 },
                 complete: function() {
                     submitButton.prop("disabled", false);

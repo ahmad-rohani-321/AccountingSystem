@@ -393,5 +393,68 @@ namespace AccountingSystem.Controllers.ApiControllers
                 return null;
             }
         }
+    
+
+        [HttpGet("GetItemPrices")]
+        public async Task<ActionResult> GetItemPrices()
+        {
+            var data = await _context.Items
+                .Where(x => x.IsActive)
+                .OrderBy(x => x.NativeName)
+                .Select(x => new
+                {
+                    ItemId = x.ID,
+                    ItemName = x.NativeName,
+                    Price = _context.ItemsPrices
+                        .Where(p => p.ItemID == x.ID)
+                        .OrderByDescending(p => p.CreationDate)
+                        .ThenByDescending(p => p.ID)
+                        .Select(p => p.SalePrice)
+                        .FirstOrDefault()
+                })
+                .ToListAsync();
+            return Ok(data);
+        }
+
+        [HttpPost("SaveItemPrice")]
+        public async Task<IActionResult> SaveItemPrice(int itemId, decimal price)
+        {
+            if(!await _context.Items.AnyAsync(x => x.ID == itemId && x.IsActive))
+            {
+                return BadRequest("صحیح جنس انتخاب کړئ.");
+            }
+            else if(price < 0)
+            {
+                return BadRequest("قیمت باید منفي نه وي.");
+            }
+            else
+            {
+                try
+                {
+                    var user = _accessor.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier).Value;
+                    await _context.ItemsPrices.AddAsync(new Models.Inventory.ItemPrice()
+                    {
+                        CreatedByUserId = user,
+                        CreationDate = DateTime.Now,
+                        ItemID = itemId,
+                        SalePrice = price,
+                        Remarks = "د اجناسو د قیمتونو له پاڼي څخه قیمت ثبت سو."
+                    });
+                    await _context.UserHistories.AddAsync(new Models.Identity.UserHistory()
+                    {
+                        CreatedByUserId = user,
+                        CreationDate = DateTime.Now,
+                        Details = $"د {itemId} جنس قیمت تغیر سو.",
+                        ModelName = "د اجناسو قیمتونه"
+                    });
+                    await _context.SaveChangesAsync();
+                    return Ok();
+                }
+                catch(Exception ex)
+                {
+                    return BadRequest(ex.Message);
+                }
+            }
+        }
     }
 }
