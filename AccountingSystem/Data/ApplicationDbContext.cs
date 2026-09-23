@@ -402,6 +402,11 @@ namespace AccountingSystem.Data
                 {
                     ID = 14,
                     TypeName = "مصارف"
+                }, 
+                new JournalTransactionType()
+                {
+                    ID = 15,
+                    TypeName = "معاش"
                 }
             );
         }
@@ -422,6 +427,7 @@ namespace AccountingSystem.Data
         #region Accounting
         public DbSet<JournalEntry> JournalEntries { get; set; }
         public DbSet<JournalTransactionType> JournalEntryTransactionTypes { get; set; }
+        public DbSet<MonthlySalery> Salery { get; set; }
         #endregion
 
         #region Settings

@@ -1,0 +1,250 @@
+@{
+    ViewData["title"] = "پروفایل";
+    ViewData["settings"] = "active";
+    ViewData["ProfileSettings"] = "active";
+}
+
+<div class="row row-deck row-cards">
+    <div class="col-12 col-lg-7">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="h3 mb-0">د پروفایل معلومات</h3>
+            </div>
+            <form id="profileForm" class="card-body" enctype="multipart/form-data">
+                <div class="mb-3 text-center">
+                    <span class="avatar avatar-xl" id="profilePhotoPreview"></span>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="profileImage">د پروفایل عکس</label>
+                    <input type="file" class="form-control" id="profileImage" accept="image/png,image/jpeg,image/gif,image/webp" />
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label" for="firstName">نوم</label>
+                            <input type="text" class="form-control" id="firstName" placeholder="نوم" />
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label" for="lastName">تخلص</label>
+                            <input type="text" class="form-control" id="lastName" placeholder="تخلص" />
+                        </div>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label" for="userName">یوزر نوم</label>
+                            <input type="text" dir="ltr" class="form-control" id="userName" placeholder="یوزر نوم" />
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label" for="email">ایمېل</label>
+                            <input type="email" dir="ltr" class="form-control" id="email" placeholder="ایمېل" />
+                        </div>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="phoneNumber">د اړیکې شمېره</label>
+                    <input type="text" dir="ltr" class="form-control" id="phoneNumber" placeholder="د اړیکې شمېره" />
+                </div>
+                <div class="card-footer text-end px-0 pb-0">
+                    <button class="btn btn-primary" id="btnSaveProfile" type="submit">
+                        ثبت
+                        <i class="fas fa-save ms-2"></i>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <div class="col-12 col-lg-5">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="h3 mb-0">د پټ نوم تغیر</h3>
+            </div>
+            <form id="changePasswordForm" class="card-body">
+                <div class="mb-3">
+                    <label class="form-label" for="currentPassword">اوسنی پټ نوم</label>
+                    <input type="password" dir="ltr" class="form-control" id="currentPassword" placeholder="اوسنی پټ نوم" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="newPassword">نوی پټ نوم</label>
+                    <input type="password" dir="ltr" class="form-control" id="newPassword" placeholder="نوی پټ نوم" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="confirmPassword">د نوي پټ نوم تائید</label>
+                    <input type="password" dir="ltr" class="form-control" id="confirmPassword" placeholder="د نوي پټ نوم تائید" />
+                </div>
+                <div class="card-footer text-end px-0 pb-0">
+                    <button class="btn btn-primary" id="btnChangePassword" type="submit">
+                        تغیر
+                        <i class="fas fa-key ms-2"></i>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="h3 mb-0">زما تاریخچه</h3>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover table-striped">
+                        <thead>
+                            <tr>
+                                <th>برخه</th>
+                                <th>تفصیل</th>
+                                <th>نېټه</th>
+                            </tr>
+                        </thead>
+                        <tbody id="profileHistoryList"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/lib/just-validate/dist/just-validate.production.min.js"></script>
+    <script src="~/lib/moment-jalali/dist/jalali-moment.browser.js"></script>
+    <script>
+        $(document).ready(function() {
+            loadProfile();
+            loadProfileHistory();
+        });
+
+        function loadProfile() {
+            $.ajax({
+                url: "/api/Profile/GetProfile",
+                type: "GET",
+                success: function(data) {
+                    $("#firstName").val(data.firstName);
+                    $("#lastName").val(data.lastName);
+                    $("#userName").val(data.userName);
+                    $("#email").val(data.email);
+                    $("#phoneNumber").val(data.phoneNumber);
+                    setProfilePhoto(data.profilePhoto);
+                },
+                error: function(response) {
+                    showToast("warning", response.responseText || "د پروفایل معلومات ترلاسه نه سول.");
+                }
+            });
+        }
+
+        function setProfilePhoto(fileName) {
+            var photo = fileName ? "url('/Profiles/" + encodeURIComponent(fileName) + "')" : "";
+            $("#profilePhotoPreview").css("background-image", photo);
+        }
+
+        function loadProfileHistory() {
+            $.ajax({
+                url: "/api/Profile/GetUserHistory",
+                type: "GET",
+                success: function(data) {
+                    var table = $("#profileHistoryList");
+                    table.empty();
+                    if (!data.length) {
+                        $("<tr>").append($("<td>").attr("colspan", 3).addClass("text-center text-muted").text("هیڅ تاریخچه ونه موندل سوه.")).appendTo(table);
+                        return;
+                    }
+                    data.forEach(function(history) {
+                        var row = $("<tr>");
+                        $("<td>").text(history.modelName).appendTo(row);
+                        $("<td>").text(history.details).appendTo(row);
+                        $("<td>").text(moment(history.creationDate).format("jYYYY/jMM/jDD HH:mm:ss")).appendTo(row);
+                        table.append(row);
+                    });
+                },
+                error: function(response) {
+                    showToast("warning", response.responseText || "د تاریخچې معلومات ترلاسه نه سول.");
+                }
+            });
+        }
+
+        var profileFormValidator = new JustValidate("#profileForm");
+        profileFormValidator
+        .addField("#firstName", [{ rule: "required", errorMessage: "نوم اړین دی" }])
+        .addField("#lastName", [{ rule: "required", errorMessage: "تخلص اړین دی" }])
+        .addField("#userName", [{ rule: "required", errorMessage: "یوزر نوم اړین دی" }])
+        .addField("#email", [
+            { rule: "required", errorMessage: "ایمېل اړین دی" },
+            { rule: "email", errorMessage: "صحیح ایمېل ولیکئ" }
+        ]);
+        profileFormValidator.onSuccess(function(event) {
+            event.preventDefault();
+            var submitButton = $("#btnSaveProfile").prop("disabled", true);
+            var formData = new FormData();
+            formData.append("firstName", $("#firstName").val());
+            formData.append("lastName", $("#lastName").val());
+            formData.append("userName", $("#userName").val());
+            formData.append("email", $("#email").val());
+            formData.append("phoneNumber", $("#phoneNumber").val());
+            if ($("#profileImage")[0].files.length) {
+                formData.append("imageFile", $("#profileImage")[0].files[0]);
+            }
+            $.ajax({
+                url: "/api/Profile/UpdateProfile",
+                type: "PUT",
+                data: formData,
+                contentType: false,
+                processData: false,
+                success: function() {
+                    showToast("success", "د پروفایل معلومات په بریالیتوب سره تغیر سول.");
+                    $("#profileImage").val("");
+                    loadProfile();
+                    loadProfileHistory();
+                },
+                error: function(response) {
+                    showToast("warning", response.responseText || "د پروفایل معلومات تغیر نه سول.");
+                },
+                complete: function() {
+                    submitButton.prop("disabled", false);
+                }
+            });
+        });
+
+        var changePasswordFormValidator = new JustValidate("#changePasswordForm");
+        changePasswordFormValidator
+        .addField("#currentPassword", [{ rule: "required", errorMessage: "اوسنی پټ نوم اړین دی" }])
+        .addField("#newPassword", [
+            { rule: "required", errorMessage: "نوی پټ نوم اړین دی" },
+            { rule: "password", errorMessage: "پټ نوم لږ تر لږه ۸ توري او یو عدد ولري" }
+        ])
+        .addField("#confirmPassword", [
+            { rule: "required", errorMessage: "د نوي پټ نوم تائید اړین دی" },
+            {
+                validator: function(value) { return value === $("#newPassword").val(); },
+                errorMessage: "د نوي پټ نوم تائید سم نه دی"
+            }
+        ]);
+        changePasswordFormValidator.onSuccess(function(event) {
+            event.preventDefault();
+            var submitButton = $("#btnChangePassword").prop("disabled", true);
+            $.ajax({
+                url: "/api/Profile/ChangePassword",
+                type: "PUT",
+                contentType: "application/json",
+                data: JSON.stringify({
+                    currentPassword: $("#currentPassword").val(),
+                    newPassword: $("#newPassword").val(),
+                    confirmPassword: $("#confirmPassword").val()
+                }),
+                success: function() {
+                    $("#changePasswordForm")[0].reset();
+                    showToast("success", "پټ نوم په بریالیتوب سره تغیر سو.");
+                },
+                error: function(response) {
+                    showToast("warning", response.responseText || "پټ نوم تغیر نه سو.");
+                },
+                complete: function() {
+                    submitButton.prop("disabled", false);
+                }
+            });
+        });
+    </script>
+}

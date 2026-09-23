@@ -128,10 +128,6 @@ public class SaleController(ApplicationDbContext context, IHttpContextAccessor a
                 var user = _accessor.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier).Value;
                 string remarks = $"فروش نمبر: {request.SaleNo} | {request.Remarks}";
 
-                // A stock balance is stored in the item's base unit.  Resolve every
-                // requested unit first, then total all lines for the same item and
-                // warehouse before changing anything in the database.  This prevents
-                // separate lines from collectively selling more than the available stock.
                 var unitIds = request.SaleDetails.Select(x => x.UnitId).Distinct().ToArray();
                 var units = await _context.UnitConversion
                     .Where(x => unitIds.Contains(x.ID))
@@ -145,37 +141,30 @@ public class SaleController(ApplicationDbContext context, IHttpContextAccessor a
                     return BadRequest("د واحد د تبدیل معلومات ناسم دي.");
                 }
 
-                var saleLines = request.SaleDetails
-                    .Select(x => new
-                    {
-                        Detail = x,
-                        BaseQuantity = x.Quantity / units[x.UnitId].ExchangedAmount
-                    })
-                    .ToList();
-
                 var itemIds = request.SaleDetails.Select(x => x.ItemId).Distinct().ToArray();
                 var warehouseIds = request.SaleDetails.Select(x => x.StockId).Distinct().ToArray();
                 var stockBalances = await _context.StockBalances
                     .Where(x => itemIds.Contains(x.ItemID) && warehouseIds.Contains(x.WarehouseID))
                     .ToListAsync();
 
-                var stockByItemAndWarehouse = stockBalances
+                var stocksByItemAndWarehouse = stockBalances
                     .GroupBy(x => (x.ItemID, x.WarehouseID))
-                    .ToDictionary(x => x.Key, x => x.First());
+                    .ToDictionary(x => x.Key, x => x.OrderBy(x => x.CreationDate).ThenBy(x => x.ID).ToList());
+                var availableStockQuantity = stockBalances.ToDictionary(x => x.ID, x => x.Quantity);
 
-                var requiredStock = saleLines
-                    .GroupBy(x => (x.Detail.ItemId, x.Detail.StockId))
+                var requiredStock = request.SaleDetails
+                    .GroupBy(x => (x.ItemId, x.StockId))
                     .Select(x => new
                     {
                         x.Key,
-                        Quantity = x.Sum(line => line.BaseQuantity)
+                        Quantity = x.Sum(line => line.Quantity / units[line.UnitId].ExchangedAmount)
                     })
                     .ToList();
 
                 foreach (var requirement in requiredStock)
                 {
-                    if (!stockByItemAndWarehouse.TryGetValue(requirement.Key, out var stock) ||
-                        stock.Quantity < requirement.Quantity)
+                    if (!stocksByItemAndWarehouse.TryGetValue(requirement.Key, out var stocks) ||
+                        stocks.Sum(x => availableStockQuantity[x.ID]) < requirement.Quantity)
                     {
                         return BadRequest("د فروش لپاره په ګدام کې کافي موجودي نسته.");
                     }
@@ -266,45 +255,60 @@ public class SaleController(ApplicationDbContext context, IHttpContextAccessor a
                     }
                     await _context.SaveChangesAsync();
                 }
-                foreach (var line in saleLines)
+                foreach (var item in request.SaleDetails)
                 {
-                    var item = line.Detail;
-                    var stock = stockByItemAndWarehouse[(item.ItemId, item.StockId)];
+                    var remainingQuantity = item.Quantity / units[item.UnitId].ExchangedAmount;
+                    var stocks = stocksByItemAndWarehouse[(item.ItemId, item.StockId)];
 
-                    await _context.SalesDetails.AddAsync(new Models.Sales.SaleDetails()
+                    foreach (var stock in stocks)
                     {
-                        CreatedByUserId = user,
-                        CreationDate = date,
-                        ItemID = item.ItemId,
-                        PerPrice = item.PerPrice,
-                        SaleID = sale.Entity.ID,
-                        Quantity = item.Quantity,
-                        TotalPrice = item.TotalPrice,
-                        UnitConversionID = item.UnitId,
-                        WarehouseID = item.StockId,
-                        StockItemId = stock.ID,
-                        Remarks = item.Remarks
-                    });
-                    if (request.EffectsStock)
-                    {
-                        await _context.StockTransactions.AddAsync(new Models.Inventory.StockTransactions()
+                        if (remainingQuantity <= 0)
+                        {
+                            break;
+                        }
+
+                        var takenBaseQuantity = Math.Min(availableStockQuantity[stock.ID], remainingQuantity);
+                        if (takenBaseQuantity <= 0)
+                        {
+                            continue;
+                        }
+
+                        var takenQuantity = takenBaseQuantity * units[item.UnitId].ExchangedAmount;
+                        var purchasePrice = stock.PurchaseBaseCurrencyPrice * units[item.UnitId].ExchangedAmount;
+
+                        await _context.SalesDetails.AddAsync(new Models.Sales.SaleDetails()
                         {
                             CreatedByUserId = user,
                             CreationDate = date,
-                            Quantity = item.Quantity,
-                            StockBalanceID = stock.ID,
-                            TransactionID = 7,
-                            Remarks = item.Remarks,
-                            UnitID = item.UnitId
+                            ItemID = item.ItemId,
+                            PerPrice = item.PerPrice,
+                            SaleID = sale.Entity.ID,
+                            Quantity = takenQuantity,
+                            TotalPrice = item.PerPrice * takenQuantity,
+                            Profit = (item.PerPrice - purchasePrice) * takenQuantity,
+                            UnitConversionID = item.UnitId,
+                            WarehouseID = item.StockId,
+                            StockItemId = stock.ID,
+                            Remarks = item.Remarks
                         });
-                    }
-                }
 
-                if ( request.EffectsStock)
-                {
-                    foreach (var requirement in requiredStock)
-                    {
-                        stockByItemAndWarehouse[requirement.Key].Quantity -= requirement.Quantity;
+                        availableStockQuantity[stock.ID] -= takenBaseQuantity;
+                        remainingQuantity -= takenBaseQuantity;
+
+                        if (request.EffectsStock)
+                        {
+                            stock.Quantity -= takenBaseQuantity;
+                            await _context.StockTransactions.AddAsync(new Models.Inventory.StockTransactions()
+                            {
+                                CreatedByUserId = user,
+                                CreationDate = date,
+                                Quantity = takenQuantity,
+                                StockBalanceID = stock.ID,
+                                TransactionID = 7,
+                                Remarks = item.Remarks,
+                                UnitID = item.UnitId
+                            });
+                        }
                     }
                 }
                 await _context.UserHistories.AddAsync(new Models.Identity.UserHistory()
@@ -431,25 +435,28 @@ public class SaleController(ApplicationDbContext context, IHttpContextAccessor a
                     .ToArray();
                 var itemIds = stockKeys.Select(x => x.Item1).Distinct().ToArray();
                 var warehouseIds = stockKeys.Select(x => x.Item2).Distinct().ToArray();
+                var oldStockIds = oldSaleDetails.Select(x => x.StockItemId).Distinct().ToArray();
                 var stocks = await _context.StockBalances
-                    .Where(x => itemIds.Contains(x.ItemID) && warehouseIds.Contains(x.WarehouseID))
+                    .Where(x => (itemIds.Contains(x.ItemID) && warehouseIds.Contains(x.WarehouseID)) || oldStockIds.Contains(x.ID))
                     .ToListAsync();
-                var stockByItemAndWarehouse = stocks
+                var stocksByItemAndWarehouse = stocks
                     .GroupBy(x => (x.ItemID, x.WarehouseID))
-                    .ToDictionary(x => x.Key, x => x.First());
+                    .ToDictionary(x => x.Key, x => x.OrderBy(x => x.CreationDate).ThenBy(x => x.ID).ToList());
+                var stockById = stocks.ToDictionary(x => x.ID);
 
-                if ((oldAffectsStock || newAffectsStock) && stockKeys.Any(x => !stockByItemAndWarehouse.ContainsKey(x)))
+                if ((oldAffectsStock || newAffectsStock) && stockKeys.Any(x => !stocksByItemAndWarehouse.ContainsKey(x)))
                 {
                     return BadRequest("د فروش لپاره په ګدام کې کافي موجودي نسته.");
                 }
 
-                // Restore the previous sale first, then verify and apply the edited sale.
-                // This also handles changed items, units, warehouses, and removed rows.
                 if (oldAffectsStock)
                 {
                     foreach (var oldDetail in oldSaleDetails)
                     {
-                        var stock = stockByItemAndWarehouse[(oldDetail.ItemID, oldDetail.WarehouseID)];
+                        if (!stockById.TryGetValue(oldDetail.StockItemId, out var stock))
+                        {
+                            return BadRequest("د فروش اړوند موجودي ونه موندل سوه.");
+                        }
                         stock.Quantity += oldDetail.Quantity / units[oldDetail.UnitConversionID].ExchangedAmount;
 
                         await _context.StockTransactions.AddAsync(new Models.Inventory.StockTransactions()
@@ -465,6 +472,8 @@ public class SaleController(ApplicationDbContext context, IHttpContextAccessor a
                     }
                 }
 
+                var availableStockQuantity = stocks.ToDictionary(x => x.ID, x => x.Quantity);
+
                 var requiredStock = request.SaleDetails
                     .GroupBy(x => (x.ItemId, x.StockId))
                     .Select(x => new
@@ -478,7 +487,8 @@ public class SaleController(ApplicationDbContext context, IHttpContextAccessor a
                 {
                     foreach (var requirement in requiredStock)
                     {
-                        if (stockByItemAndWarehouse[requirement.Key].Quantity < requirement.Quantity)
+                        if (!stocksByItemAndWarehouse.TryGetValue(requirement.Key, out var availableStocks) ||
+                            availableStocks.Sum(x => availableStockQuantity[x.ID]) < requirement.Quantity)
                         {
                             return BadRequest("د فروش لپاره په ګدام کې کافي موجودي نسته.");
                         }
@@ -595,26 +605,29 @@ public class SaleController(ApplicationDbContext context, IHttpContextAccessor a
                 sale.ReceivedAmount = request.SaleRecieved;
                 sale.RemainingAmount = request.SaleTotal - request.SaleRecieved;
 
+                _context.SalesDetails.RemoveRange(oldSaleDetails);
+
                 foreach (var item in request.SaleDetails)
                 {
-                    var stock = stockByItemAndWarehouse[(item.ItemId, item.StockId)];
-                    if (newAffectsStock)
-                    {
-                        stock.Quantity -= item.Quantity / units[item.UnitId].ExchangedAmount;
-                        await _context.StockTransactions.AddAsync(new Models.Inventory.StockTransactions()
-                        {
-                            CreatedByUserId = user,
-                            CreationDate = date,
-                            Quantity = item.Quantity,
-                            StockBalanceID = stock.ID,
-                            TransactionID = 11,
-                            Remarks = $"فروش نمبر: {request.SaleNo} تغیر | {item.Remarks}",
-                            UnitID = item.UnitId
-                        });
-                    }
+                    var remainingQuantity = item.Quantity / units[item.UnitId].ExchangedAmount;
+                    var stocksForItem = stocksByItemAndWarehouse[(item.ItemId, item.StockId)];
 
-                    if (item.Id == 0)
+                    foreach (var stock in stocksForItem)
                     {
+                        if (remainingQuantity <= 0)
+                        {
+                            break;
+                        }
+
+                        var takenBaseQuantity = Math.Min(availableStockQuantity[stock.ID], remainingQuantity);
+                        if (takenBaseQuantity <= 0)
+                        {
+                            continue;
+                        }
+
+                        var takenQuantity = takenBaseQuantity * units[item.UnitId].ExchangedAmount;
+                        var purchasePrice = stock.PurchaseBaseCurrencyPrice * units[item.UnitId].ExchangedAmount;
+
                         await _context.SalesDetails.AddAsync(new Models.Sales.SaleDetails()
                         {
                             CreatedByUserId = user,
@@ -622,31 +635,33 @@ public class SaleController(ApplicationDbContext context, IHttpContextAccessor a
                             ItemID = item.ItemId,
                             PerPrice = item.PerPrice,
                             SaleID = sale.ID,
-                            Quantity = item.Quantity,
-                            TotalPrice = item.TotalPrice,
+                            Quantity = takenQuantity,
+                            TotalPrice = item.PerPrice * takenQuantity,
+                            Profit = (item.PerPrice - purchasePrice) * takenQuantity,
                             UnitConversionID = item.UnitId,
                             WarehouseID = item.StockId,
                             StockItemId = stock.ID,
                             Remarks = item.Remarks
                         });
-                    }
-                    else
-                    {
-                        var existingDetail = oldDetailsById[item.Id];
-                        existingDetail.ItemID = item.ItemId;
-                        existingDetail.UnitConversionID = item.UnitId;
-                        existingDetail.WarehouseID = item.StockId;
-                        existingDetail.StockItemId = stock.ID;
-                        existingDetail.Quantity = item.Quantity;
-                        existingDetail.PerPrice = item.PerPrice;
-                        existingDetail.TotalPrice = item.TotalPrice;
-                        existingDetail.Remarks = item.Remarks;
-                    }
-                }
 
-                foreach (var removedDetail in oldSaleDetails.Where(x => !submittedDetailIds.Contains(x.ID)))
-                {
-                    _context.SalesDetails.Remove(removedDetail);
+                        availableStockQuantity[stock.ID] -= takenBaseQuantity;
+                        remainingQuantity -= takenBaseQuantity;
+
+                        if (newAffectsStock)
+                        {
+                            stock.Quantity -= takenBaseQuantity;
+                            await _context.StockTransactions.AddAsync(new Models.Inventory.StockTransactions()
+                            {
+                                CreatedByUserId = user,
+                                CreationDate = date,
+                                Quantity = takenQuantity,
+                                StockBalanceID = stock.ID,
+                                TransactionID = 11,
+                                Remarks = $"فروش نمبر: {request.SaleNo} تغیر | {item.Remarks}",
+                                UnitID = item.UnitId
+                            });
+                        }
+                    }
                 }
 
                 await _context.UserHistories.AddAsync(new Models.Identity.UserHistory()

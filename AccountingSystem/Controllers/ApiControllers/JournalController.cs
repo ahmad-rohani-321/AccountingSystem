@@ -394,6 +394,117 @@ namespace AccountingSystem.Controllers.ApiControllers
             }
         }
     
+        [HttpPost("SaveEmployeeSalery")]
+        public async Task<ActionResult> SaveEmployeeSalery(int id, int month, decimal amount, string remarks)
+        {
+            if(!await _context.Accounts.AnyAsync(x => x.ID == id && x.AccountTypeID == 9))
+            {
+                return BadRequest("هیله ده د کارمند حساب انتخاب کړئ.");
+            }
+            else if (!await _context.Accounts.AnyAsync(x => x.ID == id))
+            {
+                return BadRequest("کارمند موجود نه دی.");
+            }
+            else if (month < 1 || month > 12)
+            {
+                return BadRequest("مهرباني وکړئ د میاشتې لپاره صحیح ارزښت ورکړئ.");
+            }
+            else if (amount < 0)
+            {
+                return BadRequest("مقدار باید منفي نه وي.");
+            }
+            else
+            {
+                using var transaction = await _context.Database.BeginTransactionAsync();
+                try
+                {
+                    var user = _accessor.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier).Value;
+                    var emplyeeAccount = await _context.Accounts.FindAsync(id);
+                    var mainCurrency = await _context.Currencies.FirstOrDefaultAsync(x => x.IsMainCurrency);
+                    if (mainCurrency == null)
+                    {
+                        return BadRequest("هیله ده اصلي اسعار وټاکئ.");
+                    }
+                    var mainCurrencyAccount = await _context.AccountBalances.FirstOrDefaultAsync(x => x.AccountID == emplyeeAccount.ID && x.CurrencyID == mainCurrency.ID);
+                    
+                    if(mainCurrencyAccount == null)
+                    {
+                        var newAccount = await _context.AccountBalances.AddAsync(new Models.Accounts.AccountBalance()
+                        {
+                            AccountID = emplyeeAccount.ID,
+                            CreatedByUserId = user,
+                            CreationDate = DateTime.Now,
+                            CurrencyID = mainCurrency.ID
+                        });
+                        await _context.SaveChangesAsync();
+                        mainCurrencyAccount = newAccount.Entity;
+                    }
+                    
+                    mainCurrencyAccount.Balance += amount;
+                    await _context.JournalEntries.AddAsync(new Models.Accounting.JournalEntry()
+                    {
+                        AccountBalanceID = mainCurrencyAccount.ID,
+                        Balance = mainCurrencyAccount.Balance,
+                        CreatedByUserId = user,
+                        CreationDate = DateTime.Now,
+                        Credit = amount,
+                        Remarks = remarks,
+                        TransactionTypeID = 15
+                    });
+
+                    await _context.SaveChangesAsync();
+
+                    mainCurrencyAccount.Balance -= amount;
+                    await _context.JournalEntries.AddAsync(new Models.Accounting.JournalEntry()
+                    {
+                        AccountBalanceID = mainCurrencyAccount.ID,
+                        Balance = mainCurrencyAccount.Balance,
+                        CreatedByUserId = user,
+                        CreationDate = DateTime.Now,
+                        Debit = amount,
+                        Remarks = remarks,
+                        TransactionTypeID = 15
+                    });
+
+                    await _context.Salery.AddAsync(new Models.Accounting.MonthlySalery()
+                    {
+                        EmployeeID = id,
+                        CreatedByUserId = user,
+                        CreationDate = DateTime.Now,
+                        Month = month,
+                        GivenAmount = amount,
+                        Remarks = remarks
+                    });
+                    await _context.SaveChangesAsync();
+                    await transaction.CommitAsync();
+                    return Ok();
+                }
+                catch (Exception ex)
+                {
+                    await transaction.RollbackAsync();
+                    return BadRequest(ex.Message);
+                }
+            }
+        }
+
+        [HttpGet("GetEmployeeSalery")]
+        public async Task<ActionResult> GetEmployeeSalery(int accountId)
+        {
+            var data = await _context.Salery
+                .Include(x => x.Employee)
+                .Where(x => x.EmployeeID == accountId)
+                .OrderByDescending(x => x.CreationDate)
+                .Select(x => new
+                {
+                    EmployeeName = x.Employee.Name,
+                    Month = x.Month,
+                    Amount = x.GivenAmount,
+                    Remarks = x.Remarks,
+                    Date = x.CreationDate
+                })
+                .ToListAsync();
+            return Ok(data);
+        }
 
         [HttpGet("GetItemPrices")]
         public async Task<ActionResult> GetItemPrices()
@@ -429,6 +540,7 @@ namespace AccountingSystem.Controllers.ApiControllers
             }
             else
             {
+                using var transaction = await _context.Database.BeginTransactionAsync();
                 try
                 {
                     var user = _accessor.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier).Value;
@@ -448,10 +560,12 @@ namespace AccountingSystem.Controllers.ApiControllers
                         ModelName = "د اجناسو قیمتونه"
                     });
                     await _context.SaveChangesAsync();
+                    await transaction.CommitAsync();
                     return Ok();
                 }
                 catch(Exception ex)
                 {
+                    await transaction.RollbackAsync();
                     return BadRequest(ex.Message);
                 }
             }

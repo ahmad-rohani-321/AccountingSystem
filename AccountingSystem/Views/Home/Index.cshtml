@@ -3,25 +3,440 @@
     ViewData["home"] = "active";
 }
 
+@section Styles {
+    <link href="~/lib/tom-select/dist/css/tom-select.bootstrap5.css" rel="stylesheet" />
+    <link href="~/lib/flatpickr-jalali-support/dist/flatpickr.min.css" rel="stylesheet" />
+    <link href="~/lib/flatpickr-jalali-support/dist/themes/soft-card.css" rel="stylesheet" />
+    <style>
+        .home-dashboard .card {
+            border-radius: 14px;
+            box-shadow: 0 3px 16px rgba(24, 36, 51, .035);
+        }
+        .home-dashboard .card-header {
+            min-height: 76px;
+            padding: 1.25rem;
+            gap: .75rem;
+        }
+        .home-dashboard .card-title { margin: 0; font-size: 1rem; font-weight: 600; }
+        .home-dashboard .dashboard-subtitle { font-size: .8rem; margin-top: .35rem; }
+        .home-dashboard .summary-card { position: relative; }
+        .home-dashboard .summary-card::before {
+            content: "";
+            position: absolute;
+            inset-block: 1.5rem;
+            inset-inline-start: 0;
+            width: 3px;
+            border-radius: 3px;
+            background: var(--summary-color);
+        }
+        .home-dashboard .summary-card .card-body { padding: 1.4rem 1.25rem; }
+        .home-dashboard .summary-card .avatar { width: 42px; height: 42px; border-radius: 12px; box-shadow: none; }
+        .home-dashboard .summary-value { font-size: 2rem; font-weight: 700; line-height: 1.2; font-variant-numeric: tabular-nums; }
+        .home-dashboard .summary-label { font-size: .8rem; min-height: 2.5rem; margin-top: .5rem; }
+        .home-dashboard .dashboard-table { margin-bottom: 0; }
+        .home-dashboard .dashboard-table thead th { background: var(--tblr-bg-surface-secondary); font-weight: 500; letter-spacing: 0; }
+        .home-dashboard .dashboard-table td, .home-dashboard .dashboard-table th { padding: .9rem 1.25rem; }
+        .home-dashboard .dashboard-table td { vertical-align: middle; }
+        .home-dashboard .dashboard-table td:last-child { font-variant-numeric: tabular-nums; white-space: nowrap; }
+        .home-dashboard .dashboard-table tbody tr:last-child td { border-bottom: 0; }
+        .home-dashboard .dashboard-table td.text-center { padding-block: 2.5rem; }
+        .home-dashboard .dashboard-table-scroll { max-height: 410px; overflow: auto; }
+        .home-dashboard .dashboard-table-scroll thead { position: sticky; top: 0; z-index: 1; }
+        .home-dashboard .dashboard-filter { width: 160px; max-width: 100%; }
+        .home-dashboard .ts-wrapper { margin: 0; }
+        .home-dashboard .ts-control, .home-dashboard .ts-dropdown { font-family: inherit; text-align: start; border-radius: 8px; }
+        .home-dashboard .ts-control { background: var(--tblr-bg-surface) !important; color: var(--tblr-body-color); border-color: var(--tblr-border-color); }
+        .home-dashboard .ts-dropdown, .home-dashboard .ts-dropdown .option { background: var(--tblr-bg-surface) !important; color: var(--tblr-body-color); }
+        .home-dashboard .ts-dropdown .active { background: var(--tblr-bg-surface-secondary) !important; }
+        .home-dashboard .chart-total { font-size: 1.75rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+        .home-dashboard #salesChartStatus { min-height: 1.25rem; font-size: .8rem; }
+        .home-dashboard .seller-name { min-width: 0; overflow-wrap: anywhere; }
+        .home-dashboard .seller-progress { width: 100%; height: 4px; margin-top: .65rem; }
+        @@media (max-width: 575.98px) {
+            .home-dashboard .summary-card .card-body { padding: 1rem; }
+            .home-dashboard .summary-value { font-size: 1.65rem; }
+            .home-dashboard .card-header { flex-wrap: wrap; }
+            .home-dashboard .dashboard-filter { width: 100%; }
+        }
+    </style>
+}
+
+<div class="home-dashboard">
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-4">
+        <div>
+            <h2 class="mb-1">د سوداګرۍ عمومي کتنه</h2>
+            <div class="text-muted">د فروش، اجناسو او اسعارو لنډ معلومات</div>
+        </div>
+        <div class="text-muted small"><i class="fa-regular fa-calendar me-2"></i><span id="dashboardDate"></span></div>
+    </div>
 <div class="row row-deck row-cards">
-    <div class="col-4">
-        <div class="card">
-            <div class="card-body" style="height: 10rem"></div>
+    <div class="col-6 col-md-4 col-xl">
+        <div class="card summary-card" style="--summary-color: var(--tblr-blue)">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-auto"><span class="avatar bg-blue-lt text-blue"><i class="fa-solid fa-box"></i></span></div>
+                    <div class="col">
+                        <div class="summary-value" id="itemsCount" aria-live="polite">—</div>
+                        <div class="text-muted summary-label">فعال اجناس</div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
-    <div class="col-4">
-        <div class="card">
-            <div class="card-body" style="height: 10rem"></div>
+    <div class="col-6 col-md-4 col-xl">
+        <div class="card summary-card" style="--summary-color: var(--tblr-green)">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-auto"><span class="avatar bg-green-lt text-green"><i class="fa-solid fa-truck"></i></span></div>
+                    <div class="col">
+                        <div class="summary-value" id="suppliersCount" aria-live="polite">—</div>
+                        <div class="text-muted summary-label">عرضه کوونکي</div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
-    <div class="col-4">
-        <div class="card">
-            <div class="card-body" style="height: 10rem"></div>
+    <div class="col-6 col-md-4 col-xl">
+        <div class="card summary-card" style="--summary-color: var(--tblr-azure)">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-auto"><span class="avatar bg-azure-lt text-azure"><i class="fa-solid fa-users"></i></span></div>
+                    <div class="col">
+                        <div class="summary-value" id="customersCount" aria-live="polite">—</div>
+                        <div class="text-muted summary-label">پېرېدونکي</div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
-    <div class="col-12">
+    <div class="col-6 col-md-4 col-xl">
+        <div class="card summary-card" style="--summary-color: var(--tblr-yellow)">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-auto"><span class="avatar bg-yellow-lt text-yellow"><i class="fa-solid fa-people-group"></i></span></div>
+                    <div class="col">
+                        <div class="summary-value" id="bothAccountsCount" aria-live="polite">—</div>
+                        <div class="text-muted summary-label">عرضه کوونکي او پېرېدونکي</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-4 col-xl">
+        <div class="card summary-card" style="--summary-color: var(--tblr-red)">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-auto"><span class="avatar bg-red-lt text-red"><i class="fa-solid fa-warehouse"></i></span></div>
+                    <div class="col">
+                        <div class="summary-value" id="warehousesCount" aria-live="polite">—</div>
+                        <div class="text-muted summary-label">فعال ګدامونه</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-lg-4">
         <div class="card">
-            <div class="card-body" style="height: 10rem"></div>
+            <div class="card-header">
+                <span class="avatar avatar-sm bg-yellow-lt text-yellow"><i class="fa-solid fa-trophy"></i></span>
+                <div><h3 class="card-title">غوره فروش کوونکي</h3><div class="text-muted dashboard-subtitle">د بشپړو فروشونو له مخې</div></div>
+                <span class="badge bg-blue-lt ms-auto sales-period-label">نن</span>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-vcenter table-hover dashboard-table">
+                        <thead><tr><th>نوم</th><th>د فروش شمېر</th></tr></thead>
+                        <tbody id="topSellersList" aria-live="polite"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-lg-8">
+        <div class="card">
+            <div class="card-header justify-content-between">
+                <div><h3 class="card-title">د فروش بهیر</h3><div class="text-muted dashboard-subtitle">Sprint velocity</div></div>
+                <div class="dashboard-filter">
+                    <label class="visually-hidden" for="salesPeriod">موده</label>
+                    <select id="salesPeriod" class="form-select"><option value="today" selected>نن</option><option value="week">دا اونۍ</option><option value="month">دا میاشت</option><option value="sixMonths">شپږ میاشتې</option><option value="year">دا کال</option><option value="custom">د نېټو ټاکل</option></select>
+                </div>
+            </div>
+            <div class="card-body">
+                <form id="salesFilterForm" class="row g-3">
+                    <div class="col-12 d-none" id="customDateRange">
+                        <div class="row g-3 align-items-end mb-3">
+                            <div class="col-6 col-md-5">
+                                <label class="form-label" for="startDate">شروع نېټه</label>
+                                <input type="text" id="startDate" class="form-control" />
+                            </div>
+                            <div class="col-6 col-md-5">
+                                <label class="form-label" for="endDate">پای نېټه</label>
+                                <input type="text" id="endDate" class="form-control" />
+                            </div>
+                            <div class="col-12 col-md-2"><button type="submit" class="btn btn-primary">لټون</button></div>
+                        </div>
+                    </div>
+                </form>
+                <div class="d-flex align-items-center gap-3 mb-2">
+                    <div class="chart-total" id="salesTotal">—</div>
+                    <div class="text-muted small">بشپړ فروشونه <span class="sales-period-label">نن</span></div>
+                </div>
+                <div id="salesChartStatus" class="text-muted" role="status"></div>
+                <div id="chart-sprint-velocity" dir="ltr"></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <span class="avatar avatar-sm bg-green-lt text-green"><i class="fa-solid fa-coins"></i></span>
+                <div><h3 class="card-title">فعال اسعار</h3><div class="text-muted dashboard-subtitle">د معاملاتو فعال اسعار</div></div>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive dashboard-table-scroll">
+                    <table class="table table-vcenter table-hover dashboard-table">
+                        <thead><tr><th>اسعار</th><th>نښه</th></tr></thead>
+                        <tbody id="activeCurrenciesList" aria-live="polite"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <span class="avatar avatar-sm bg-azure-lt text-azure"><i class="fa-solid fa-arrow-right-arrow-left"></i></span>
+                <div><h3 class="card-title">د اسعارو وروستي نرخونه</h3><div class="text-muted dashboard-subtitle">د هرې جوړې وروستی ثبت سوی نرخ</div></div>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive dashboard-table-scroll">
+                    <table class="table table-vcenter table-hover dashboard-table">
+                        <thead><tr><th>اسعار</th><th>نرخ</th></tr></thead>
+                        <tbody id="currencyPricesList" aria-live="polite"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <span class="avatar avatar-sm bg-blue-lt text-blue"><i class="fa-solid fa-boxes-stacked"></i></span>
+                <div><h3 class="card-title">۱۵ ډېر پلورل سوي اجناس</h3><div class="text-muted dashboard-subtitle">د پلورل سوي مقدار له مخې</div></div>
+            </div>
+            <div class="card-body p-0">
+                <div class="p-3 border-bottom">
+                    <label class="visually-hidden" for="itemsPeriod">موده</label>
+                    <select id="itemsPeriod" class="form-select"><option value="today" selected>نن</option><option value="week">دا اونۍ</option><option value="month">دا میاشت</option><option value="sixMonths">شپږ میاشتې</option><option value="year">دا کال</option></select>
+                </div>
+                <div class="table-responsive dashboard-table-scroll">
+                    <table class="table table-vcenter table-hover dashboard-table">
+                        <thead><tr><th>جنس</th><th>مقدار</th><th>واحد</th></tr></thead>
+                        <tbody id="topSoldItemsList" aria-live="polite"></tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
 </div>
+
+</div>
+
+@section Scripts {
+    <script src="~/lib/tom-select/dist/js/tom-select.complete.min.js"></script>
+    <script src="~/lib/flatpickr-jalali-support/dist/flatpickr.min.js"></script>
+    <script src="~/lib/flatpickr-jalali-support/dist/l10n/fa.js"></script>
+    <script src="~/lib/moment-jalali/dist/jalali-moment.browser.js"></script>
+    <script src="~/lib/tabler/dist/libs/apexcharts/dist/apexcharts.min.js"></script>
+    <script>
+        var salesChart;
+        var salesRequest;
+        var itemsRequest;
+
+        $(document).ready(function() {
+            flatpickr("#startDate", { locale: "fa", defaultDate: new Date(), allowInput: true });
+            flatpickr("#endDate", { locale: "fa", defaultDate: new Date(), allowInput: true });
+            $("#dashboardDate").text(moment().format("jYYYY/jMM/jDD"));
+            new TomSelect("#salesPeriod", { create: false, controlInput: null, allowEmptyOption: false });
+            new TomSelect("#itemsPeriod", { create: false, controlInput: null, allowEmptyOption: false });
+            salesChart = new ApexCharts(document.querySelector("#chart-sprint-velocity"), {
+                chart: { type: "bar", height: 285, fontFamily: "inherit", toolbar: { show: false } },
+                series: [],
+                colors: ["#206bc4"],
+                plotOptions: { bar: { columnWidth: "42%", borderRadius: 4 } },
+                dataLabels: { enabled: false },
+                grid: { strokeDashArray: 4, borderColor: "rgba(98, 105, 118, .15)" },
+                xaxis: { type: "category", axisBorder: { show: false }, axisTicks: { show: false }, tickAmount: 6 },
+                yaxis: { min: 0, forceNiceScale: true, decimalsInFloat: 0 },
+                noData: { text: "معلومات نسته" },
+                theme: { mode: globalTheme || "light" }
+            });
+            salesChart.render().then(function() { loadSalesAnalytics(); });
+            loadSummaryCounts();
+            loadActiveCurrencies();
+            loadCurrencyPrices();
+            loadTopSoldItems();
+        });
+
+        $("#salesPeriod").on("change", function() {
+            $("#customDateRange").toggleClass("d-none", $(this).val() !== "custom");
+            loadSalesAnalytics();
+        });
+        $("#itemsPeriod").on("change", function() { loadTopSoldItems(); });
+        $("#salesFilterForm").on("submit", function(event) {
+            event.preventDefault();
+            loadSalesAnalytics();
+        });
+        $("#startDate, #endDate").on("change", function() {
+            if ($("#salesPeriod").val() === "custom") loadSalesAnalytics();
+        });
+
+        function toGregorianDate(value) {
+            return value ? moment.from(value, "fa", "YYYY/MM/DD").locale("en").format("YYYY-MM-DDTHH:mm:ss") : null;
+        }
+
+        function tableMessage(control, columns, message, error) {
+            var table = $(control).empty();
+            $("<tr>").append($("<td>").attr("colspan", columns)
+                .addClass(error ? "text-center text-danger" : "text-center text-muted").text(message)).appendTo(table);
+        }
+
+        function renderRows(control, rows, columns) {
+            $(control).empty();
+            if (!rows.length) {
+                tableMessage(control, columns.length, "معلومات نسته", false);
+                return;
+            }
+            rows.forEach(function(item) {
+                var row = $("<tr>");
+                columns.forEach(function(column) { $("<td>").text(column(item)).appendTo(row); });
+                row.appendTo(control);
+            });
+        }
+
+        function loadSummaryCounts() {
+            $.ajax({
+                url: "/api/Home/GetSummaryCounts",
+                type: "GET",
+                success: function(data) {
+                    ["itemsCount", "suppliersCount", "customersCount", "bothAccountsCount", "warehousesCount"].forEach(function(id) {
+                        $("#" + id).text(data[id]);
+                    });
+                },
+                error: function() { showToast("error", "د شمېرونو په ترلاسه کولو کې ستونزه پېښه سوه."); }
+            });
+        }
+
+        function loadSalesAnalytics() {
+            if (salesRequest) salesRequest.abort();
+            var data = { period: $("#salesPeriod").val() };
+            $(".sales-period-label").text($("#salesPeriod option:selected").text());
+            $("#salesTotal").text("—");
+            if (data.period === "custom") {
+                data.startDate = toGregorianDate($("#startDate").val());
+                data.endDate = toGregorianDate($("#endDate").val());
+                if (!data.startDate || !data.endDate || data.startDate === "Invalid date" ||
+                    data.endDate === "Invalid date" || data.startDate > data.endDate) {
+                    salesChart.updateSeries([]);
+                    tableMessage("#topSellersList", 2, "صحیح نېټه انتخاب کړئ.", true);
+                    $("#salesChartStatus").text("صحیح شروع او پای نېټه انتخاب کړئ.");
+                    return;
+                }
+            }
+            tableMessage("#topSellersList", 2, "معلومات ترلاسه کیږي...", false);
+            $("#salesChartStatus").text("معلومات ترلاسه کیږي...");
+            salesChart.updateSeries([]);
+            salesRequest = $.ajax({
+                url: "/api/Home/GetSalesAnalytics",
+                type: "GET",
+                data: $.param(data, true),
+                success: function(data) {
+                    renderTopSellers(data.topSellers);
+                    $("#salesTotal").text(data.chart.reduce(function(total, item) { return total + item.salesCount; }, 0));
+                    $("#salesChartStatus").text(data.topSellers.length ? "" : "معلومات نسته");
+                    salesChart.updateSeries([{
+                        name: "د فروش شمېر",
+                        data: data.chart.map(function(x) {
+                            return { x: moment(x.date).format("jYYYY/jMM/jDD"), y: x.salesCount };
+                        })
+                    }]);
+                },
+                error: function(xhr, status) {
+                    if (status === "abort") return;
+                    tableMessage("#topSellersList", 2, "د معلوماتو په ترلاسه کولو کې ستونزه پېښه سوه.", true);
+                    $("#salesChartStatus").text("د معلوماتو په ترلاسه کولو کې ستونزه پېښه سوه.");
+                }
+            });
+        }
+
+        function renderTopSellers(sellers) {
+            $("#topSellersList").empty();
+            if (!sellers.length) {
+                tableMessage("#topSellersList", 2, "معلومات نسته", false);
+                return;
+            }
+            var highestCount = sellers[0].salesCount || 1;
+            sellers.forEach(function(seller, index) {
+                var row = $("<tr>");
+                var person = $("<div>").addClass("d-flex align-items-center gap-3");
+                $("<span>").addClass("avatar avatar-sm " + (index === 0 ? "bg-yellow-lt text-yellow" : "bg-blue-lt text-blue"))
+                    .text(index + 1).appendTo(person);
+                var details = $("<div>").addClass("flex-fill seller-name");
+                $("<div>").addClass("fw-medium").text(seller.sellerName).appendTo(details);
+                $("<div>").addClass("progress seller-progress")
+                    .append($("<div>").addClass("progress-bar bg-blue").css("width", (seller.salesCount / highestCount * 100) + "%"))
+                    .appendTo(details);
+                details.appendTo(person);
+                $("<td>").append(person).appendTo(row);
+                $("<td>").addClass("text-end fw-semibold").text(seller.salesCount).appendTo(row);
+                row.appendTo("#topSellersList");
+            });
+        }
+
+        function loadActiveCurrencies() {
+            $.ajax({
+                url: "/api/Home/GetActiveCurrencies",
+                type: "GET",
+                success: function(data) {
+                    renderRows("#activeCurrenciesList", data, [
+                        function(x) { return x.currencyName; }, function(x) { return x.currencySymbole; }
+                    ]);
+                },
+                error: function() { tableMessage("#activeCurrenciesList", 2, "د اسعارو په ترلاسه کولو کې ستونزه پېښه سوه.", true); }
+            });
+        }
+
+        function loadCurrencyPrices() {
+            $.ajax({
+                url: "/api/Home/GetLatestCurrencyPrices",
+                type: "GET",
+                success: function(data) {
+                    renderRows("#currencyPricesList", data, [
+                        function(x) { return x.currencyName + " / " + x.mainCurrencyName; },
+                        function(x) { return x.currencyExchangeRate; }
+                    ]);
+                },
+                error: function() { tableMessage("#currencyPricesList", 2, "د نرخونو په ترلاسه کولو کې ستونزه پېښه سوه.", true); }
+            });
+        }
+
+        function loadTopSoldItems() {
+            if (itemsRequest) itemsRequest.abort();
+            tableMessage("#topSoldItemsList", 3, "معلومات ترلاسه کیږي...", false);
+            itemsRequest = $.ajax({
+                url: "/api/Home/GetTopSoldItems",
+                type: "GET",
+                data: $.param({ period: $("#itemsPeriod").val() }, true),
+                success: function(data) {
+                    renderRows("#topSoldItemsList", data, [
+                        function(x) { return x.itemName; }, function(x) { return x.quantity; },
+                        function(x) { return x.unitName; }
+                    ]);
+                },
+                error: function(xhr, status) {
+                    if (status !== "abort") tableMessage("#topSoldItemsList", 3, "د اجناسو په ترلاسه کولو کې ستونزه پېښه سوه.", true);
+                }
+            });
+        }
+    </script>
+}

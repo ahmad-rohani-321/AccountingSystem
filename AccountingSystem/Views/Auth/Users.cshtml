@@ -1,0 +1,237 @@
+@{
+    ViewData["title"] = "یوزرونه";
+    ViewData["settings"] = "active";
+    ViewData["UsersSettings"] = "active";
+}
+
+<div class="row row-deck row-cards">
+    <div class="card">
+        <div class="card-header">
+            <h3 class="h3 mb-0">د سیسټم یوزرونه</h3>
+        </div>
+        <div class="card-body">
+            <div class="mb-3">
+                <button class="btn btn-primary" id="createUserButton" type="button">
+                    نوی یوزر
+                    <i class="fas fa-plus ms-2"></i>
+                </button>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover table-striped">
+                    <thead>
+                        <tr>
+                            <th>نوم</th>
+                            <th>یوزر نوم</th>
+                            <th>ایمېل</th>
+                            <th>شمېره</th>
+                            <th>فعالیت</th>
+                            <th style="width: 100px;">کړني</th>
+                        </tr>
+                    </thead>
+                    <tbody id="usersList"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="createUserModal" tabindex="-1">
+    <div class="modal-dialog modal-lg" role="document">
+        <form id="createUserForm" class="modal-content overflow-auto">
+            <div class="modal-header">
+                <h5 class="modal-title">نوی یوزر</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row mb-3">
+                    <div class="col-md-6"><div class="mb-3"><label class="form-label" for="newFirstName">نوم</label><input type="text" class="form-control" id="newFirstName" placeholder="نوم" /></div></div>
+                    <div class="col-md-6"><div class="mb-3"><label class="form-label" for="newLastName">تخلص</label><input type="text" class="form-control" id="newLastName" placeholder="تخلص" /></div></div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-6"><div class="mb-3"><label class="form-label" for="newUserName">یوزر نوم</label><input type="text" dir="ltr" class="form-control" id="newUserName" placeholder="یوزر نوم" /></div></div>
+                    <div class="col-md-6"><div class="mb-3"><label class="form-label" for="newEmail">د یوزر ایمېل</label><input type="email" dir="ltr" class="form-control" id="newEmail" placeholder="د یوزر ایمېل" /></div></div>
+                </div>
+                <div class="mb-3"><label class="form-label" for="newPassword">پټ نوم</label><input type="password" dir="ltr" class="form-control" id="newPassword" placeholder="پټ نوم" /></div>
+            </div>
+            <div class="modal-footer align-items-end">
+                <button class="btn btn-primary" id="btnCreateUser" type="submit">ثبت <i class="fas fa-save ms-2"></i></button>
+                <button class="btn btn-danger" type="reset" data-bs-dismiss="modal">لغوه <i class="fas fa-times ms-2"></i></button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="modal fade" id="editUserModal" tabindex="-1">
+    <div class="modal-dialog modal-lg" role="document">
+        <form id="editUserForm" class="modal-content overflow-auto">
+            <div class="modal-header">
+                <h5 class="modal-title">د یوزر معلومات تغیر</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="editUserId" />
+                <div class="row mb-3">
+                    <div class="col-md-6"><div class="mb-3"><label class="form-label" for="editFirstName">نوم</label><input type="text" class="form-control" id="editFirstName" placeholder="نوم" /></div></div>
+                    <div class="col-md-6"><div class="mb-3"><label class="form-label" for="editLastName">تخلص</label><input type="text" class="form-control" id="editLastName" placeholder="تخلص" /></div></div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-6"><div class="mb-3"><label class="form-label" for="editUserName">یوزر نوم</label><input type="text" dir="ltr" class="form-control" id="editUserName" placeholder="یوزر نوم" /></div></div>
+                    <div class="col-md-6"><div class="mb-3"><label class="form-label" for="editEmail">ایمېل</label><input type="email" dir="ltr" class="form-control" id="editEmail" placeholder="ایمېل" /></div></div>
+                </div>
+                <div class="mb-3"><label class="form-label" for="editPhoneNumber">د اړیکې شمېره</label><input type="text" dir="ltr" class="form-control" id="editPhoneNumber" placeholder="د اړیکې شمېره" /></div>
+            </div>
+            <div class="modal-footer align-items-end">
+                <button class="btn btn-primary" id="btnSaveUser" type="submit">ثبت <i class="fas fa-save ms-2"></i></button>
+                <button class="btn btn-danger" type="reset" data-bs-dismiss="modal">لغوه <i class="fas fa-times ms-2"></i></button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="modal fade" id="userHistoryModal" tabindex="-1">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content overflow-auto">
+            <div class="modal-header">
+                <h5 class="modal-title">د یوزر تاریخچه <span id="historyUserName" class="text-primary"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="table-responsive"><table class="table table-bordered table-hover table-striped"><thead><tr><th>برخه</th><th>تفصیل</th><th>نېټه</th></tr></thead><tbody id="userHistoryList"></tbody></table></div>
+            </div>
+            <div class="modal-footer align-items-end"><button class="btn btn-danger" type="button" data-bs-dismiss="modal">لغوه <i class="fas fa-times ms-2"></i></button></div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/lib/just-validate/dist/just-validate.production.min.js"></script>
+    <script src="~/lib/moment-jalali/dist/jalali-moment.browser.js"></script>
+    <script>
+        $(document).ready(function() {
+            loadUsers();
+        });
+
+        function loadUsers() {
+            $.ajax({
+                url: "/api/Users/GetUsers",
+                type: "GET",
+                success: function(data) {
+                    var table = $("#usersList");
+                    table.empty();
+                    if (!data.length) {
+                        $("<tr>").append($("<td>").attr("colspan", 6).addClass("text-center text-muted").text("هیڅ یوزر ونه موندل سو.")).appendTo(table);
+                        return;
+                    }
+                    data.forEach(function(user) {
+                        var row = $("<tr>");
+                        $("<td>").text(user.firstName + " " + user.lastName).appendTo(row);
+                        $("<td>").text(user.userName).appendTo(row);
+                        $("<td>").text(user.email).appendTo(row);
+                        $("<td>").text(user.phoneNumber).appendTo(row);
+                        $("<td>").text(user.isActive ? "فعال" : "غیر فعال").appendTo(row);
+                        var actions = $("<td>");
+                        $("<button>").attr("type", "button").text("تغیر").addClass("btn btn-sm btn-primary btn-edit-user").attr("data-user", JSON.stringify(user)).appendTo(actions);
+                        $("<button>").attr("type", "button").text("تاریخچه").addClass("btn btn-sm btn-info ms-2 btn-user-history").attr("data-info", JSON.stringify({ id: user.id, name: user.firstName + " " + user.lastName })).appendTo(actions);
+                        $("<button>").attr("type", "button").text(user.isActive ? "غیر فعال" : "فعال").addClass(user.isActive ? "btn btn-sm btn-danger ms-2 btn-toggle-user" : "btn btn-sm btn-success ms-2 btn-toggle-user").attr("data-id", user.id).appendTo(actions);
+                        actions.appendTo(row);
+                        table.append(row);
+                    });
+                },
+                error: function(response) { showToast("warning", response.responseText || "د یوزرونو معلومات ترلاسه نه سول."); }
+            });
+        }
+
+        $("#createUserButton").on("click", function() {
+            $("#createUserForm")[0].reset();
+            createUserFormValidator.refresh();
+            $("#createUserModal").modal("show");
+        });
+
+        var createUserFormValidator = new JustValidate("#createUserForm");
+        createUserFormValidator
+        .addField("#newFirstName", [{ rule: "required", errorMessage: "نوم اړین دی" }])
+        .addField("#newLastName", [{ rule: "required", errorMessage: "تخلص اړین دی" }])
+        .addField("#newUserName", [{ rule: "required", errorMessage: "یوزر نوم اړین دی" }])
+        .addField("#newEmail", [{ rule: "required", errorMessage: "ایمېل اړین دی" }, { rule: "email", errorMessage: "صحیح ایمېل ولیکئ" }])
+        .addField("#newPassword", [{ rule: "required", errorMessage: "پټ نوم اړین دی" }, { rule: "password", errorMessage: "پټ نوم لږ تر لږه ۸ توري او یو عدد ولري" }]);
+        createUserFormValidator.onSuccess(function(event) {
+            event.preventDefault();
+            var submitButton = $("#btnCreateUser").prop("disabled", true);
+            $.ajax({
+                url: "/api/Users/CreateUser",
+                type: "POST",
+                contentType: "application/json",
+                data: JSON.stringify({ firstName: $("#newFirstName").val(), lastName: $("#newLastName").val(), userName: $("#newUserName").val(), email: $("#newEmail").val(), password: $("#newPassword").val() }),
+                success: function() { $("#createUserModal").modal("hide"); showToast("success", "نوی یوزر په بریالیتوب سره جوړ سو."); loadUsers(); },
+                error: function(response) { showToast("warning", response.responseText || "نوی یوزر جوړ نه سو."); },
+                complete: function() { submitButton.prop("disabled", false); }
+            });
+        });
+
+        $(document).on("click", ".btn-edit-user", function() {
+            var user = $(this).data("user");
+            $("#editUserId").val(user.id);
+            $("#editFirstName").val(user.firstName);
+            $("#editLastName").val(user.lastName);
+            $("#editUserName").val(user.userName);
+            $("#editEmail").val(user.email);
+            $("#editPhoneNumber").val(user.phoneNumber);
+            $("#editUserModal").modal("show");
+        });
+
+        $(document).on("click", ".btn-user-history", function() {
+            var info = $(this).data("info");
+            $("#historyUserName").text(info.name);
+            var table = $("#userHistoryList").empty();
+            $.ajax({
+                url: "/api/Users/GetUserHistory/" + info.id,
+                type: "GET",
+                success: function(data) {
+                    if (!data.length) $("<tr>").append($("<td>").attr("colspan", 3).addClass("text-center text-muted").text("هیڅ تاریخچه ونه موندل سوه.")).appendTo(table);
+                    data.forEach(function(history) {
+                        var row = $("<tr>");
+                        $("<td>").text(history.modelName).appendTo(row);
+                        $("<td>").text(history.details).appendTo(row);
+                        $("<td>").text(moment(history.creationDate).format("jYYYY/jMM/jDD HH:mm:ss")).appendTo(row);
+                        table.append(row);
+                    });
+                    $("#userHistoryModal").modal("show");
+                },
+                error: function(response) { showToast("warning", response.responseText || "د تاریخچې معلومات ترلاسه نه سول."); }
+            });
+        });
+
+        var editUserFormValidator = new JustValidate("#editUserForm");
+        editUserFormValidator
+        .addField("#editFirstName", [{ rule: "required", errorMessage: "نوم اړین دی" }])
+        .addField("#editLastName", [{ rule: "required", errorMessage: "تخلص اړین دی" }])
+        .addField("#editUserName", [{ rule: "required", errorMessage: "یوزر نوم اړین دی" }])
+        .addField("#editEmail", [{ rule: "required", errorMessage: "ایمېل اړین دی" }, { rule: "email", errorMessage: "صحیح ایمېل ولیکئ" }]);
+        editUserFormValidator.onSuccess(function(event) {
+            event.preventDefault();
+            var submitButton = $("#btnSaveUser").prop("disabled", true);
+            $.ajax({
+                url: "/api/Users/UpdateUser",
+                type: "PUT",
+                contentType: "application/json",
+                data: JSON.stringify({ id: $("#editUserId").val(), firstName: $("#editFirstName").val(), lastName: $("#editLastName").val(), userName: $("#editUserName").val(), email: $("#editEmail").val(), phoneNumber: $("#editPhoneNumber").val() }),
+                success: function() { $("#editUserModal").modal("hide"); showToast("success", "د یوزر معلومات په بریالیتوب سره تغیر سول."); loadUsers(); },
+                error: function(response) { showToast("warning", response.responseText || "د یوزر معلومات تغیر نه سول."); },
+                complete: function() { submitButton.prop("disabled", false); }
+            });
+        });
+
+        $(document).on("click", ".btn-toggle-user", function() {
+            var id = $(this).data("id");
+            sweetAlert("تاسو اطمناني یاست؟", "غواړئ د انتخاب سوي یوزر فعالیت تغیر کړئ؟").then(function(result) {
+                if (!result.isConfirmed) return;
+                $.ajax({
+                    url: "/api/Users/UpdateUserActivation/" + id,
+                    type: "PUT",
+                    success: function() { showToast("success", "د یوزر فعالیت تغیر سو."); loadUsers(); },
+                    error: function(response) { showToast("warning", response.responseText || "د یوزر فعالیت تغیر نه سو."); }
+                });
+            });
+        });
+    </script>
+}

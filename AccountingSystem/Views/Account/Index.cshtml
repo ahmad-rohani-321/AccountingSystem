@@ -267,9 +267,71 @@
 </div>
 @* end of account balance *@
 
+@* start of employee salery form/modal *@
+<div class="modal fade" id="employeeSalery" tabindex="-1">
+    <div class="modal-dialog modal-lg" role="document">
+        <form id="employeeSaleryForm" class="modal-content overflow-auto">
+            <div class="modal-header">
+                <h5 class="modal-title">د میاشتې معاش ثبت</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-header">
+                <h3 class="h3">کارمند: <span id="salery-employee-name" class="text-primary"></span></h3>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="salery-employee-id" name="id" />
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label" for="salery-month">میاشت</label>
+                            <select id="salery-month" name="month" class="form-control">
+                                <option value="">میاشت انتخاب کړئ</option>
+                                <option value="1">وری</option>
+                                <option value="2">غویی</option>
+                                <option value="3">غبرګولی</option>
+                                <option value="4">چنګاښ</option>
+                                <option value="5">زمری</option>
+                                <option value="6">وږی</option>
+                                <option value="7">تله</option>
+                                <option value="8">لړم</option>
+                                <option value="9">لیندۍ</option>
+                                <option value="10">مرغومی</option>
+                                <option value="11">سلواغه</option>
+                                <option value="12">کب</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label" for="salery-amount">د معاش مقدار</label>
+                            <input type="number" id="salery-amount" name="amount" class="form-control" min="0" step="any" placeholder="مقدار" />
+                            <div class="form-hint">معاش په اصلي اسعارو ثبت کیږي.</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="salery-remarks">تفصیل</label>
+                    <textarea id="salery-remarks" name="remarks" class="form-control" rows="3" placeholder="تفصیل"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer align-items-end">
+                <button class="btn btn-primary" id="btnSaveEmployeeSalery" type="submit">
+                    ثبت
+                    <i class="fas fa-save ms-2"></i>
+                </button>
+                <button class="btn btn-danger" type="button" data-bs-dismiss="modal">
+                    لغوه
+                    <i class="fas fa-times ms-2"></i>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+@* end of employee salery form/modal *@
 @section Scripts {
 <script src="~/lib/tom-select/dist/js/tom-select.complete.min.js"></script>
 <script src="~/lib/just-validate/dist/just-validate.production.min.js"></script>
+<script src="~/lib/moment-jalali/dist/jalali-moment.browser.js"></script>
 
 <script>
 $(document).ready(function() {
@@ -427,6 +489,16 @@ $(document).ready(function() {
                             .addClass("btn btn-sm btn-primary btn-view-person-account-balance")
                             .attr("data-info", JSON.stringify({ id: rows.id, name: rows.name }))
                             .appendTo(buttonGroup);
+                        
+                        if(rows.accountTypeId == 9){
+
+                        $("<button>")
+                            .text("معاش")
+                            .addClass("btn btn-sm btn-primary btn-employee-salery")
+                            .attr("data-info", JSON.stringify({ id: rows.id, name: rows.name }))
+                            .appendTo(buttonGroup);
+
+                        }
 
                         $("<button>")
                             .text(rows.isActive ? "غیر فعال" : "فعال")
@@ -543,6 +615,79 @@ $(document).ready(function() {
                 showToast("warning", "د حساب بیلانس وچولو کې ستونزه رامنځته سوه.");
             }
         });
+    });
+    var salery_ts = new TomSelect("#salery-month", {
+        create: false,
+        allowEmptyOption: true
+    });
+    var employeeSaleryFormValidator = new JustValidate("#employeeSaleryForm");
+    employeeSaleryFormValidator
+    .addField("#salery-month", [
+        {
+            rule: "required",
+            errorMessage: "میاشت انتخاب کړئ"
+        },
+        {
+            validator: function(value){
+                return Number.isInteger(Number(value)) && Number(value) >= 1 && Number(value) <= 12;
+            },
+            errorMessage: "صحیح میاشت انتخاب کړئ"
+        }
+    ])
+    .addField("#salery-amount", [
+        {
+            rule: "required",
+            errorMessage: "د معاش مقدار اړین دی"
+        },
+        {
+            validator: function(value){
+                return Number.isFinite(Number(value)) && Number(value) >= 0;
+            },
+            errorMessage: "مقدار باید منفي نه وي"
+        }
+    ]);
+    employeeSaleryFormValidator.onSuccess(function(event) {
+        event.preventDefault();
+        var submitButton = $("#btnSaveEmployeeSalery");
+        if (submitButton.prop("disabled")) return;
+        var formData = {
+            id: $("#salery-employee-id").val(),
+            month: salery_ts.getValue(),
+            amount: $("#salery-amount").val(),
+            remarks: $("#salery-remarks").val()
+        };
+        if (Number(formData.id) <= 0 || !Number.isInteger(Number(formData.id))) {
+            showToast("warning", "هیله ده د کارمند حساب انتخاب کړئ.");
+            return;
+        }
+        submitButton.prop("disabled", true);
+        $("#employeeSalery [data-bs-dismiss='modal']").prop("disabled", true);
+        $.ajax({
+            url: "/api/Journal/SaveEmployeeSalery?" + $.param(formData),
+            type: "POST",
+            success: function(response) {
+                showToast("success", "د کارمند معاش په بریالیتوب سره ثبت سو!");
+                $("#employeeSalery").modal("hide");
+                loadPeoplAccountList();
+            },
+            error: function(response) {
+                showToast("warning", response.responseText || "د معاش په ثبتولو کې ستونزه رامنځته سوه.");
+            },
+            complete: function() {
+                submitButton.prop("disabled", false);
+                $("#employeeSalery [data-bs-dismiss='modal']").prop("disabled", false);
+            }
+        });
+    });
+    $(document).on("click", ".btn-employee-salery", function(){
+        if ($("#btnSaveEmployeeSalery").prop("disabled")) return;
+        var info = $(this).data("info");
+        $("#employeeSaleryForm")[0].reset();
+        employeeSaleryFormValidator.refresh();
+        $("#salery-employee-id").val(info.id);
+        $("#salery-employee-name").text(info.name);
+        salery_ts.setValue(String(moment().jMonth() + 1));
+        $("#employeeSalery").modal("show");
     });
     // change account activation
     $(document).on("click", ".btn-toggle-person-account-activation", function(){

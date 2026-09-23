@@ -3,6 +3,7 @@ using System;
 using AccountingSystem.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace AccountingSystem.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260920082206_MonthlySaleryAdded")]
+    partial class MonthlySaleryAdded
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.9");
@@ -163,9 +166,6 @@ namespace AccountingSystem.Migrations
                     b.Property<DateTime>("CreationDate")
                         .HasColumnType("TEXT");
 
-                    b.Property<int>("EmployeeID")
-                        .HasColumnType("INTEGER");
-
                     b.Property<decimal>("GivenAmount")
                         .HasColumnType("TEXT");
 
@@ -178,8 +178,6 @@ namespace AccountingSystem.Migrations
                     b.HasKey("ID");
 
                     b.HasIndex("CreatedByUserId");
-
-                    b.HasIndex("EmployeeID");
 
                     b.ToTable("Salery");
                 });
@@ -223,7 +221,7 @@ namespace AccountingSystem.Migrations
                             AccountTypeID = 10,
                             Code = "Walkin",
                             CreatedByUserId = "f5b9b7e7-2d3a-4b4d-a1b5-1b3f2a7a9e01",
-                            CreationDate = new DateTime(2026, 9, 21, 11, 10, 2, 699, DateTimeKind.Local).AddTicks(6959),
+                            CreationDate = new DateTime(2026, 9, 20, 12, 52, 4, 241, DateTimeKind.Local).AddTicks(470),
                             IsActive = true,
                             Name = "عادي"
                         });
@@ -306,7 +304,7 @@ namespace AccountingSystem.Migrations
                             AccountID = 1,
                             Address = "",
                             CreatedByUserId = "f5b9b7e7-2d3a-4b4d-a1b5-1b3f2a7a9e01",
-                            CreationDate = new DateTime(2026, 9, 21, 11, 10, 2, 699, DateTimeKind.Local).AddTicks(9840),
+                            CreationDate = new DateTime(2026, 9, 20, 12, 52, 4, 241, DateTimeKind.Local).AddTicks(4550),
                             Email = "",
                             FirstPhone = "",
                             NIC = "",
@@ -545,7 +543,7 @@ namespace AccountingSystem.Migrations
                             LockoutEnabled = false,
                             NormalizedEmail = "ADMIN@ADMIN.COM",
                             NormalizedUserName = "ADMIN",
-                            PasswordHash = "AQAAAAIAAYagAAAAEMn4iO1OJ6v35gsQthMoDJeScSQRncj/ffC4UFvYgvq8IiErBzPFH3ilU33Ktu64vw==",
+                            PasswordHash = "AQAAAAIAAYagAAAAEHtnMwYG/OP0LwpItoj2KSoTbDOnR+31rJ1Yt25ySrcGVOB1wEgvRCC4St9mrtTE0Q==",
                             PhoneNumberConfirmed = false,
                             ProfilePhoto = "",
                             SecurityStamp = "2c9a4d9b-4f5a-4b8b-9a7c-2b1c3d4e5f61",
@@ -601,7 +599,7 @@ namespace AccountingSystem.Migrations
                         {
                             UserId = "f5b9b7e7-2d3a-4b4d-a1b5-1b3f2a7a9e01",
                             RoleId = "65a02658-9b8d-4505-95af-5edd8634bb35",
-                            CreationDate = new DateTime(2026, 9, 21, 11, 10, 2, 694, DateTimeKind.Local).AddTicks(8009)
+                            CreationDate = new DateTime(2026, 9, 20, 12, 52, 4, 237, DateTimeKind.Local).AddTicks(7858)
                         });
                 });
 
@@ -980,7 +978,7 @@ namespace AccountingSystem.Migrations
                         {
                             ID = 1,
                             CreatedByUserId = "f5b9b7e7-2d3a-4b4d-a1b5-1b3f2a7a9e01",
-                            CreationDate = new DateTime(2026, 9, 21, 11, 10, 2, 698, DateTimeKind.Local).AddTicks(9643),
+                            CreationDate = new DateTime(2026, 9, 20, 12, 52, 4, 240, DateTimeKind.Local).AddTicks(3452),
                             Description = "اصلي ګدام د ټولو موادو لپاره دی.",
                             IsActive = true,
                             Name = "عمومي ګدام"
@@ -1238,7 +1236,7 @@ namespace AccountingSystem.Migrations
                         {
                             ID = 1,
                             CreatedByUserId = "f5b9b7e7-2d3a-4b4d-a1b5-1b3f2a7a9e01",
-                            CreationDate = new DateTime(2026, 9, 21, 11, 10, 2, 700, DateTimeKind.Local).AddTicks(9574),
+                            CreationDate = new DateTime(2026, 9, 20, 12, 52, 4, 242, DateTimeKind.Local).AddTicks(4093),
                             CurrencyName = "افغانۍ",
                             CurrencySymbole = "AFN",
                             IsActive = true,
@@ -1248,7 +1246,7 @@ namespace AccountingSystem.Migrations
                         {
                             ID = 2,
                             CreatedByUserId = "f5b9b7e7-2d3a-4b4d-a1b5-1b3f2a7a9e01",
-                            CreationDate = new DateTime(2026, 9, 21, 11, 10, 2, 700, DateTimeKind.Local).AddTicks(9620),
+                            CreationDate = new DateTime(2026, 9, 20, 12, 52, 4, 242, DateTimeKind.Local).AddTicks(4105),
                             CurrencyName = "ډالر",
                             CurrencySymbole = "USD",
                             IsActive = true,
@@ -1412,15 +1410,7 @@ namespace AccountingSystem.Migrations
                         .WithMany()
                         .HasForeignKey("CreatedByUserId");
 
-                    b.HasOne("AccountingSystem.Models.Accounts.Account", "Employee")
-                        .WithMany()
-                        .HasForeignKey("EmployeeID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.Navigation("CreatedByUser");
-
-                    b.Navigation("Employee");
                 });
 
             modelBuilder.Entity("AccountingSystem.Models.Accounts.Account", b =>

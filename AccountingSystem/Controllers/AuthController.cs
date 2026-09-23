@@ -62,6 +62,18 @@ namespace AccountingSystem.Controllers
         }
 
         [Authorize]
+        public IActionResult Profile()
+        {
+            return View();
+        }
+
+        [Authorize(Roles = "Administrator")]
+        public IActionResult Users()
+        {
+            return View();
+        }
+
+        [Authorize]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Logout()

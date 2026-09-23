@@ -247,17 +247,20 @@
                                     </a>
                                 </li>
                                 <li>
-                                    <a class="dropdown-item @ViewData["ProfileSettings"]">
+                                    <a class="dropdown-item @ViewData["ProfileSettings"]" asp-controller="Auth" asp-action="Profile">
                                         <i class="fa-solid fa-user"></i>
                                         پروفایل
                                     </a>
                                 </li>
-                                <li>
-                                    <a class="dropdown-item @ViewData["UsersSettings"]">
-                                        <i class="fa-solid fa-users"></i>
-                                        یوزرونه
-                                    </a>
-                                </li>
+                                @if (User.IsInRole("Administrator"))
+                                {
+                                    <li>
+                                        <a class="dropdown-item @ViewData["UsersSettings"]" asp-controller="Auth" asp-action="Users">
+                                            <i class="fa-solid fa-users"></i>
+                                            یوزرونه
+                                        </a>
+                                    </li>
+                                }
 
                             </ul>
 
@@ -273,14 +276,14 @@
                            class="nav-link d-flex lh-1 text-reset"
                            data-bs-toggle="dropdown"
                            aria-label="Open user menu">
-                            <span class="avatar avatar-sm"></span>
+                            <span class="avatar avatar-sm" id="userProfilePhoto"></span>
                             <div class="d-none d-xl-block ps-2">
                                 <div id="userInfo"></div>
                                 <div class="mt-1 small text-secondary" id="userRoles"></div>
                             </div>
                         </a>
                         <div class="dropdown-menu dropdown-menu-end dropdown-menu-arrow">
-                            <a class="dropdown-item">
+                            <a class="dropdown-item" asp-controller="Auth" asp-action="Profile">
                                 <i class="fa-solid fa-user"></i>
                                 پروفایل
                             </a>
@@ -369,6 +372,8 @@
             type: "GET",
             success: function(data){
                 $("#userInfo").text(data.firstName + " " + data.lastName);
+                var profilePhoto = data.profilePhoto ? "url('/Profiles/" + encodeURIComponent(data.profilePhoto) + "')" : "";
+                $("#userProfilePhoto").css("background-image", profilePhoto);
             },
             error: function(response){
                 console.log(response);
