@@ -43,6 +43,19 @@ public class UsersController(UserManager<User> userManager, ApplicationDbContext
     }
 
     [Authorize(Roles = "Administrator")]
+    [HttpGet("CheckDuplicate")]
+    public async Task<ActionResult> CheckDuplicate(string userName, string firstName, string? id)
+    {
+        var normalizedUserName = _userManager.NormalizeName(userName?.Trim());
+        var normalizedFirstName = firstName?.Trim().ToUpper();
+        return Ok(new
+        {
+            UserNameExists = !string.IsNullOrWhiteSpace(normalizedUserName) && await _userManager.Users.AnyAsync(x => x.Id != id && x.NormalizedUserName == normalizedUserName),
+            FirstNameExists = !string.IsNullOrWhiteSpace(normalizedFirstName) && await _userManager.Users.AnyAsync(x => x.Id != id && x.FirstName.ToUpper() == normalizedFirstName)
+        });
+    }
+
+    [Authorize(Roles = "Administrator")]
     [HttpPost("CreateUser")]
     public async Task<ActionResult> CreateUser(CreateUserViewModel request)
     {
@@ -54,6 +67,14 @@ public class UsersController(UserManager<User> userManager, ApplicationDbContext
         else if (!new EmailAddressAttribute().IsValid(request.Email))
         {
             return BadRequest("صحیح ایمېل ولیکئ.");
+        }
+        else if (await UserNameExists(request.UserName, null))
+        {
+            return BadRequest("دغه یوزر نوم مخکې موجود دی.");
+        }
+        else if (await FirstNameExists(request.FirstName, null))
+        {
+            return BadRequest("دغه نوم مخکې موجود دی.");
         }
 
         var currentUser = await _userManager.GetUserAsync(User);
@@ -159,6 +180,14 @@ public class UsersController(UserManager<User> userManager, ApplicationDbContext
         {
             return BadRequest("خپل یوزر له دې برخې نه سي تغیرولای.");
         }
+        else if (await UserNameExists(request.UserName, user.Id))
+        {
+            return BadRequest("دغه یوزر نوم مخکې موجود دی.");
+        }
+        else if (await FirstNameExists(request.FirstName, user.Id))
+        {
+            return BadRequest("دغه نوم مخکې موجود دی.");
+        }
 
         user.FirstName = request.FirstName.Trim();
         user.LastName = request.LastName.Trim();
@@ -181,6 +210,18 @@ public class UsersController(UserManager<User> userManager, ApplicationDbContext
         });
         await _context.SaveChangesAsync();
         return Ok();
+    }
+
+    private async Task<bool> UserNameExists(string userName, string? excludeId)
+    {
+        var normalizedUserName = _userManager.NormalizeName(userName.Trim());
+        return await _userManager.Users.AnyAsync(x => x.Id != excludeId && x.NormalizedUserName == normalizedUserName);
+    }
+
+    private async Task<bool> FirstNameExists(string firstName, string? excludeId)
+    {
+        var normalizedFirstName = firstName.Trim().ToUpper();
+        return await _userManager.Users.AnyAsync(x => x.Id != excludeId && x.FirstName.ToUpper() == normalizedFirstName);
     }
 
     [Authorize(Roles = "Administrator")]

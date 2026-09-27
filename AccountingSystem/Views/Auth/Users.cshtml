@@ -156,15 +156,17 @@
         .addField("#newPassword", [{ rule: "required", errorMessage: "پټ نوم اړین دی" }, { rule: "password", errorMessage: "پټ نوم لږ تر لږه ۸ توري او یو عدد ولري" }]);
         createUserFormValidator.onSuccess(function(event) {
             event.preventDefault();
-            var submitButton = $("#btnCreateUser").prop("disabled", true);
-            $.ajax({
-                url: "/api/Users/CreateUser",
-                type: "POST",
-                contentType: "application/json",
-                data: JSON.stringify({ firstName: $("#newFirstName").val(), lastName: $("#newLastName").val(), userName: $("#newUserName").val(), email: $("#newEmail").val(), password: $("#newPassword").val() }),
-                success: function() { $("#createUserModal").modal("hide"); showToast("success", "نوی یوزر په بریالیتوب سره جوړ سو."); loadUsers(); },
-                error: function(response) { showToast("warning", response.responseText || "نوی یوزر جوړ نه سو."); },
-                complete: function() { submitButton.prop("disabled", false); }
+            checkUserDuplicate($("#newUserName").val(), $("#newFirstName").val(), "", function() {
+                var submitButton = $("#btnCreateUser").prop("disabled", true);
+                $.ajax({
+                    url: "/api/Users/CreateUser",
+                    type: "POST",
+                    contentType: "application/json",
+                    data: JSON.stringify({ firstName: $("#newFirstName").val(), lastName: $("#newLastName").val(), userName: $("#newUserName").val(), email: $("#newEmail").val(), password: $("#newPassword").val() }),
+                    success: function() { $("#createUserModal").modal("hide"); showToast("success", "نوی یوزر په بریالیتوب سره جوړ سو."); loadUsers(); },
+                    error: function(response) { showToast("warning", response.responseText || "نوی یوزر جوړ نه سو."); },
+                    complete: function() { submitButton.prop("disabled", false); }
+                });
             });
         });
 
@@ -209,17 +211,41 @@
         .addField("#editEmail", [{ rule: "required", errorMessage: "ایمېل اړین دی" }, { rule: "email", errorMessage: "صحیح ایمېل ولیکئ" }]);
         editUserFormValidator.onSuccess(function(event) {
             event.preventDefault();
-            var submitButton = $("#btnSaveUser").prop("disabled", true);
-            $.ajax({
-                url: "/api/Users/UpdateUser",
-                type: "PUT",
-                contentType: "application/json",
-                data: JSON.stringify({ id: $("#editUserId").val(), firstName: $("#editFirstName").val(), lastName: $("#editLastName").val(), userName: $("#editUserName").val(), email: $("#editEmail").val(), phoneNumber: $("#editPhoneNumber").val() }),
-                success: function() { $("#editUserModal").modal("hide"); showToast("success", "د یوزر معلومات په بریالیتوب سره تغیر سول."); loadUsers(); },
-                error: function(response) { showToast("warning", response.responseText || "د یوزر معلومات تغیر نه سول."); },
-                complete: function() { submitButton.prop("disabled", false); }
+            checkUserDuplicate($("#editUserName").val(), $("#editFirstName").val(), $("#editUserId").val(), function() {
+                var submitButton = $("#btnSaveUser").prop("disabled", true);
+                $.ajax({
+                    url: "/api/Users/UpdateUser",
+                    type: "PUT",
+                    contentType: "application/json",
+                    data: JSON.stringify({ id: $("#editUserId").val(), firstName: $("#editFirstName").val(), lastName: $("#editLastName").val(), userName: $("#editUserName").val(), email: $("#editEmail").val(), phoneNumber: $("#editPhoneNumber").val() }),
+                    success: function() { $("#editUserModal").modal("hide"); showToast("success", "د یوزر معلومات په بریالیتوب سره تغیر سول."); loadUsers(); },
+                    error: function(response) { showToast("warning", response.responseText || "د یوزر معلومات تغیر نه سول."); },
+                    complete: function() { submitButton.prop("disabled", false); }
+                });
             });
         });
+
+        function checkUserDuplicate(userName, firstName, id, success) {
+            $.ajax({
+                url: "/api/Users/CheckDuplicate",
+                type: "GET",
+                data: { userName: userName, firstName: firstName, id: id },
+                success: function(data) {
+                    if (data.userNameExists) {
+                        showToast("warning", "دغه یوزر نوم مخکې موجود دی.");
+                    }
+                    else if (data.firstNameExists) {
+                        showToast("warning", "دغه نوم مخکې موجود دی.");
+                    }
+                    else {
+                        success();
+                    }
+                },
+                error: function(response) {
+                    showToast("warning", response.responseText || "د تکراري معلوماتو په ترلاسه کولو کې ستونزه رامنځته سوه.");
+                }
+            });
+        }
 
         $(document).on("click", ".btn-toggle-user", function() {
             var id = $(this).data("id");

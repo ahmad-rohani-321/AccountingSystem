@@ -177,36 +177,63 @@
         ]);
         profileFormValidator.onSuccess(function(event) {
             event.preventDefault();
-            var submitButton = $("#btnSaveProfile").prop("disabled", true);
-            var formData = new FormData();
-            formData.append("firstName", $("#firstName").val());
-            formData.append("lastName", $("#lastName").val());
-            formData.append("userName", $("#userName").val());
-            formData.append("email", $("#email").val());
-            formData.append("phoneNumber", $("#phoneNumber").val());
-            if ($("#profileImage")[0].files.length) {
-                formData.append("imageFile", $("#profileImage")[0].files[0]);
-            }
-            $.ajax({
-                url: "/api/Profile/UpdateProfile",
-                type: "PUT",
-                data: formData,
-                contentType: false,
-                processData: false,
-                success: function() {
-                    showToast("success", "د پروفایل معلومات په بریالیتوب سره تغیر سول.");
-                    $("#profileImage").val("");
-                    loadProfile();
-                    loadProfileHistory();
-                },
-                error: function(response) {
-                    showToast("warning", response.responseText || "د پروفایل معلومات تغیر نه سول.");
-                },
-                complete: function() {
-                    submitButton.prop("disabled", false);
+            checkProfileDuplicate(function() {
+                var submitButton = $("#btnSaveProfile").prop("disabled", true);
+                var formData = new FormData();
+                formData.append("firstName", $("#firstName").val());
+                formData.append("lastName", $("#lastName").val());
+                formData.append("userName", $("#userName").val());
+                formData.append("email", $("#email").val());
+                formData.append("phoneNumber", $("#phoneNumber").val());
+                if ($("#profileImage")[0].files.length) {
+                    formData.append("imageFile", $("#profileImage")[0].files[0]);
                 }
+                $.ajax({
+                    url: "/api/Profile/UpdateProfile",
+                    type: "PUT",
+                    data: formData,
+                    contentType: false,
+                    processData: false,
+                    success: function() {
+                        showToast("success", "د پروفایل معلومات په بریالیتوب سره تغیر سول.");
+                        $("#profileImage").val("");
+                        loadProfile();
+                        loadProfileHistory();
+                    },
+                    error: function(response) {
+                        showToast("warning", response.responseText || "د پروفایل معلومات تغیر نه سول.");
+                    },
+                    complete: function() {
+                        submitButton.prop("disabled", false);
+                    }
+                });
             });
         });
+
+        function checkProfileDuplicate(success) {
+            $.ajax({
+                url: "/api/Profile/CheckDuplicate",
+                type: "GET",
+                data: {
+                    userName: $("#userName").val(),
+                    firstName: $("#firstName").val()
+                },
+                success: function(data) {
+                    if (data.userNameExists) {
+                        showToast("warning", "دغه یوزر نوم مخکې موجود دی.");
+                    }
+                    else if (data.firstNameExists) {
+                        showToast("warning", "دغه نوم مخکې موجود دی.");
+                    }
+                    else {
+                        success();
+                    }
+                },
+                error: function(response) {
+                    showToast("warning", response.responseText || "د تکراري معلوماتو په ترلاسه کولو کې ستونزه رامنځته سوه.");
+                }
+            });
+        }
 
         var changePasswordFormValidator = new JustValidate("#changePasswordForm");
         changePasswordFormValidator
