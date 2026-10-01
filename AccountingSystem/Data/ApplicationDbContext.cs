@@ -8,6 +8,7 @@ using AccountingSystem.Models.Accounts;
 using AccountingSystem.Models.Accounting;
 using AccountingSystem.Models.Purchase;
 using AccountingSystem.Models.Sales;
+using AccountingSystem.Models.Shares;
 
 namespace AccountingSystem.Data
 {
@@ -440,6 +441,10 @@ namespace AccountingSystem.Data
         public DbSet<Account> Accounts { get; set; }
         public DbSet<AccountContacts> AccountContacts { get; set; }
         public DbSet<AccountBalance> AccountBalances { get; set; }
+        #endregion
+
+        #region Shares
+        public DbSet<Share> Shares { get; set; }
         #endregion
 
         #region Purchase

@@ -3,6 +3,7 @@ using System;
 using AccountingSystem.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace AccountingSystem.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20261001064111_ShareRemarksAdded")]
+    partial class ShareRemarksAdded
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.9");
@@ -1208,41 +1211,6 @@ namespace AccountingSystem.Migrations
                     b.ToTable("Sales");
                 });
 
-            modelBuilder.Entity("AccountingSystem.Models.Shares.Share", b =>
-                {
-                    b.Property<int>("ID")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("AccountId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<decimal>("Amount")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("CreatedByUserId")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("CreationDate")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("CurrencyId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("Remarks")
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("ID");
-
-                    b.HasIndex("AccountId");
-
-                    b.HasIndex("CreatedByUserId");
-
-                    b.HasIndex("CurrencyId");
-
-                    b.ToTable("Shares");
-                });
-
             modelBuilder.Entity("AccountingSystem.Models.Settings.Currency", b =>
                 {
                     b.Property<int>("ID")
@@ -1850,32 +1818,6 @@ namespace AccountingSystem.Migrations
                     b.Navigation("CreatedByUser");
 
                     b.Navigation("Currency");
-                });
-
-            modelBuilder.Entity("AccountingSystem.Models.Shares.Share", b =>
-                {
-                    b.HasOne("AccountingSystem.Models.Accounts.Account", "Account")
-                        .WithMany()
-                        .HasForeignKey("AccountId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("AccountingSystem.Models.Identity.User", "CreatedByUser")
-                        .WithMany()
-                        .HasForeignKey("CreatedByUserId");
-
-                    b.HasOne("AccountingSystem.Models.Settings.Currency", "Currency")
-                        .WithMany()
-                        .HasForeignKey("CurrencyId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Account");
-
-                    b.Navigation("CreatedByUser");
-
-                    b.Navigation("Currency");
-
                 });
 
             modelBuilder.Entity("AccountingSystem.Models.Settings.Currency", b =>

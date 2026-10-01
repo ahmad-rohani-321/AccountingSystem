@@ -1,0 +1,183 @@
+﻿
+@model int
+@{
+    ViewData["title"] = "ونډې";
+    ViewData["account-tab"] = "active";
+    ViewData["accountcontributors"] = "active";
+}
+@section Styles {
+    <link href="~/lib/tom-select/dist/css/tom-select.bootstrap5.css" rel="stylesheet" />
+}
+<div class="row row-deck row-cards">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header h2">
+                @ViewData["title"] - <span id="shareholder-name"></span>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <button class="btn btn-primary" id="createShareBtn">
+                        نوې ونډه
+                        <i class="fas fa-plus ms-3"></i>
+                    </button>
+                    <a class="btn btn-secondary" asp-controller="Account" asp-action="Contributors">شریکانو ته بیرته</a>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover table-striped w-100" id="sharesTable">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>نیټه</th>
+                                <th>اسعار</th>
+                                <th>مقدار</th>
+                                <th>تفصیل</th>
+                            </tr>
+                        </thead>
+                        <tbody id="shares-list"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="createShareModal" tabindex="-1">
+    <div class="modal-dialog modal-lg" role="document">
+        <form id="createShareForm" class="modal-content overflow-auto">
+            <div class="modal-header">
+                <h5 class="modal-title">نوې ونډه</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label" for="share-account">شریک</label>
+                        <input type="text" class="form-control" id="share-account" readonly />
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label" for="share-treasure">خزانه</label>
+                        <select class="form-control" id="share-treasure" placeholder="خزانه انتخاب کړئ"></select>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label" for="share-currency">اسعار</label>
+                        <select class="form-control" id="share-currency" placeholder="اسعار انتخاب کړئ"></select>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label" for="share-amount">مقدار</label>
+                        <input type="number" min="0.01" step="any" class="form-control" id="share-amount" placeholder="مقدار" />
+                    </div>
+                    <div class="col-12 mb-3">
+                        <label class="form-label" for="share-remarks">تفصیل</label>
+                        <textarea class="form-control" id="share-remarks" rows="3" placeholder="تفصیل"></textarea>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer align-items-end">
+                <button class="btn btn-primary" id="saveShareBtn" type="submit">
+                    ثبت <i class="fas fa-save ms-2"></i>
+                </button>
+                <button class="btn btn-danger" type="button" data-bs-dismiss="modal">لغوه <i class="fas fa-times ms-2"></i></button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+<script src="~/lib/tom-select/dist/js/tom-select.complete.min.js"></script>
+<script src="~/lib/just-validate/dist/just-validate.production.min.js"></script>
+<script>
+$(document).ready(function() {
+    var accountId = @Model;
+    var treasureSelect = new TomSelect("#share-treasure", {
+        valueField: "id", labelField: "name", searchField: ["name", "code"], create: false
+    });
+    var currencySelect = new TomSelect("#share-currency", {
+        valueField: "id", labelField: "name", searchField: ["name"], create: false
+    });
+
+    $.get("/api/Accounts/ContributorAccounts", function(data) {
+        var account = data.find(function(x) { return x.id == accountId; });
+        if (account) {
+            $("#shareholder-name, #share-account").text(account.name);
+            $("#share-account").val(account.name);
+        } else {
+            showToast("warning", "شریک حساب ونه موندل سو.");
+            $("#createShareBtn").prop("disabled", true);
+        }
+    }).fail(function(response) { showToast("warning", response.responseText); });
+    $.get("/api/Accounts/GetBankAccounts", function(data) {
+        treasureSelect.addOptions(data);
+    }).fail(function(response) { showToast("warning", response.responseText); });
+    $.get("/api/Currency/Currencies/Simple", function(data) {
+        currencySelect.addOptions(data);
+    }).fail(function(response) { showToast("warning", response.responseText); });
+
+    loadShares();
+    function loadShares() {
+        $.ajax({
+            url: "/api/Shares/GetShares/" + accountId,
+            type: "GET",
+            success: function(data) {
+                var table = $("#sharesTable");
+                destroyListingDataTable(table);
+                var rows = $("#shares-list").empty();
+                data.forEach(function(share) {
+                    var row = $("<tr>");
+                    $("<td>").text(share.id).appendTo(row);
+                    $("<td>").text(new Date(share.creationDate).toLocaleString()).appendTo(row);
+                    $("<td>").text(share.currencyName).appendTo(row);
+                    $("<td>").text(share.amount).appendTo(row);
+                    $("<td>").text(share.remarks).appendTo(row);
+                    rows.append(row);
+                });
+                initializeListingDataTable(table, 10, [[0, "desc"]]);
+            },
+            error: function(response) { showToast("warning", response.responseText); }
+        });
+    }
+
+    $("#createShareBtn").click(function() {
+        $("#createShareForm")[0].reset();
+        $("#share-account").val($("#shareholder-name").text());
+        treasureSelect.clear();
+        currencySelect.clear();
+        $("#createShareModal").modal("show");
+    });
+
+    var shareValidator = new JustValidate("#createShareForm");
+    shareValidator
+        .addField("#share-treasure", [{ rule: "required", errorMessage: "خزانه انتخاب کړئ" }])
+        .addField("#share-currency", [{ rule: "required", errorMessage: "اسعار انتخاب کړئ" }])
+        .addField("#share-amount", [
+            { rule: "required", errorMessage: "مقدار ولیکئ" },
+            { validator: function(value) { return Number.isFinite(Number(value)) && Number(value) > 0; }, errorMessage: "مقدار باید له صفر څخه لوړ وي" }
+        ])
+        .addField("#share-remarks", [{ rule: "required", errorMessage: "تفصیل ولیکئ" }]);
+    shareValidator.onSuccess(function(event) {
+        event.preventDefault();
+        var button = $("#saveShareBtn");
+        if (button.prop("disabled")) return;
+        button.prop("disabled", true);
+        $.ajax({
+            url: "/api/Shares/Create",
+            type: "POST",
+            contentType: "application/json",
+            data: JSON.stringify({
+                accountId: accountId,
+                treasureAccountId: treasureSelect.getValue(),
+                currencyId: currencySelect.getValue(),
+                amount: Number($("#share-amount").val()),
+                remarks: $("#share-remarks").val()
+            }),
+            success: function() {
+                showToast("success", "ونډه په بریالیتوب سره ثبت سوه!");
+                $("#createShareModal").modal("hide");
+                loadShares();
+            },
+            error: function(response) { showToast("warning", response.responseText || "د ونډې په ثبتولو کې ستونزه رامنځته سوه."); },
+            complete: function() { button.prop("disabled", false); }
+        });
+    });
+});
+</script>
+}

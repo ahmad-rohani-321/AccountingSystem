@@ -3,6 +3,7 @@ using System;
 using AccountingSystem.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace AccountingSystem.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20261001061120_SharesAdded")]
+    partial class SharesAdded
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.9");
@@ -228,7 +231,7 @@ namespace AccountingSystem.Migrations
                             AccountTypeID = 10,
                             Code = "Walkin",
                             CreatedByUserId = "f5b9b7e7-2d3a-4b4d-a1b5-1b3f2a7a9e01",
-                            CreationDate = new DateTime(2026, 10, 1, 11, 11, 7, 980, DateTimeKind.Local).AddTicks(4716),
+                            CreationDate = new DateTime(2026, 10, 1, 10, 41, 11, 800, DateTimeKind.Local).AddTicks(2122),
                             IsActive = true,
                             Name = "عادي"
                         });
@@ -311,7 +314,7 @@ namespace AccountingSystem.Migrations
                             AccountID = 1,
                             Address = "",
                             CreatedByUserId = "f5b9b7e7-2d3a-4b4d-a1b5-1b3f2a7a9e01",
-                            CreationDate = new DateTime(2026, 10, 1, 11, 11, 7, 980, DateTimeKind.Local).AddTicks(9017),
+                            CreationDate = new DateTime(2026, 10, 1, 10, 41, 11, 800, DateTimeKind.Local).AddTicks(5363),
                             Email = "",
                             FirstPhone = "",
                             NIC = "",
@@ -550,7 +553,7 @@ namespace AccountingSystem.Migrations
                             LockoutEnabled = false,
                             NormalizedEmail = "ADMIN@ADMIN.COM",
                             NormalizedUserName = "ADMIN",
-                            PasswordHash = "AQAAAAIAAYagAAAAEKH7iEiZD13cyB4KJLQNMy02l774dgvvMw1LibS9Ch+gEKiAXIIXO/TIH9CP+SOskg==",
+                            PasswordHash = "AQAAAAIAAYagAAAAENDK9999NFVT4I4ATPQbLYt1BG3glY8MUFVrfBlnVGFpRZyRKWYH2bLmex+EezH+Ug==",
                             PhoneNumberConfirmed = false,
                             ProfilePhoto = "",
                             SecurityStamp = "2c9a4d9b-4f5a-4b8b-9a7c-2b1c3d4e5f61",
@@ -606,7 +609,7 @@ namespace AccountingSystem.Migrations
                         {
                             UserId = "f5b9b7e7-2d3a-4b4d-a1b5-1b3f2a7a9e01",
                             RoleId = "65a02658-9b8d-4505-95af-5edd8634bb35",
-                            CreationDate = new DateTime(2026, 10, 1, 11, 11, 7, 975, DateTimeKind.Local).AddTicks(2846)
+                            CreationDate = new DateTime(2026, 10, 1, 10, 41, 11, 794, DateTimeKind.Local).AddTicks(5874)
                         });
                 });
 
@@ -985,7 +988,7 @@ namespace AccountingSystem.Migrations
                         {
                             ID = 1,
                             CreatedByUserId = "f5b9b7e7-2d3a-4b4d-a1b5-1b3f2a7a9e01",
-                            CreationDate = new DateTime(2026, 10, 1, 11, 11, 7, 979, DateTimeKind.Local).AddTicks(3021),
+                            CreationDate = new DateTime(2026, 10, 1, 10, 41, 11, 799, DateTimeKind.Local).AddTicks(1913),
                             Description = "اصلي ګدام د ټولو موادو لپاره دی.",
                             IsActive = true,
                             Name = "عمومي ګدام"
@@ -1208,41 +1211,6 @@ namespace AccountingSystem.Migrations
                     b.ToTable("Sales");
                 });
 
-            modelBuilder.Entity("AccountingSystem.Models.Shares.Share", b =>
-                {
-                    b.Property<int>("ID")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("AccountId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<decimal>("Amount")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("CreatedByUserId")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("CreationDate")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("CurrencyId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("Remarks")
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("ID");
-
-                    b.HasIndex("AccountId");
-
-                    b.HasIndex("CreatedByUserId");
-
-                    b.HasIndex("CurrencyId");
-
-                    b.ToTable("Shares");
-                });
-
             modelBuilder.Entity("AccountingSystem.Models.Settings.Currency", b =>
                 {
                     b.Property<int>("ID")
@@ -1278,7 +1246,7 @@ namespace AccountingSystem.Migrations
                         {
                             ID = 1,
                             CreatedByUserId = "f5b9b7e7-2d3a-4b4d-a1b5-1b3f2a7a9e01",
-                            CreationDate = new DateTime(2026, 10, 1, 11, 11, 7, 982, DateTimeKind.Local).AddTicks(2129),
+                            CreationDate = new DateTime(2026, 10, 1, 10, 41, 11, 802, DateTimeKind.Local).AddTicks(2340),
                             CurrencyName = "افغانۍ",
                             CurrencySymbole = "AFN",
                             IsActive = true,
@@ -1288,7 +1256,7 @@ namespace AccountingSystem.Migrations
                         {
                             ID = 2,
                             CreatedByUserId = "f5b9b7e7-2d3a-4b4d-a1b5-1b3f2a7a9e01",
-                            CreationDate = new DateTime(2026, 10, 1, 11, 11, 7, 982, DateTimeKind.Local).AddTicks(2202),
+                            CreationDate = new DateTime(2026, 10, 1, 10, 41, 11, 802, DateTimeKind.Local).AddTicks(2373),
                             CurrencyName = "ډالر",
                             CurrencySymbole = "USD",
                             IsActive = true,
@@ -1850,32 +1818,6 @@ namespace AccountingSystem.Migrations
                     b.Navigation("CreatedByUser");
 
                     b.Navigation("Currency");
-                });
-
-            modelBuilder.Entity("AccountingSystem.Models.Shares.Share", b =>
-                {
-                    b.HasOne("AccountingSystem.Models.Accounts.Account", "Account")
-                        .WithMany()
-                        .HasForeignKey("AccountId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("AccountingSystem.Models.Identity.User", "CreatedByUser")
-                        .WithMany()
-                        .HasForeignKey("CreatedByUserId");
-
-                    b.HasOne("AccountingSystem.Models.Settings.Currency", "Currency")
-                        .WithMany()
-                        .HasForeignKey("CurrencyId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Account");
-
-                    b.Navigation("CreatedByUser");
-
-                    b.Navigation("Currency");
-
                 });
 
             modelBuilder.Entity("AccountingSystem.Models.Settings.Currency", b =>

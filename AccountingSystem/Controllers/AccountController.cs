@@ -9,5 +9,6 @@ namespace AccountingSystem.Controllers
         public IActionResult Index() => View();
         public IActionResult Accounts() => View();
         public IActionResult Contributors() => View();
+        public IActionResult Shares(int accountId) => View(accountId);
     }
 }

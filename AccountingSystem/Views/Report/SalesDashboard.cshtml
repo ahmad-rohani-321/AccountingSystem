@@ -1,0 +1,127 @@
+@{
+    ViewData["Title"] = "د فروش ډشبورډ";
+    ViewData["Reports"] = "active";
+    ViewData["SalesDashboardReports"] = "active";
+}
+@section Styles {
+    <link href="~/lib/tom-select/dist/css/tom-select.bootstrap5.css" rel="stylesheet" />
+    <link href="~/lib/flatpickr-jalali-support/dist/flatpickr.min.css" rel="stylesheet" />
+    <link href="~/lib/flatpickr-jalali-support/dist/themes/soft-card.css" rel="stylesheet" />
+    <style>
+        .sales-dashboard .card { border-radius: 14px; box-shadow: 0 3px 16px rgba(24, 36, 51, .035); }
+        .sales-dashboard .summary-value { font-size: 1.8rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+        .sales-dashboard .dashboard-table td, .sales-dashboard .dashboard-table th { padding: .8rem 1rem; }
+        .sales-dashboard .dashboard-table td { vertical-align: middle; }
+        .sales-dashboard .card-title { margin: 0; }
+    </style>
+}
+<div class="sales-dashboard">
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-4">
+        <div><h2 class="mb-1">د فروش ډشبورډ</h2><div class="text-muted">د فروش، اجناسو او ژورنال عمومي کتنه</div></div>
+        <div class="d-flex align-items-end flex-wrap gap-2">
+            <div><label class="form-label" for="reportPeriod">موده</label>
+                <select id="reportPeriod" class="form-select"><option value="today">نن</option><option value="week">دا اونۍ</option><option value="month" selected>دا میاشت</option><option value="sixMonths">شپږ میاشتې</option><option value="year">دا کال</option><option value="custom">د نېټو ټاکل</option></select>
+            </div>
+            <div class="d-none" id="reportDateRange"><label class="form-label" for="reportStartDate">شروع نېټه</label><input id="reportStartDate" class="form-control" /></div>
+            <div class="d-none" id="reportDateEnd"><label class="form-label" for="reportEndDate">پای نېټه</label><input id="reportEndDate" class="form-control" /></div>
+            <button id="reportSearch" class="btn btn-primary d-none">لټون</button>
+        </div>
+    </div>
+    <div class="row row-deck row-cards">
+        <div class="col-6 col-lg-3"><div class="card"><div class="card-body"><div class="text-muted mb-2">بشپړ فروشونه</div><div class="summary-value text-primary" id="completedCount">—</div></div></div></div>
+        <div class="col-6 col-lg-3"><div class="card"><div class="card-body"><div class="text-muted mb-2">ساتل سوي فروشونه</div><div class="summary-value text-yellow" id="holdCount">—</div></div></div></div>
+        <div class="col-6 col-lg-3"><div class="card"><div class="card-body"><div class="text-muted mb-2">واپس سوي فروشونه</div><div class="summary-value text-danger" id="refundedCount">—</div></div></div></div>
+        <div class="col-6 col-lg-3"><div class="card"><div class="card-body"><div class="text-muted mb-2">په ذخیره اغېزمن فروشونه</div><div class="summary-value text-green" id="stockAffectedCount">—</div></div></div></div>
+
+        <div class="col-12"><div class="card"><div class="card-header"><h3 class="card-title">د فروش ګټه د اسعارو له مخې</h3></div><div class="card-body"><div class="row g-3" id="profitSummary"></div></div></div></div>
+
+        <div class="col-12 col-lg-8"><div class="card"><div class="card-header"><h3 class="card-title">د فروش بهیر</h3></div><div class="card-body"><div id="reportSalesChart"></div></div></div></div>
+        <div class="col-12 col-lg-4"><div class="card"><div class="card-header"><h3 class="card-title">د اسعارو له مخې مجموعه</h3></div><div class="table-responsive"><table class="table table-hover dashboard-table mb-0"><thead><tr><th>اسعار</th><th>فروش</th><th>مجموعه</th><th>رسید</th><th>باقي</th><th>ګټه</th></tr></thead><tbody id="currencySummary"></tbody></table></div></div></div>
+        <div class="col-12 col-lg-4"><div class="card"><div class="card-header"><h3 class="card-title">ډېر پلورل سوي اجناس</h3></div><div class="table-responsive"><table class="table table-hover dashboard-table mb-0"><thead><tr><th>جنس</th><th>مقدار</th><th>فروشونه</th></tr></thead><tbody id="topItems"></tbody></table></div></div></div>
+        <div class="col-12 col-lg-4"><div class="card"><div class="card-header"><h3 class="card-title">غوره پېرېدونکي</h3></div><div class="table-responsive"><table class="table table-hover dashboard-table mb-0"><thead><tr><th>نوم</th><th>فروشونه</th></tr></thead><tbody id="topCustomers"></tbody></table></div></div></div>
+        <div class="col-12 col-lg-4"><div class="card"><div class="card-header"><h3 class="card-title">غوره فروش کوونکي</h3></div><div class="table-responsive"><table class="table table-hover dashboard-table mb-0"><thead><tr><th>نوم</th><th>فروشونه</th></tr></thead><tbody id="topSellers"></tbody></table></div></div></div>
+        <div class="col-12 col-lg-5"><div class="card"><div class="card-header"><h3 class="card-title">د ژورنال فعالیت</h3></div><div class="table-responsive"><table class="table table-hover dashboard-table mb-0"><thead><tr><th>ډول</th><th>اسعار</th><th>ثبتونه</th><th>بردګي</th><th>رسیدګي</th></tr></thead><tbody id="journalActivity"></tbody></table></div></div></div>
+        <div class="col-12 col-lg-7"><div class="card"><div class="card-header"><h3 class="card-title">وروستي فروشونه</h3></div><div class="table-responsive"><table class="table table-hover dashboard-table mb-0"><thead><tr><th>شمېره</th><th>نېټه</th><th>پېرېدونکی</th><th>اسعار</th><th>مجموعه</th><th>ګټه</th><th>حالت</th></tr></thead><tbody id="recentSales"></tbody></table></div></div></div>
+    </div>
+</div>
+@section Scripts {
+    <script src="~/lib/tom-select/dist/js/tom-select.complete.min.js"></script>
+    <script src="~/lib/flatpickr-jalali-support/dist/flatpickr.min.js"></script>
+    <script src="~/lib/flatpickr-jalali-support/dist/l10n/fa.js"></script>
+    <script src="~/lib/moment-jalali/dist/jalali-moment.browser.js"></script>
+    <script src="~/lib/tabler/dist/libs/apexcharts/dist/apexcharts.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            var request;
+            var number = new Intl.NumberFormat();
+            new TomSelect("#reportPeriod", { create: false, controlInput: null, allowEmptyOption: false });
+            flatpickr("#reportStartDate", { locale: "fa", defaultDate: new Date(), allowInput: true });
+            flatpickr("#reportEndDate", { locale: "fa", defaultDate: new Date(), allowInput: true });
+            var chart = new ApexCharts(document.querySelector("#reportSalesChart"), {
+                chart: { type: "bar", height: 285, fontFamily: "inherit", toolbar: { show: false } },
+                series: [], dataLabels: { enabled: false }, noData: { text: "معلومات نسته" },
+                xaxis: { type: "category" }, yaxis: { min: 0, forceNiceScale: true, decimalsInFloat: 0 }
+            });
+            chart.render().then(loadDashboard);
+            $("#reportPeriod").on("change", function() {
+                var custom = $(this).val() === "custom";
+                $("#reportDateRange, #reportDateEnd, #reportSearch").toggleClass("d-none", !custom);
+                if (!custom) loadDashboard();
+            });
+            $("#reportSearch").on("click", loadDashboard);
+
+            function tableRows(selector, data, columns) {
+                var body = $(selector).empty();
+                if (!data.length) {
+                    $("<tr>").append($("<td>").attr("colspan", columns.length).addClass("text-center text-muted").text("معلومات نسته")).appendTo(body);
+                    return;
+                }
+                data.forEach(function(item) {
+                    var row = $("<tr>");
+                    columns.forEach(function(column) { $("<td>").text(column(item)).appendTo(row); });
+                    body.append(row);
+                });
+            }
+            function toGregorianDate(value) {
+                return value ? moment.from(value, "fa", "YYYY/MM/DD").locale("en").format("YYYY-MM-DDTHH:mm:ss") : null;
+            }
+            function loadDashboard() {
+                if (request) request.abort();
+                var data = { period: $("#reportPeriod").val() };
+                if (data.period === "custom") {
+                    data.startDate = toGregorianDate($("#reportStartDate").val());
+                    data.endDate = toGregorianDate($("#reportEndDate").val());
+                    if (!data.startDate || !data.endDate || data.startDate === "Invalid date" || data.endDate === "Invalid date" || data.startDate > data.endDate) {
+                        showToast("warning", "صحیح شروع او پای نېټه انتخاب کړئ.");
+                        return;
+                    }
+                }
+                request = $.ajax({
+                    url: "/api/Reports/GetSalesDashboard", type: "GET", data: $.param(data, true),
+                    success: function(result) {
+                        ["completedCount", "holdCount", "refundedCount", "stockAffectedCount"].forEach(function(id) { $("#" + id).text(number.format(result[id])); });
+                        var profitSummary = $("#profitSummary").empty();
+                        if (!result.currencySummary.length) {
+                            $("<div>").addClass("col-12 text-muted").text("معلومات نسته").appendTo(profitSummary);
+                        }
+                        result.currencySummary.forEach(function(currency) {
+                            var column = $("<div>").addClass("col-6 col-md-4 col-xl-3");
+                            var card = $("<div>").addClass("p-3 rounded border h-100");
+                            $("<div>").addClass("text-muted mb-2").text(currency.currencyName).appendTo(card);
+                            $("<div>").addClass("summary-value text-green").text(number.format(currency.profit)).appendTo(card);
+                            column.append(card).appendTo(profitSummary);
+                        });
+                        chart.updateSeries([{ name: "فروشونه", data: result.chart.map(function(x) { return { x: moment(x.date).format("jYYYY/jMM/jDD"), y: x.salesCount }; }) }]);
+                        tableRows("#currencySummary", result.currencySummary, [function(x) { return x.currencyName; }, function(x) { return x.salesCount; }, function(x) { return number.format(x.totalAmount); }, function(x) { return number.format(x.receivedAmount); }, function(x) { return number.format(x.remainingAmount); }, function(x) { return number.format(x.profit); }]);
+                        tableRows("#topItems", result.topItems, [function(x) { return x.itemName; }, function(x) { return number.format(x.quantity); }, function(x) { return x.salesCount; }]);
+                        tableRows("#topCustomers", result.topCustomers, [function(x) { return x.customerName; }, function(x) { return x.salesCount; }]);
+                        tableRows("#topSellers", result.topSellers, [function(x) { return x.sellerName; }, function(x) { return x.salesCount; }]);
+                        tableRows("#journalActivity", result.journalActivity, [function(x) { return { 5: "فروش", 8: "فروش تغیر", 9: "فروش واپسي" }[x.transactionTypeID]; }, function(x) { return x.currencyName; }, function(x) { return x.entryCount; }, function(x) { return number.format(x.debit); }, function(x) { return number.format(x.credit); }]);
+                        tableRows("#recentSales", result.recentSales, [function(x) { return x.saleNo; }, function(x) { return moment(x.creationDate).format("jYYYY/jMM/jDD"); }, function(x) { return x.customerName; }, function(x) { return x.currencyName; }, function(x) { return number.format(x.totalAmount); }, function(x) { return x.profit == null ? "—" : number.format(x.profit); }, function(x) { return x.isRefunded ? "واپس سوی" : x.isHolded ? "ساتل سوی" : "بشپړ"; }]);
+                    },
+                    error: function(response, status) { if (status !== "abort") showToast("warning", response.responseText || "د فروش معلومات ترلاسه نه سول."); }
+                });
+            }
+        });
+    </script>
+}

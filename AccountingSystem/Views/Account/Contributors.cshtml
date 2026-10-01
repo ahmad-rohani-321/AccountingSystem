@@ -395,6 +395,12 @@ $(document).ready(function() {
                             .attr("data-info", JSON.stringify({ id: rows.id, name: rows.name }))
                             .appendTo(buttonGroup);
 
+                        $("<a>")
+                            .text("ونډې")
+                            .addClass("btn btn-sm btn-primary")
+                            .attr("href", "/Account/Shares?accountId=" + rows.id)
+                            .appendTo(buttonGroup);
+
                         $("<button>")
                             .text(rows.isActive ? "غیر فعال" : "فعال")
                             .addClass(rows.isActive ? "btn btn-sm btn-danger btn-toggle-person-account-activation" : "btn btn-sm btn-success btn-toggle-person-account-activation")
