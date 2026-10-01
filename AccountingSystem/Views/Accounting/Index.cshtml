@@ -324,7 +324,10 @@
                                 </td>
                             </tr>`;
                 });
+                var table = $('#currencies-table-head').closest('table');
+                destroyListingDataTable(table);
                 $('#currencies-table-head').html(html);
+                initializeListingDataTable(table, 5);
             })
             .catch(error => {
                 console.log(error);

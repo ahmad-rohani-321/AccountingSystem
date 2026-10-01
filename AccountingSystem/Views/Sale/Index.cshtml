@@ -446,12 +446,12 @@
                 }, true),
                 success: function(sales) {
                     var table = $("#saleList");
+                    var listTable = table.closest("table");
+                    destroyListingDataTable(listTable);
                     table.empty();
 
                     if (!sales.length) {
-                        $("<tr>")
-                            .append($("<td>").attr("colspan", 11).addClass("text-center text-muted").text("هیڅ خرید ونه موندل شو"))
-                            .appendTo(table);
+                        initializeListingDataTable(listTable, 10);
                         return;
                     }
                     sales.forEach(function(sale) {
@@ -500,9 +500,11 @@
                         actions.appendTo(row);
                         row.appendTo(table);
                     });
+                    initializeListingDataTable(listTable, 10);
                 },
                 error: function(xhr) {
                     console.error(xhr.responseText);
+                    destroyListingDataTable($("#saleList").closest("table"));
                     $("#saleList").html('<tr><td colspan="11" class="text-center text-danger">د خرید لېست په ترلاسه کولو کې ستونزه پېښه شوه</td></tr>');
                 }
             });

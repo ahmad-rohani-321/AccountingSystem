@@ -44,7 +44,7 @@ public class UsersController(UserManager<User> userManager, ApplicationDbContext
 
     [Authorize(Roles = "Administrator")]
     [HttpGet("CheckDuplicate")]
-    public async Task<ActionResult> CheckDuplicate(string userName, string firstName, string? id)
+    public async Task<ActionResult> CheckDuplicate(string userName, string firstName, string id = null)
     {
         var normalizedUserName = _userManager.NormalizeName(userName?.Trim());
         var normalizedFirstName = firstName?.Trim().ToUpper();
@@ -131,6 +131,7 @@ public class UsersController(UserManager<User> userManager, ApplicationDbContext
                 x.UserName,
                 x.Email,
                 x.PhoneNumber,
+                x.ProfilePhoto,
                 x.IsActive
             })
             .ToListAsync();
@@ -212,13 +213,13 @@ public class UsersController(UserManager<User> userManager, ApplicationDbContext
         return Ok();
     }
 
-    private async Task<bool> UserNameExists(string userName, string? excludeId)
+    private async Task<bool> UserNameExists(string userName, string excludeId)
     {
         var normalizedUserName = _userManager.NormalizeName(userName.Trim());
         return await _userManager.Users.AnyAsync(x => x.Id != excludeId && x.NormalizedUserName == normalizedUserName);
     }
 
-    private async Task<bool> FirstNameExists(string firstName, string? excludeId)
+    private async Task<bool> FirstNameExists(string firstName, string excludeId)
     {
         var normalizedFirstName = firstName.Trim().ToUpper();
         return await _userManager.Users.AnyAsync(x => x.Id != excludeId && x.FirstName.ToUpper() == normalizedFirstName);

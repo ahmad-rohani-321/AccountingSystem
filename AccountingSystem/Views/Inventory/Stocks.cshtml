@@ -304,6 +304,8 @@ function generalContentLoader(endpointName, tbodyId, editButtonClass, changeActi
         type : "GET",
         success : function(response){
             var tableData = $(tbodyId);
+            var table = tableData.closest("table");
+            destroyListingDataTable(table);
             tableData.empty();
             
             response.forEach(function (data){
@@ -331,6 +333,7 @@ function generalContentLoader(endpointName, tbodyId, editButtonClass, changeActi
                 actions.appendTo(row);
                 row.appendTo(tableData);
             });
+            initializeListingDataTable(table, 4);
         },
         error : function(response){
             showToast("warning", response.responseText);

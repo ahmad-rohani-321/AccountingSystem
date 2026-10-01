@@ -431,12 +431,12 @@ function loadPurchases() {
         }, true),
         success: function (purchases) {
             var table = $("#purchaseList");
+            var listTable = table.closest("table");
+            destroyListingDataTable(listTable);
             table.empty();
 
             if (!purchases.length) {
-                $("<tr>")
-                    .append($("<td>").attr("colspan", 11).addClass("text-center text-muted").text("هیڅ خرید ونه موندل شو"))
-                    .appendTo(table);
+                initializeListingDataTable(listTable, 10);
                 return;
             }
             purchases.forEach(function (purchase) {
@@ -485,9 +485,11 @@ function loadPurchases() {
                 actions.appendTo(row);
                 row.appendTo(table);
             });
+            initializeListingDataTable(listTable, 10);
         },
         error: function (xhr) {
             console.error(xhr.responseText);
+            destroyListingDataTable($("#purchaseList").closest("table"));
             $("#purchaseList").html('<tr><td colspan="11" class="text-center text-danger">د خرید لېست په ترلاسه کولو کې ستونزه پېښه شوه</td></tr>');
         }
     });

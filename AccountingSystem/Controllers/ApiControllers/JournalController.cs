@@ -395,15 +395,15 @@ namespace AccountingSystem.Controllers.ApiControllers
         }
     
         [HttpPost("SaveEmployeeSalery")]
-        public async Task<ActionResult> SaveEmployeeSalery(int id, int month, decimal amount, string remarks)
+        public async Task<ActionResult> SaveEmployeeSalery(int id, int month, decimal amount, int treasureId, string remarks)
         {
             if(!await _context.Accounts.AnyAsync(x => x.ID == id && x.AccountTypeID == 9))
             {
                 return BadRequest("هیله ده د کارمند حساب انتخاب کړئ.");
             }
-            else if (!await _context.Accounts.AnyAsync(x => x.ID == id))
+            else if (!await _context.Accounts.AnyAsync(x => x.ID == treasureId && x.IsActive && x.AccountTypeID == 1))
             {
-                return BadRequest("کارمند موجود نه دی.");
+                return BadRequest("هیله ده خزانه انتخاب کړئ.");
             }
             else if (month < 1 || month > 12)
             {
@@ -420,10 +420,19 @@ namespace AccountingSystem.Controllers.ApiControllers
                 {
                     var user = _accessor.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier).Value;
                     var emplyeeAccount = await _context.Accounts.FindAsync(id);
+                    if (!await _context.Accounts.AnyAsync(x => x.ID == treasureId && x.IsActive && x.AccountTypeID == 1))
+                    {
+                        return BadRequest("هیله ده خزانه انتخاب کړئ.");
+                    }
                     var mainCurrency = await _context.Currencies.FirstOrDefaultAsync(x => x.IsMainCurrency);
                     if (mainCurrency == null)
                     {
                         return BadRequest("هیله ده اصلي اسعار وټاکئ.");
+                    }
+                    var treasureAccountBalance = await _context.AccountBalances.FirstOrDefaultAsync(x => x.AccountID == treasureId && x.CurrencyID == mainCurrency.ID);
+                    if (amount > (treasureAccountBalance == null ? 0 : treasureAccountBalance.Balance))
+                    {
+                        return BadRequest("د معاش مقدار د خزانې تر موجودي زیات دی.");
                     }
                     var mainCurrencyAccount = await _context.AccountBalances.FirstOrDefaultAsync(x => x.AccountID == emplyeeAccount.ID && x.CurrencyID == mainCurrency.ID);
                     
@@ -452,8 +461,6 @@ namespace AccountingSystem.Controllers.ApiControllers
                         TransactionTypeID = 15
                     });
 
-                    await _context.SaveChangesAsync();
-
                     mainCurrencyAccount.Balance -= amount;
                     await _context.JournalEntries.AddAsync(new Models.Accounting.JournalEntry()
                     {
@@ -466,9 +473,35 @@ namespace AccountingSystem.Controllers.ApiControllers
                         TransactionTypeID = 15
                     });
 
+                    if (treasureAccountBalance == null)
+                    {
+                        var newAccount = await _context.AccountBalances.AddAsync(new Models.Accounts.AccountBalance()
+                        {
+                            AccountID = treasureId,
+                            CreatedByUserId = user,
+                            CreationDate = DateTime.Now,
+                            CurrencyID = mainCurrency.ID
+                        });
+                        await _context.SaveChangesAsync();
+                        treasureAccountBalance = newAccount.Entity;
+                    }
+
+                    treasureAccountBalance.Balance -= amount;
+                    await _context.JournalEntries.AddAsync(new Models.Accounting.JournalEntry()
+                    {
+                        AccountBalanceID = treasureAccountBalance.ID,
+                        Balance = treasureAccountBalance.Balance,
+                        CreatedByUserId = user,
+                        CreationDate = DateTime.Now,
+                        Debit = amount,
+                        Remarks = remarks,
+                        TransactionTypeID = 15
+                    });
+
                     await _context.Salery.AddAsync(new Models.Accounting.MonthlySalery()
                     {
                         EmployeeID = id,
+                        TreasureAccountID = treasureId,
                         CreatedByUserId = user,
                         CreationDate = DateTime.Now,
                         Month = month,
@@ -497,6 +530,7 @@ namespace AccountingSystem.Controllers.ApiControllers
                 .Select(x => new
                 {
                     EmployeeName = x.Employee.Name,
+                    TreasureAccountName = x.TreasureAccount == null ? null : x.TreasureAccount.Name,
                     Month = x.Month,
                     Amount = x.GivenAmount,
                     Remarks = x.Remarks,

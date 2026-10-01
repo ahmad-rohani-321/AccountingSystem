@@ -12,6 +12,7 @@
     <link href="~/lib/fontawesome/css/solid.min.css" rel="stylesheet" />
     <link href="~/lib/sweetalert2/dist/sweetalert2.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/lib/datatables/css/dataTables.bootstrap5.min.css" />
     <link rel="icon" href="~/MainIcon.ico" asp-append-version="true">
     @await RenderSectionAsync("Styles", required: false)
 </head>
@@ -287,7 +288,7 @@
                                 <i class="fa-solid fa-user"></i>
                                 پروفایل
                             </a>
-                            <a class="dropdown-item">
+                            <a class="dropdown-item @ViewData["UserActivityHistory"]" asp-controller="Auth" asp-action="UserActivityHistory">
                                 <i class="fa-solid fa-clock-rotate-left"></i>
                                 تاریخچه
                             </a>
@@ -364,6 +365,9 @@
     <script src="~/lib/tabler/dist/js/tabler.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/datatables/js/dataTables.min.js"></script>
+    <script src="~/lib/datatables/js/dataTables.bootstrap5.min.js"></script>
+    <script src="~/js/listing-tables.js" asp-append-version="true"></script>
     <script src="~/lib/sweetalert2/dist/sweetalert2.all.min.js"></script>
     <script>
 

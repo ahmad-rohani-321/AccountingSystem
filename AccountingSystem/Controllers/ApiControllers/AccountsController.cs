@@ -68,6 +68,29 @@ namespace AccountingSystem.Controllers.ApiControllers
             return Ok(balance);
         }
 
+        [HttpGet("GetMainCurrencyTreasureBalance/{id}")]
+        public async Task<ActionResult> GetMainCurrencyTreasureBalance(int id)
+        {
+            if (!await _context.Accounts.AnyAsync(x => x.ID == id && x.IsActive && x.AccountTypeID == 1))
+            {
+                return BadRequest("هیله ده خزانه انتخاب کړئ.");
+            }
+
+            var mainCurrency = await _context.Currencies.FirstOrDefaultAsync(x => x.IsMainCurrency);
+            if (mainCurrency == null)
+            {
+                return BadRequest("هیله ده اصلي اسعار وټاکئ.");
+            }
+
+            var balance = await _context.AccountBalances.FirstOrDefaultAsync(x => x.AccountID == id && x.CurrencyID == mainCurrency.ID);
+            return Ok(new AccountBalanceViewModel
+            {
+                CurrencyID = mainCurrency.ID,
+                CurrencyName = mainCurrency.CurrencyName,
+                Balance = balance == null ? 0 : balance.Balance
+            });
+        }
+
         [HttpGet("PeopleAccount")]
         public async Task<ActionResult> GetPeopleAccount()
         {

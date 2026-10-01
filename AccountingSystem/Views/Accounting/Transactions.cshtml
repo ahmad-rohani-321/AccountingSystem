@@ -600,6 +600,8 @@ searchFormValidation.onSuccess(function(event){
         }, true),
         success: function(respondedData){
             var dataTable = $("#journalList");
+            var table = dataTable.closest("table");
+            destroyListingDataTable(table);
             dataTable.empty();
             respondedData.forEach(function(data){
                 var tr = $("<tr>");
@@ -615,6 +617,7 @@ searchFormValidation.onSuccess(function(event){
                 tr.appendTo(dataTable);
 
             });
+            initializeListingDataTable(table);
         },
         error: function(response){
             console.log(response.responseText);
@@ -633,6 +636,8 @@ function GetTodayJournal(){
         type: "GET",
         success : function(respondedData){
             var dataTable = $("#journalList");
+            var table = dataTable.closest("table");
+            destroyListingDataTable(table);
             dataTable.empty();
             respondedData.forEach(function(data){
                 var tr = $("<tr>");
@@ -648,6 +653,7 @@ function GetTodayJournal(){
                 tr.appendTo(dataTable);
 
             });
+            initializeListingDataTable(table);
         },
         error : function(error){
             console.error(error);

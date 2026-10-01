@@ -180,6 +180,8 @@ formValidator.onSuccess(function(event){
         }, true),
         success: function(response){
             var dataTable = $("#stockJournalDataTable");
+            var table = dataTable.closest("table");
+            destroyListingDataTable(table);
             dataTable.empty();
             response.forEach(function(rows){
                 var tr = $("<tr>");
@@ -193,6 +195,7 @@ formValidator.onSuccess(function(event){
                 $("<td>").text(rows.description).appendTo(tr);
                 tr.appendTo(dataTable);
             });
+            initializeListingDataTable(table);
         },
         error: function(response){
             console.log(response.responseText);

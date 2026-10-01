@@ -946,6 +946,8 @@ function getItemsList(){
         type: "GET",
         success : function(respondedData){
             var dataTable = $("#itemsList");
+            var table = dataTable.closest("table");
+            destroyListingDataTable(table);
             dataTable.empty();
             respondedData.forEach(function(data){
                 var tr = $("<tr>");
@@ -989,6 +991,7 @@ function getItemsList(){
                 tr.appendTo(dataTable);
 
             });
+            initializeListingDataTable(table, 11);
         },
         error : function(error){
             console.error(error);

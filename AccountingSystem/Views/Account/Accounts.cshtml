@@ -316,6 +316,8 @@ $(document).ready(function() {
             success: function (data) {
                 console.log(data);
                 var dataTable = $("#load-accounts-list");
+                var table = dataTable.closest("table");
+                destroyListingDataTable(table);
                 dataTable.empty();
                 data.forEach(function (rows) {
                     var row = $("<tr>");
@@ -354,6 +356,7 @@ $(document).ready(function() {
                         dataTable.append(row);
                     
                 });
+                initializeListingDataTable(table, 5);
             },
             error : function(response){
                 showToast("warning", response.responseText);
@@ -428,12 +431,18 @@ $(document).ready(function() {
             success: function(response) {
                 $("#new-account-name").text(info.name);
                 var personBalances = $("#balances");
+                var balancesTable = personBalances.closest("table");
+                destroyListingDataTable(balancesTable);
                 personBalances.empty();
                 response.forEach(function(balance) {
                     var row = $("<tr>");
                     row.append($("<td>").text(balance.currencyName));
                     row.append($("<td>").text(balance.balance));
                     personBalances.append(row);
+                });
+                initializeListingDataTable(balancesTable);
+                $("#balancesModal").one("shown.bs.modal", function() {
+                    balancesTable.DataTable().columns.adjust();
                 });
                 $("#balancesModal").modal("show");
             },

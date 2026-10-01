@@ -105,12 +105,6 @@
                             <input type="text" class="form-control" id="new-address" placeholder="آدرس" />
                         </div>
                     </div>
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label class="form-label" for="new-person-type">حساب ډول</label>
-                            <select id="new-person-type" disabled class="form-control" placeholder="شخص ډول"></select>
-                        </div>
-                    </div>
                 </div>
             </div>
             <div class="modal-header">
@@ -207,12 +201,6 @@
                             <input type="text" class="form-control" id="edit-address" placeholder="آدرس" />
                         </div>
                     </div>
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label class="form-label" for="edit-person-type">حساب ډول</label>
-                            <select id="edit-person-type" disabled class="form-control" placeholder="شخص ډول"></select>
-                        </div>
-                    </div>
                 </div>
             </div>
             <div class="modal-footer align-items-end">
@@ -286,31 +274,10 @@ $(document).ready(function() {
             }
         });
         
-        const tom = $("#new-person-type")[0].tomselect;
-        tom.setValue(8);
         $("#createNewPersonAccount").modal('show');
     });
 
 
-    var ts = new TomSelect("#new-person-type", {
-        valueField: "id",
-        labelField: "name",
-        searchField: "name"
-    });
-    
-    var edit_ts = new TomSelect("#edit-person-type", {
-        valueField: "id",
-        labelField: "name",
-        searchField: "name"
-    });
-    // load account types 
-    $.get("/api/Accounts/GetContributorAccountTypes", function(data) {
-        ts.addOptions(data);
-        ts.refreshOptions(false);
-
-        edit_ts.addOptions(data);
-        edit_ts.refreshOptions(false);
-    });
     // load currencies 
     $.ajax({
         url: "/api/Currency/Currencies/Simple",
@@ -347,12 +314,6 @@ $(document).ready(function() {
             errorMessage: "لومړی موبایل نمبر اړین دی"
         }
     ])
-    .addField("#new-person-type", [
-        {
-            rule: "required",
-            errorMessage: "حساب ډول اړین دی"
-        }
-    ]);
     // submit new person account form 
     newPersonAccountFormValidator.onSuccess(function(event) {
         event.preventDefault();
@@ -364,7 +325,7 @@ $(document).ready(function() {
             secondPhone: $("#new-second-phone").val(),
             email: $("#new-email").val(),
             address: $("#new-address").val(),
-            accountTypeId: ts.getValue(),
+            accountTypeId: 8,
             balance: []
         };
         $("#listCurrencies tr").each(function() {
@@ -400,6 +361,8 @@ $(document).ready(function() {
             type : "GET",
             success: function (data) {
                 var dataTable = $("#load-people-accounts-list");
+                var table = dataTable.closest("table");
+                destroyListingDataTable(table);
                 dataTable.empty();
 
                 data.forEach(function (rows) {
@@ -444,6 +407,7 @@ $(document).ready(function() {
                         dataTable.append(row);
                     
                 });
+                initializeListingDataTable(table, 10);
             },
             error : function(response){
                 showToast("warning", response.responseText);
@@ -471,12 +435,6 @@ $(document).ready(function() {
             errorMessage: "لومړی موبایل نمبر اړین دی"
         }
     ])
-    .addField("#edit-person-type", [
-        {
-            rule: "required",
-            errorMessage: "حساب ډول اړین دی"
-        }
-    ]);
     // submit edit person account form
     editPersonAccountFormValidator.onSuccess(function(event) {
         event.preventDefault();
@@ -489,7 +447,7 @@ $(document).ready(function() {
             secondPhone: $("#edit-second-phone").val(),
             email: $("#edit-email").val(),
             address: $("#edit-address").val(),
-            accountTypeId: edit_ts.getValue()
+            accountTypeId : 8
         };
         console.log(JSON.stringify(formData));
         $.ajax({
@@ -520,10 +478,6 @@ $(document).ready(function() {
         $("#edit-name").val(row.name);
         $("#edit-tazkira").val(row.nic);
         $("#edit-person-id").val(row.id);
-        //$("#edit-person-type").val(row.accountTypeId).trigger("change");
-        
-        const tom = $("#edit-person-type")[0].tomselect;
-        tom.setValue(row.accountTypeId);
 
         $("#editPersonAccount").modal("show");
     });
@@ -536,12 +490,18 @@ $(document).ready(function() {
             success: function(response) {
                 $("#new-person-name").text(info.name);
                 var personBalances = $("#person-balances");
+                var balancesTable = personBalances.closest("table");
+                destroyListingDataTable(balancesTable);
                 personBalances.empty();
                 response.forEach(function(balance) {
                     var row = $("<tr>");
                     row.append($("<td>").text(balance.currencyName));
                     row.append($("<td>").text(balance.balance));
                     personBalances.append(row);
+                });
+                initializeListingDataTable(balancesTable);
+                $("#personBalancesModal").one("shown.bs.modal", function() {
+                    balancesTable.DataTable().columns.adjust();
                 });
                 $("#personBalancesModal").modal("show");
             },

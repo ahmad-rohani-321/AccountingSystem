@@ -250,6 +250,8 @@ function stockItemsList(){
         type: "GET",
         success : function(respondedData){
             var dataTable = $("#stockItemsList");
+            var table = dataTable.closest("table");
+            destroyListingDataTable(table);
             dataTable.empty();
             respondedData.forEach(function(data){
                 var tr = $("<tr>");
@@ -269,6 +271,7 @@ function stockItemsList(){
                 tr.appendTo(dataTable);
 
             });
+            initializeListingDataTable(table, 5);
         },
         error : function(error){
             console.error(error);

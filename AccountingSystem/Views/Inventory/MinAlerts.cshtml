@@ -35,6 +35,8 @@ $(document).ready(function(){
         type: "GET",
         success: function(response){
             var dataTable = $("#itemsList");
+            var table = dataTable.closest("table");
+            destroyListingDataTable(table);
             response.forEach(function(row){
                 var tr = $("<tr>");
                 $("<td>").text(row.id).appendTo(tr);
@@ -45,6 +47,7 @@ $(document).ready(function(){
                 $("<td>").text(row.quantity).appendTo(tr);
                 tr.appendTo(dataTable);
             });
+            initializeListingDataTable(table);
         },
         error: function(response){
             console.log(response.responseText);

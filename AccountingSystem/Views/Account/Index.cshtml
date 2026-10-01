@@ -19,26 +19,28 @@
                 <i class="fas fa-plus ms-3"></i>
                 </button>
             </div>
-            <table class="table table-bordered table-hover table-responsive table-striped">
-                <thead>
-                    <tr>
-                        <th>#</th>
-                        <th>نوم</th>
-                        <th>کوډ</th>
-                        <th>تذکره</th>
-                        <th>لومړی شمېره</th>
-                        <th>دوهم شمېره</th>
-                        <th>ایمیل</th>
-                        <th>ادرس</th>
-                        <th>حساب ډول</th>
-                        <th>فعالیت</th>
-                        <th style="width: 100px;">کړني</th>
-                    </tr>
-                </thead>
-                <tbody id="load-people-accounts-list">
-                    
-                </tbody>
-            </table>
+            <div class="table-responsive">
+                <table id="peopleAccountsTable" class="table table-bordered table-hover table-striped w-100">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>نوم</th>
+                            <th>کوډ</th>
+                            <th>تذکره</th>
+                            <th>لومړی شمېره</th>
+                            <th>دوهم شمېره</th>
+                            <th>ایمیل</th>
+                            <th>ادرس</th>
+                            <th>حساب ډول</th>
+                            <th>فعالیت</th>
+                            <th style="width: 100px;">کړني</th>
+                        </tr>
+                    </thead>
+                    <tbody id="load-people-accounts-list">
+
+                    </tbody>
+                </table>
+            </div>
             </div>
         </div>
     </div>
@@ -310,6 +312,11 @@
                     </div>
                 </div>
                 <div class="mb-3">
+                    <label class="form-label" for="salery-treasure">خزانه</label>
+                    <select id="salery-treasure" name="treasureId" class="form-control" placeholder="خزانه انتخاب کړئ"></select>
+                    <div class="form-hint" id="salery-treasure-balance">د خزانې موجودي په اصلي اسعارو کې ښودل کیږي.</div>
+                </div>
+                <div class="mb-3">
                     <label class="form-label" for="salery-remarks">تفصیل</label>
                     <textarea id="salery-remarks" name="remarks" class="form-control" rows="3" placeholder="تفصیل"></textarea>
                 </div>
@@ -457,6 +464,8 @@ $(document).ready(function() {
             url : "/api/Accounts/PeopleAccount",
             type : "GET",
             success: function (data) {
+                var table = $("#peopleAccountsTable");
+                destroyListingDataTable(table);
                 var dataTable = $("#load-people-accounts-list");
                 dataTable.empty();
 
@@ -512,6 +521,7 @@ $(document).ready(function() {
                         dataTable.append(row);
                     
                 });
+                initializeListingDataTable(table, 10, [[0, "desc"]]);
             },
             error : function(response){
                 showToast("warning", response.responseText);
@@ -602,12 +612,18 @@ $(document).ready(function() {
             success: function(response) {
                 $("#new-person-name").text(info.name);
                 var personBalances = $("#person-balances");
+                var balancesTable = personBalances.closest("table");
+                destroyListingDataTable(balancesTable);
                 personBalances.empty();
                 response.forEach(function(balance) {
                     var row = $("<tr>");
                     row.append($("<td>").text(balance.currencyName));
                     row.append($("<td>").text(balance.balance));
                     personBalances.append(row);
+                });
+                initializeListingDataTable(balancesTable);
+                $("#personBalancesModal").one("shown.bs.modal", function() {
+                    balancesTable.DataTable().columns.adjust();
                 });
                 $("#personBalancesModal").modal("show");
             },
@@ -619,6 +635,34 @@ $(document).ready(function() {
     var salery_ts = new TomSelect("#salery-month", {
         create: false,
         allowEmptyOption: true
+    });
+    var saleryTreasureBalance = null;
+    var saleryTreasureBalanceRequest = null;
+    var treasure_ts = new TomSelect("#salery-treasure", {
+        valueField: "id",
+        labelField: "name",
+        searchField: ["name", "code", "accountTypeName"],
+        create: false,
+        allowEmptyOption: true,
+        onChange: function(value) {
+            saleryTreasureBalance = null;
+            if (saleryTreasureBalanceRequest) saleryTreasureBalanceRequest.abort();
+            $("#salery-treasure-balance").text("د خزانې موجودي په اصلي اسعارو کې ښودل کیږي.");
+            if (!value) return;
+            saleryTreasureBalanceRequest = $.ajax({
+                url: "/api/Accounts/GetMainCurrencyTreasureBalance/" + value,
+                type: "GET",
+                success: function(data) {
+                    if (treasure_ts.getValue() != value) return;
+                    saleryTreasureBalance = Number(data.balance);
+                    $("#salery-treasure-balance").text("موجودي: " + data.balance + " " + data.currencyName);
+                },
+                error: function(response, status) {
+                    if (status === "abort") return;
+                    showToast("warning", response.responseText || "د خزانې موجودي ترلاسه نه سوه.");
+                }
+            });
+        }
     });
     var employeeSaleryFormValidator = new JustValidate("#employeeSaleryForm");
     employeeSaleryFormValidator
@@ -634,6 +678,18 @@ $(document).ready(function() {
             errorMessage: "صحیح میاشت انتخاب کړئ"
         }
     ])
+    .addField("#salery-treasure", [
+        {
+            rule: "required",
+            errorMessage: "خزانه انتخاب کړئ"
+        },
+        {
+            validator: function(value) {
+                return Number.isInteger(Number(value)) && Number(value) > 0;
+            },
+            errorMessage: "صحیح خزانه انتخاب کړئ"
+        }
+    ])
     .addField("#salery-amount", [
         {
             rule: "required",
@@ -644,9 +700,15 @@ $(document).ready(function() {
                 return Number.isFinite(Number(value)) && Number(value) >= 0;
             },
             errorMessage: "مقدار باید منفي نه وي"
+        },
+        {
+            validator: function(value) {
+                return saleryTreasureBalance == null || Number(value) <= saleryTreasureBalance;
+            },
+            errorMessage: "د معاش مقدار د خزانې تر موجودي زیات دی"
         }
     ]);
-    employeeSaleryFormValidator.onSuccess(function(event) {
+    employeeSaleryFormValidator.onSuccess(async function(event) {
         event.preventDefault();
         var submitButton = $("#btnSaveEmployeeSalery");
         if (submitButton.prop("disabled")) return;
@@ -654,6 +716,7 @@ $(document).ready(function() {
             id: $("#salery-employee-id").val(),
             month: salery_ts.getValue(),
             amount: $("#salery-amount").val(),
+            treasureId: treasure_ts.getValue(),
             remarks: $("#salery-remarks").val()
         };
         if (Number(formData.id) <= 0 || !Number.isInteger(Number(formData.id))) {
@@ -662,27 +725,49 @@ $(document).ready(function() {
         }
         submitButton.prop("disabled", true);
         $("#employeeSalery [data-bs-dismiss='modal']").prop("disabled", true);
-        $.ajax({
-            url: "/api/Journal/SaveEmployeeSalery?" + $.param(formData),
-            type: "POST",
-            success: function(response) {
-                showToast("success", "د کارمند معاش په بریالیتوب سره ثبت سو!");
-                $("#employeeSalery").modal("hide");
-                loadPeoplAccountList();
-            },
-            error: function(response) {
-                showToast("warning", response.responseText || "د معاش په ثبتولو کې ستونزه رامنځته سوه.");
-            },
-            complete: function() {
-                submitButton.prop("disabled", false);
-                $("#employeeSalery [data-bs-dismiss='modal']").prop("disabled", false);
+        try {
+            var balance = await $.get("/api/Accounts/GetMainCurrencyTreasureBalance/" + formData.treasureId);
+            saleryTreasureBalance = Number(balance.balance);
+            $("#salery-treasure-balance").text("موجودي: " + balance.balance + " " + balance.currencyName);
+            if (Number(formData.amount) > saleryTreasureBalance) {
+                showToast("warning", "د معاش مقدار د خزانې تر موجودي زیات دی.");
+                return;
             }
-        });
+            await $.ajax({
+                url: "/api/Journal/SaveEmployeeSalery?" + $.param(formData),
+                type: "POST"
+            });
+            showToast("success", "د کارمند معاش په بریالیتوب سره ثبت سو!");
+            $("#employeeSalery").modal("hide");
+            loadPeoplAccountList();
+        }
+        catch (response) {
+            showToast("warning", response.responseText || "د معاش په ثبتولو کې ستونزه رامنځته سوه.");
+        }
+        finally {
+            submitButton.prop("disabled", false);
+            $("#employeeSalery [data-bs-dismiss='modal']").prop("disabled", false);
+        }
     });
     $(document).on("click", ".btn-employee-salery", function(){
         if ($("#btnSaveEmployeeSalery").prop("disabled")) return;
         var info = $(this).data("info");
         $("#employeeSaleryForm")[0].reset();
+        treasure_ts.clear();
+        treasure_ts.clearOptions();
+        saleryTreasureBalance = null;
+        $("#salery-treasure-balance").text("د خزانې موجودي په اصلي اسعارو کې ښودل کیږي.");
+        $.ajax({
+            url: "/api/Accounts/GetBankAccounts",
+            type: "GET",
+            success: function(data) {
+                treasure_ts.addOptions(data.filter(function(account) { return account.accountTypeId == 1; }));
+                treasure_ts.refreshOptions(false);
+            },
+            error: function(response) {
+                showToast("warning", response.responseText || "د خزانو معلومات ترلاسه نه سول.");
+            }
+        });
         employeeSaleryFormValidator.refresh();
         $("#salery-employee-id").val(info.id);
         $("#salery-employee-name").text(info.name);

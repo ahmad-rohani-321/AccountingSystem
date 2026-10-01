@@ -67,6 +67,12 @@ namespace AccountingSystem.Controllers
             return View();
         }
 
+        [Authorize]
+        public IActionResult UserActivityHistory()
+        {
+            return View();
+        }
+
         [Authorize(Roles = "Administrator")]
         public IActionResult Users()
         {

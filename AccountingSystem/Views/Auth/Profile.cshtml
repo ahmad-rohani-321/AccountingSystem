@@ -86,36 +86,13 @@
             </form>
         </div>
     </div>
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h3 class="h3 mb-0">زما تاریخچه</h3>
-            </div>
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-bordered table-hover table-striped">
-                        <thead>
-                            <tr>
-                                <th>برخه</th>
-                                <th>تفصیل</th>
-                                <th>نېټه</th>
-                            </tr>
-                        </thead>
-                        <tbody id="profileHistoryList"></tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
 </div>
 
 @section Scripts {
     <script src="~/lib/just-validate/dist/just-validate.production.min.js"></script>
-    <script src="~/lib/moment-jalali/dist/jalali-moment.browser.js"></script>
     <script>
         $(document).ready(function() {
             loadProfile();
-            loadProfileHistory();
         });
 
         function loadProfile() {
@@ -139,31 +116,6 @@
         function setProfilePhoto(fileName) {
             var photo = fileName ? "url('/Profiles/" + encodeURIComponent(fileName) + "')" : "";
             $("#profilePhotoPreview").css("background-image", photo);
-        }
-
-        function loadProfileHistory() {
-            $.ajax({
-                url: "/api/Profile/GetUserHistory",
-                type: "GET",
-                success: function(data) {
-                    var table = $("#profileHistoryList");
-                    table.empty();
-                    if (!data.length) {
-                        $("<tr>").append($("<td>").attr("colspan", 3).addClass("text-center text-muted").text("هیڅ تاریخچه ونه موندل سوه.")).appendTo(table);
-                        return;
-                    }
-                    data.forEach(function(history) {
-                        var row = $("<tr>");
-                        $("<td>").text(history.modelName).appendTo(row);
-                        $("<td>").text(history.details).appendTo(row);
-                        $("<td>").text(moment(history.creationDate).format("jYYYY/jMM/jDD HH:mm:ss")).appendTo(row);
-                        table.append(row);
-                    });
-                },
-                error: function(response) {
-                    showToast("warning", response.responseText || "د تاریخچې معلومات ترلاسه نه سول.");
-                }
-            });
         }
 
         var profileFormValidator = new JustValidate("#profileForm");
@@ -198,7 +150,6 @@
                         showToast("success", "د پروفایل معلومات په بریالیتوب سره تغیر سول.");
                         $("#profileImage").val("");
                         loadProfile();
-                        loadProfileHistory();
                     },
                     error: function(response) {
                         showToast("warning", response.responseText || "د پروفایل معلومات تغیر نه سول.");

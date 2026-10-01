@@ -1,0 +1,85 @@
+@{
+    ViewData["title"] = "User Activity History";
+    ViewData["UserActivityHistory"] = "active";
+}
+
+<div class="row row-deck row-cards">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="h3 mb-0">د یوزر د فعالیت تاریخچه</h3>
+            </div>
+            <div class="card-body py-0">
+                <div id="userActivityHistoryList"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/lib/moment-jalali/dist/jalali-moment.browser.js"></script>
+    <script>
+        $(document).ready(function() {
+            loadUserActivityProfile();
+            loadUserActivityHistory();
+        });
+
+        var userActivityName = "";
+        var userActivityPhoto = "";
+
+        function loadUserActivityProfile() {
+            $.ajax({
+                url: "/api/Profile/GetProfile",
+                type: "GET",
+                success: function(data) {
+                    userActivityName = [data.firstName, data.lastName].filter(Boolean).join(" ") || data.userName || "";
+                    userActivityPhoto = data.profilePhoto || "";
+                    $("#userActivityHistoryList .activity-avatar").each(function() {
+                        setActivityAvatar($(this));
+                    });
+                },
+                error: function(response) {
+                    showToast("warning", response.responseText || "د یوزر معلومات ترلاسه نه سول.");
+                }
+            });
+        }
+
+        function setActivityAvatar(avatar) {
+            if (userActivityPhoto) {
+                avatar.css("background-image", "url('/Profiles/" + encodeURIComponent(userActivityPhoto) + "')");
+            }
+            else {
+                avatar.text((userActivityName || "ی").charAt(0));
+            }
+        }
+
+        function loadUserActivityHistory() {
+            $.ajax({
+                url: "/api/Profile/GetUserHistory",
+                type: "GET",
+                success: function(data) {
+                    var list = $("#userActivityHistoryList").empty();
+                    if (!data.length) {
+                        $("<div>").addClass("text-center text-muted py-4").text("هیڅ تاریخچه ونه موندل سوه.").appendTo(list);
+                        return;
+                    }
+                    data.forEach(function(history) {
+                        var item = $("<div>").addClass("d-flex align-items-center gap-3 py-3 border-bottom").appendTo(list);
+                        var avatar = $("<span>").addClass("avatar avatar-md rounded-circle flex-shrink-0 activity-avatar").appendTo(item);
+                        setActivityAvatar(avatar);
+                        var content = $("<div>").addClass("flex-fill min-width-0").appendTo(item);
+                        var description = $("<div>").addClass("text-break").appendTo(content);
+                        $("<span>").addClass("fw-bold").text(history.modelName || "فعالیت").appendTo(description);
+                        if (history.details) {
+                            description.append(document.createTextNode(" — " + history.details));
+                        }
+                        $("<div>").addClass("text-muted small mt-1").text(moment(history.creationDate).format("jYYYY/jMM/jDD HH:mm:ss")).appendTo(content);
+                    });
+                },
+                error: function(response) {
+                    showToast("warning", response.responseText || "د تاریخچې معلومات ترلاسه نه سول.");
+                }
+            });
+        }
+    </script>
+}
