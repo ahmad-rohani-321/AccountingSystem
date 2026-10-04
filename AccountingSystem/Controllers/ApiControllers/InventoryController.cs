@@ -529,7 +529,8 @@ namespace AccountingSystem.Controllers.ApiControllers
                         .Select(x => new UnitConversionViewModel()
                         {
                             Id = x.ID,
-                            SubUnitName = x.SubUnit.Name
+                            SubUnitName = x.SubUnit.Name,
+                            MainUnitQuantity = x.MainAmount
                         }).ToList();
                 return Ok(units);
             }
@@ -754,9 +755,9 @@ namespace AccountingSystem.Controllers.ApiControllers
             {
                 return BadRequest("جنس کوډ تکراري دی.");
             }
-            else if (await _context.Items.AnyAsync(x => x.SerialNumber != null && x.SerialNumber == request.SerialNo))
+            else if (await _context.Items.AnyAsync(x => x.SerialNumber != null && x.ID != request.Id && x.SerialNumber == request.SerialNo))
             {
-                return BadRequest("جنس سیریل نمبر حتمي دی.");
+                return BadRequest("جنس سیریل نمبر تکراري دی.");
             }
             else if (!request.UnitConversions.Any(unit =>
                         // Negative values are never allowed.

@@ -7,5 +7,6 @@ namespace AccountingSystem.Controllers
     public class ReportController : Controller
     {
         public IActionResult SalesDashboard() => View();
+        public IActionResult AccountBalancesDashboard() => View();
     }
 }

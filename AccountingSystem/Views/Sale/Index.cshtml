@@ -454,6 +454,7 @@
                         initializeListingDataTable(listTable, 10);
                         return;
                     }
+                    console.log(sales);
                     sales.forEach(function(sale) {
                         var row = $("<tr>");
                         $("<td>").text(sale.saleNo).appendTo(row);

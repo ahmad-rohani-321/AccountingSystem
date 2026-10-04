@@ -59,10 +59,11 @@
             flatpickr("#reportEndDate", { locale: "fa", defaultDate: new Date(), allowInput: true });
             var chart = new ApexCharts(document.querySelector("#reportSalesChart"), {
                 chart: { type: "bar", height: 285, fontFamily: "inherit", toolbar: { show: false } },
-                series: [], dataLabels: { enabled: false }, noData: { text: "معلومات نسته" },
+                series: [{ name: "فروشونه", data: [] }], dataLabels: { enabled: false }, noData: { text: "معلومات نسته" },
                 xaxis: { type: "category" }, yaxis: { min: 0, forceNiceScale: true, decimalsInFloat: 0 }
             });
-            chart.render().then(loadDashboard);
+            var chartReady = chart.render();
+            loadDashboard();
             $("#reportPeriod").on("change", function() {
                 var custom = $(this).val() === "custom";
                 $("#reportDateRange, #reportDateEnd, #reportSearch").toggleClass("d-none", !custom);
@@ -111,7 +112,9 @@
                             $("<div>").addClass("summary-value text-green").text(number.format(currency.profit)).appendTo(card);
                             column.append(card).appendTo(profitSummary);
                         });
-                        chart.updateSeries([{ name: "فروشونه", data: result.chart.map(function(x) { return { x: moment(x.date).format("jYYYY/jMM/jDD"), y: x.salesCount }; }) }]);
+                        chartReady.then(function() {
+                            chart.updateSeries([{ name: "فروشونه", data: result.chart.map(function(x) { return { x: moment(x.date).format("jYYYY/jMM/jDD"), y: x.salesCount }; }) }]);
+                        });
                         tableRows("#currencySummary", result.currencySummary, [function(x) { return x.currencyName; }, function(x) { return x.salesCount; }, function(x) { return number.format(x.totalAmount); }, function(x) { return number.format(x.receivedAmount); }, function(x) { return number.format(x.remainingAmount); }, function(x) { return number.format(x.profit); }]);
                         tableRows("#topItems", result.topItems, [function(x) { return x.itemName; }, function(x) { return number.format(x.quantity); }, function(x) { return x.salesCount; }]);
                         tableRows("#topCustomers", result.topCustomers, [function(x) { return x.customerName; }, function(x) { return x.salesCount; }]);

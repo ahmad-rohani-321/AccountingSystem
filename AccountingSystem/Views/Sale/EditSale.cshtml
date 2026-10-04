@@ -188,6 +188,7 @@
                     // the saved item and unit are restored.
                     itemTomSelect.setValue(detail.itemId, true);
                     await loadUnitsForItem(lastRow, detail.itemId, detail.unitId);
+                    await loadItemPrice(lastRow, detail.itemId);
                     lastRow.find('.control-quantity').val(detail.quantity);
                     lastRow.find('.per-price').val(detail.perPrice);
                     lastRow.find('.control-total-price').val(detail.totalPrice);
@@ -525,14 +526,34 @@
 
             CalculateSaleTotal();
         }
-        $(document).on("change", ".control-quantity", function() {
-            var currentRow = $(this).closest("tr");
-            var quantity = $(this).val();
-            var price = currentRow.find('.per-price').val();
-            var totalPrice = quantity * price;
-            currentRow.find('.control-total-price').val(totalPrice);
+        function calculateRowTotal(row) {
+            var quantity = Number(row.find('.control-quantity').val() || 0);
+            var perPrice = Number(row.find('.per-price').val() || 0);
 
+            row.find('.control-total-price').val(quantity * perPrice);
             CalculateSaleTotal();
+        }
+
+        function calculateUnitPrice(row) {
+            var unitTomSelect = row.find('.units-select')[0].tomselect;
+            var selectedUnit = unitTomSelect.options[unitTomSelect.getValue()];
+            var mainAmount = Number(selectedUnit?.mainUnitQuantity || 0);
+            var itemPrice = Number(row.data('item-price') || 0);
+
+            row.find('.per-price').val(mainAmount * itemPrice);
+            calculateRowTotal(row);
+        }
+
+        async function loadItemPrice(row, itemId) {
+            var itemPrice = itemId
+                ? await $.get(`/api/Sale/GetSalePrice/${itemId}`)
+                : 0;
+
+            row.data('item-price', Number(itemPrice || 0));
+        }
+
+        $(document).on("change", ".control-quantity", function() {
+            calculateRowTotal($(this).closest("tr"));
         });
         async function loadUnitsForItem(row, itemId, selectedUnitId = null) {
             var unitTomSelect = row.find('.units-select')[0].tomselect;
@@ -558,8 +579,16 @@
 
         $(document).on("change", ".items-select", async function() {
             var currentRow = $(this).closest("tr");
-            await loadUnitsForItem(currentRow, this.tomselect.getValue());
-            CalculateSaleTotal();
+            var itemId = this.tomselect.getValue();
+
+            await Promise.all([
+                loadUnitsForItem(currentRow, itemId),
+                loadItemPrice(currentRow, itemId)
+            ]);
+            calculateUnitPrice(currentRow);
+        });
+        $(document).on("change", ".units-select", function() {
+            calculateUnitPrice($(this).closest('tr'));
         });
         $(document).on("click", ".btn-delete-row", function(event) {
             event.preventDefault();
@@ -583,13 +612,7 @@
             CalculateSaleTotal();
         });
         $(document).on("change", ".per-price", function() {
-            var currentRow = $(this).closest("tr");
-            var quantity = currentRow.find('.control-quantity').val();
-            var price = $(this).val();
-            var totalPrice = quantity * price;
-            currentRow.find('.control-total-price').val(totalPrice);
-
-            CalculateSaleTotal();
+            calculateRowTotal($(this).closest("tr"));
         });
         $(document).on("change", ".control-total-price", function() {
             CalculateSaleTotal();

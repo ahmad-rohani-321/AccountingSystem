@@ -1,0 +1,159 @@
+@{
+    ViewData["Title"] = "د حسابونو بلانس ډشبورډ";
+    ViewData["Reports"] = "active";
+    ViewData["AccountBalancesReports"] = "active";
+}
+@section Styles {
+    <link href="~/lib/tom-select/dist/css/tom-select.bootstrap5.css" rel="stylesheet" />
+    <style>
+        .balances-dashboard .card { border-radius: 14px; box-shadow: 0 3px 16px rgba(24, 36, 51, .035); }
+        .balances-dashboard .balance-value { font-variant-numeric: tabular-nums; white-space: nowrap; }
+        .balances-dashboard .chart-scroll { height: 480px; overflow: auto; }
+        .balances-dashboard #accountBalanceWidgets .card { min-height: 220px; }
+        .balances-dashboard #accountBalanceWidgets > div { min-width: 0; }
+        .balances-dashboard .card-title { margin: 0; }
+        @@media (max-width: 575.98px) {
+            .balances-dashboard .chart-scroll { height: 380px; }
+        }
+    </style>
+}
+<div class="balances-dashboard">
+    <div class="mb-4"><h2 class="mb-1">د حسابونو بلانس ډشبورډ</h2><div class="text-muted">د فعالو حسابونو بلانسونه د اسعارو له مخې</div></div>
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row g-3 align-items-end">
+                <div class="col-12 col-md-6"><label class="form-label" for="balanceAccountType">حساب ډول</label><select id="balanceAccountType" class="form-select"><option value="0">ټول ډولونه</option></select></div>
+                <div class="col-12 col-md-6"><label class="form-label" for="balanceAccount">حساب</label><select id="balanceAccount" class="form-select"><option value="0">ټول حسابونه</option></select></div>
+            </div>
+        </div>
+    </div>
+    <div class="row g-3 mb-4" id="accountBalanceWidgets"></div>
+    <div class="row row-deck row-cards">
+        <div class="col-12"><div class="card"><div class="card-header"><h3 class="card-title">د حسابونو او اسعارو پرتله</h3></div><div class="card-body"><div class="chart-scroll"><div id="accountBalancesChart"></div></div></div></div></div>
+    </div>
+</div>
+@section Scripts {
+    <script src="~/lib/tom-select/dist/js/tom-select.complete.min.js"></script>
+    <script src="~/lib/tabler/dist/libs/apexcharts/dist/apexcharts.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            var number = new Intl.NumberFormat();
+            var request;
+            var optionsLoaded = false;
+            var availableAccounts = [];
+            var accountTypeSelect = new TomSelect("#balanceAccountType", { create: false, controlInput: null, allowEmptyOption: false });
+            var accountSelect = new TomSelect("#balanceAccount", { create: false, allowEmptyOption: false });
+            var chart = new ApexCharts(document.querySelector("#accountBalancesChart"), {
+                chart: { type: "bar", height: 350, fontFamily: "inherit", toolbar: { show: false } },
+                plotOptions: { bar: { horizontal: true, barHeight: "70%" } },
+                series: [{ name: "", data: [] }], dataLabels: { enabled: false },
+                xaxis: { labels: { formatter: function(value) { return number.format(value); } } },
+                noData: { text: "معلومات نسته" }, legend: { position: "top" }
+            });
+            var chartReady = chart.render();
+            loadBalances();
+
+            $("#balanceAccountType").on("change", function() {
+                refreshAccountOptions();
+                loadBalances();
+            });
+            $("#balanceAccount").on("change", loadBalances);
+
+            function filterId(value) {
+                var id = Number(value);
+                return Number.isInteger(id) && id > 0 ? id : 0;
+            }
+
+            function refreshAccountOptions() {
+                var typeId = filterId(accountTypeSelect.getValue());
+                accountSelect.clear(true);
+                accountSelect.clearOptions();
+                accountSelect.addOption({ value: "0", text: "ټول حسابونه" });
+                accountSelect.addOptions(availableAccounts.filter(function(x) {
+                    return typeId === 0 || x.accountTypeID === typeId;
+                }).map(function(x) { return { value: String(x.id), text: x.name + " (" + x.code + ")" }; }));
+                accountSelect.setValue("0", true);
+            }
+
+            function loadBalances() {
+                if (request) request.abort();
+                request = $.ajax({
+                    url: "/api/Reports/GetAccountBalancesDashboard",
+                    type: "GET",
+                    data: $.param({
+                        accountTypeId: filterId(accountTypeSelect.getValue()),
+                        accountId: filterId(accountSelect.getValue())
+                    }, true),
+                    success: function(data) {
+                        if (!optionsLoaded) {
+                            accountTypeSelect.addOptions(data.accountTypes.map(function(x) { return { value: String(x.id), text: x.name }; }));
+                            availableAccounts = data.accounts;
+                            refreshAccountOptions();
+                            optionsLoaded = true;
+                        }
+                        renderAccountWidgets(data.rows);
+                        chartReady.then(function() { renderChart(data.rows); });
+                    },
+                    error: function(response, status) {
+                        if (status !== "abort") showToast("warning", response.responseText || "د حسابونو بلانسونه ترلاسه نه سول.");
+                    }
+                });
+            }
+
+            function renderAccountWidgets(rows) {
+                var widgets = $("#accountBalanceWidgets").empty();
+                if (!rows.length) {
+                    $("<div>").addClass("col-12 text-muted").text("معلومات نسته").appendTo(widgets);
+                    return;
+                }
+                var accounts = [];
+                rows.forEach(function(balance) {
+                    var account = accounts.find(function(x) { return x.id === balance.accountId; });
+                    if (!account) {
+                        account = { id: balance.accountId, name: balance.accountName, code: balance.code, type: balance.accountTypeName, balances: [] };
+                        accounts.push(account);
+                    }
+                    account.balances.push(balance);
+                });
+                accounts.forEach(function(account) {
+                    var column = $("<div>").addClass("col-12 col-md-6 col-xl-4");
+                    var card = $("<div>").addClass("card h-100");
+                    var header = $("<div>").addClass("card-header d-block");
+                    $("<div>").addClass("fw-semibold").text(account.name).appendTo(header);
+                    $("<div>").addClass("text-muted small").text(account.code + " · " + account.type).appendTo(header);
+                    card.append(header);
+                    var body = $("<div>").addClass("card-body");
+                    account.balances.forEach(function(balance) {
+                        var line = $("<div>").addClass("d-flex justify-content-between align-items-center gap-3 py-2 border-bottom");
+                        $("<span>").addClass("text-muted").text(balance.currencyName + " (" + balance.currencySymbole + ")").appendTo(line);
+                        $("<strong>").addClass("balance-value " + (balance.balance < 0 ? "text-danger" : balance.balance > 0 ? "text-green" : "text-muted"))
+                            .text(number.format(balance.balance)).appendTo(line);
+                        body.append(line);
+                    });
+                    column.append(card.append(body)).appendTo(widgets);
+                });
+            }
+
+            function renderChart(rows) {
+                var accounts = [];
+                var currencies = [];
+                rows.forEach(function(row) {
+                    if (!accounts.some(function(x) { return x.id === row.accountId; })) accounts.push({ id: row.accountId, label: row.accountName + " (" + row.code + ")" });
+                    if (!currencies.some(function(x) { return x.id === row.currencyId; })) currencies.push({ id: row.currencyId, name: row.currencyName });
+                });
+                var series = currencies.map(function(currency) {
+                    return {
+                        name: currency.name,
+                        data: accounts.map(function(account) {
+                            var balance = rows.find(function(row) { return row.accountId === account.id && row.currencyId === currency.id; });
+                            return { x: account.label, y: balance ? balance.balance : 0 };
+                        })
+                    };
+                });
+                chart.updateOptions({ chart: { height: Math.max(350, accounts.length * Math.max(44, currencies.length * 12)) } });
+                chart.updateSeries(series.length ? series : [{ name: "", data: [] }]);
+            }
+
+        });
+    </script>
+}

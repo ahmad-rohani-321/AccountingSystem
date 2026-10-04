@@ -85,6 +85,7 @@
 @section Scripts {
 <script src="~/lib/tom-select/dist/js/tom-select.complete.min.js"></script>
 <script src="~/lib/just-validate/dist/just-validate.production.min.js"></script>
+<script src="~/lib/moment-jalali/dist/jalali-moment.browser.js"></script>
 <script>
 $(document).ready(function() {
     var accountId = @Model;
@@ -124,13 +125,13 @@ $(document).ready(function() {
                 data.forEach(function(share) {
                     var row = $("<tr>");
                     $("<td>").text(share.id).appendTo(row);
-                    $("<td>").text(new Date(share.creationDate).toLocaleString()).appendTo(row);
+                    $("<td>").text(moment(share.creationDate).format("jYYYY/jMM/jDD HH:mm:ss")).appendTo(row);
                     $("<td>").text(share.currencyName).appendTo(row);
                     $("<td>").text(share.amount).appendTo(row);
                     $("<td>").text(share.remarks).appendTo(row);
                     rows.append(row);
                 });
-                initializeListingDataTable(table, 10, [[0, "desc"]]);
+                initializeListingDataTable(table, null, [[0, "desc"]]);
             },
             error: function(response) { showToast("warning", response.responseText); }
         });

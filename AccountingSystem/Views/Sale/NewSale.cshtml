@@ -445,37 +445,63 @@
 
             CalculateSaleTotal();
         });
-        $(document).on("change", ".items-select", function() {
-            var currentRow = $(this).closest("tr");
-            var itemId = this.tomselect.getValue();
+        function calculateRowTotal(row) {
+            var quantity = Number(row.find('.control-quantity').val() || 0);
+            var perPrice = Number(row.find('.per-price').val() || 0);
 
-            var unitElement = currentRow.find('select[name="unitId"]')[0];
-            var unitTomSelect = unitElement.tomselect;
+            row.find('.control-total-price').val(quantity * perPrice);
+            CalculateSaleTotal();
+        }
+
+        function calculateUnitPrice(row) {
+            var unitTomSelect = row.find('.units-select')[0].tomselect;
+            var selectedUnit = unitTomSelect.options[unitTomSelect.getValue()];
+            var mainAmount = Number(selectedUnit?.mainUnitQuantity || 0);
+            var itemPrice = Number(row.data('item-price') || 0);
+
+            row.find('.per-price').val(mainAmount * itemPrice);
+            calculateRowTotal(row);
+        }
+
+        async function loadUnitsForItem(row, itemId) {
+            var unitTomSelect = row.find('.units-select')[0].tomselect;
 
             unitTomSelect.clear(true);
             unitTomSelect.clearOptions();
-
-            CalculateSaleTotal();
-            
-            var perPriceField = currentRow.find('.per-price');
 
             if (!itemId) {
                 return;
             }
 
-            $.get("/api/Inventory/GetUnitConversionsOnly/" + itemId, function(units) {
-                unitTomSelect.addOptions(units);
-                unitTomSelect.refreshOptions(false);
-                unitTomSelect.setValue(units[0].id);
-            });
+            var units = await $.get("/api/Inventory/GetUnitConversionsOnly/" + itemId);
+            unitTomSelect.addOptions(units);
+            unitTomSelect.refreshOptions(false);
 
-            $.get(`/api/Sale/GetSalePrice/${itemId}`, function(value){
-                perPriceField.val(value);
-            });
+            if (units.length > 0) {
+                unitTomSelect.setValue(units[0].id, true);
+            }
+        }
 
+        async function loadItemPrice(row, itemId) {
+            var itemPrice = itemId
+                ? await $.get(`/api/Sale/GetSalePrice/${itemId}`)
+                : 0;
+
+            row.data('item-price', Number(itemPrice || 0));
+        }
+
+        $(document).on("change", ".items-select", async function() {
+            var currentRow = $(this).closest("tr");
+            var itemId = this.tomselect.getValue();
+
+            await Promise.all([
+                loadUnitsForItem(currentRow, itemId),
+                loadItemPrice(currentRow, itemId)
+            ]);
+            calculateUnitPrice(currentRow);
         });
-        $(document).on("change", ".items-select, .units-select, .stock-select", function() {
-            var quantityInput = $(this).closest('tr').find('.control-quantity')[0];
+        $(document).on("change", ".units-select", function() {
+            calculateUnitPrice($(this).closest('tr'));
         });
         $(document).on("click", ".btn-delete-row", function(event) {
             event.preventDefault();
@@ -499,22 +525,10 @@
             CalculateSaleTotal();
         });
         $(document).on("change", ".per-price", function() {
-            var currentRow = $(this).closest("tr");
-            var quantity = currentRow.find('.control-quantity').val();
-            var price = $(this).val();
-            var totalPrice = quantity * price;
-            currentRow.find('.control-total-price').val(totalPrice);
-
-            CalculateSaleTotal();
+            calculateRowTotal($(this).closest("tr"));
         });
         $(document).on("change", ".control-quantity", function() {
-            var currentRow = $(this).closest("tr");
-            var quantity = Number(currentRow.find('.control-quantity').val() || 0);
-            var price = Number(currentRow.find('.per-price').val() || 0);
-            var totalPrice = quantity * price;
-            currentRow.find('.control-total-price').val(totalPrice);
-
-            CalculateSaleTotal();
+            calculateRowTotal($(this).closest("tr"));
         });
         $(document).on("change", ".control-total-price", function() {
             CalculateSaleTotal();

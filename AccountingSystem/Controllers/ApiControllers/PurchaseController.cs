@@ -212,6 +212,9 @@ public class PurchaseController(ApplicationDbContext context, IHttpContextAccess
                             stock = stockEntry.Entity;
                         }
                         stock.Quantity += realStock;
+                        
+                        stock.PurchaseBaseCurrencyPrice = item.PerPrice / unitExchange.MainAmount;
+
                         await _context.StockTransactions.AddAsync(new Models.Inventory.StockTransactions()
                         {
                             CreatedByUserId = user,
@@ -326,7 +329,8 @@ public class PurchaseController(ApplicationDbContext context, IHttpContextAccess
                     int unitId,
                     decimal quantity,
                     bool addToStock,
-                    string itemRemarks)
+                    string itemRemarks,
+                    decimal unitPrice)
                 {
                     if (quantity == 0)
                     {
@@ -362,6 +366,9 @@ public class PurchaseController(ApplicationDbContext context, IHttpContextAccess
                     }
 
                     var baseQuantity = quantity / unit.ExchangedAmount;
+
+                    stock.PurchaseBaseCurrencyPrice = unitPrice / unit.MainAmount;
+
                     stock.Quantity += addToStock ? baseQuantity : -baseQuantity;
 
                     await _context.StockTransactions.AddAsync(new Models.Inventory.StockTransactions()
@@ -473,7 +480,7 @@ public class PurchaseController(ApplicationDbContext context, IHttpContextAccess
 
                         if (newAffectsStock)
                         {
-                            await ApplyStockAdjustment(item.ItemId, item.StockId, item.UnitId, item.Quantity, true, item.Remarks);
+                            await ApplyStockAdjustment(item.ItemId, item.StockId, item.UnitId, item.Quantity, true, item.Remarks, item.PerPrice);
                         }
                         continue;
                     }
@@ -486,11 +493,11 @@ public class PurchaseController(ApplicationDbContext context, IHttpContextAccess
                         var quantityDifference = item.Quantity - existingDetail.Quantity;
                         if (quantityDifference > 0)
                         {
-                            await ApplyStockAdjustment(item.ItemId, item.StockId, item.UnitId, quantityDifference, true, item.Remarks);
+                            await ApplyStockAdjustment(item.ItemId, item.StockId, item.UnitId, quantityDifference, true, item.Remarks, item.PerPrice);
                         }
                         else if (quantityDifference < 0)
                         {
-                            await ApplyStockAdjustment(item.ItemId, item.StockId, item.UnitId, -quantityDifference, false, item.Remarks);
+                            await ApplyStockAdjustment(item.ItemId, item.StockId, item.UnitId, -quantityDifference, false, item.Remarks, item.PerPrice);
                         }
                     }
                     else
@@ -498,11 +505,11 @@ public class PurchaseController(ApplicationDbContext context, IHttpContextAccess
                         if (oldAffectsStock)
                         {
                             await ApplyStockAdjustment(existingDetail.ItemID, existingDetail.WarehouseID,
-                                existingDetail.UnitConversionID, existingDetail.Quantity, false, existingDetail.Remarks);
+                                existingDetail.UnitConversionID, existingDetail.Quantity, false, existingDetail.Remarks, existingDetail.PerPrice);
                         }
                         if (newAffectsStock)
                         {
-                            await ApplyStockAdjustment(item.ItemId, item.StockId, item.UnitId, item.Quantity, true, item.Remarks);
+                            await ApplyStockAdjustment(item.ItemId, item.StockId, item.UnitId, item.Quantity, true, item.Remarks, item.PerPrice);
                         }
                     }
 
@@ -520,7 +527,7 @@ public class PurchaseController(ApplicationDbContext context, IHttpContextAccess
                     if (oldAffectsStock)
                     {
                         await ApplyStockAdjustment(removedDetail.ItemID, removedDetail.WarehouseID,
-                            removedDetail.UnitConversionID, removedDetail.Quantity, false, removedDetail.Remarks);
+                            removedDetail.UnitConversionID, removedDetail.Quantity, false, removedDetail.Remarks, removedDetail.PerPrice);
                     }
                     _context.PurchaseDetails.Remove(removedDetail);
                 }

@@ -13,6 +13,72 @@ namespace AccountingSystem.Controllers.ApiControllers
     {
         private readonly ApplicationDbContext _context = context;
 
+        [HttpGet("GetAccountBalancesDashboard")]
+        public async Task<ActionResult> GetAccountBalancesDashboard(string accountTypeId = null, string accountId = null)
+        {
+            int[] accountTypeIds = [1, 2, 3, 4, 5, 8, 9];
+            var selectedAccountTypeId = 0;
+            var selectedAccountId = 0;
+            if ((!string.IsNullOrWhiteSpace(accountTypeId) && !int.TryParse(accountTypeId, out selectedAccountTypeId)) ||
+                (!string.IsNullOrWhiteSpace(accountId) && !int.TryParse(accountId, out selectedAccountId)) ||
+                selectedAccountTypeId < 0 || (selectedAccountTypeId != 0 && !accountTypeIds.Contains(selectedAccountTypeId)) || selectedAccountId < 0)
+            {
+                return BadRequest("صحیح حساب ډول او حساب انتخاب کړئ.");
+            }
+
+            var accountTypes = await _context.AccountTypes.AsNoTracking()
+                .Where(x => accountTypeIds.Contains(x.ID))
+                .OrderBy(x => x.ID)
+                .Select(x => new { x.ID, x.Name }).ToListAsync();
+            var currencies = await _context.Currencies.AsNoTracking()
+                .OrderByDescending(x => x.IsMainCurrency).ThenBy(x => x.ID)
+                .Select(x => new { x.ID, x.CurrencyName, x.CurrencySymbole }).ToListAsync();
+            var accountOptions = await _context.Accounts.AsNoTracking()
+                .Where(x => x.IsActive && accountTypeIds.Contains(x.AccountTypeID))
+                .OrderBy(x => x.Name).ThenBy(x => x.ID)
+                .Select(x => new { x.ID, x.Name, x.Code, x.AccountTypeID }).ToListAsync();
+
+            if (selectedAccountId != 0 && !accountOptions.Any(x => x.ID == selectedAccountId))
+            {
+                return BadRequest("فعال حساب موجود نه دی.");
+            }
+
+            var accounts = await _context.Accounts.AsNoTracking()
+                .Where(x => x.IsActive && accountTypeIds.Contains(x.AccountTypeID) &&
+                    (selectedAccountTypeId == 0 || x.AccountTypeID == selectedAccountTypeId) &&
+                    (selectedAccountId == 0 || x.ID == selectedAccountId))
+                .OrderBy(x => x.Name).ThenBy(x => x.ID)
+                .Select(x => new { x.ID, x.Name, x.Code, x.AccountTypeID, AccountTypeName = x.AccountType.Name })
+                .ToListAsync();
+            var selectedAccountIds = accounts.Select(x => x.ID).ToArray();
+            var selectedCurrencyIds = currencies.Select(x => x.ID).ToArray();
+            var savedBalances = await _context.AccountBalances.AsNoTracking()
+                .Where(x => selectedAccountIds.Contains(x.AccountID) && selectedCurrencyIds.Contains(x.CurrencyID))
+                .Select(x => new { x.AccountID, x.CurrencyID, x.Balance }).ToListAsync();
+            var balanceLookup = savedBalances.GroupBy(x => (x.AccountID, x.CurrencyID))
+                .ToDictionary(x => x.Key, x => x.Sum(b => b.Balance));
+
+            var rows = accounts.SelectMany(account => currencies.Select(currency => new
+                {
+                    AccountId = account.ID,
+                    AccountName = account.Name,
+                    account.Code,
+                    account.AccountTypeID,
+                    account.AccountTypeName,
+                    CurrencyId = currency.ID,
+                    currency.CurrencyName,
+                    currency.CurrencySymbole,
+                    Balance = balanceLookup.GetValueOrDefault((account.ID, currency.ID))
+                })).ToList();
+
+            return Ok(new
+            {
+                AccountTypes = accountTypes,
+                Accounts = accountOptions,
+                Rows = rows
+            });
+        }
+
         [HttpGet("GetSalesDashboard")]
         public async Task<ActionResult> GetSalesDashboard(string period = "month", DateTime? startDate = null, DateTime? endDate = null)
         {

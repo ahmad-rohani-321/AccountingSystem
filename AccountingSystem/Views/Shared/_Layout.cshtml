@@ -19,7 +19,7 @@
 <body dir="rtl">
 
     <main class="page">
-        <header class="navbar navbar-expand-lg d-print-none">
+        <header class="navbar navbar-expand-lg d-print-none sticky-top">
             <div class="container-xxl">
                 <button class="navbar-toggler"
                         type="button"
@@ -246,6 +246,12 @@
                                     <a class="dropdown-item @ViewData["SalesDashboardReports"]" href="@Url.Action("SalesDashboard", "Report")">
                                         <i class="fa-solid fa-chart-line me-2"></i>
                                         د فروش ډشبورډ
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item @ViewData["AccountBalancesReports"]" href="@Url.Action("AccountBalancesDashboard", "Report")">
+                                        <i class="fa-solid fa-scale-balanced me-2"></i>
+                                        د حسابونو بلانس ډشبورډ
                                     </a>
                                 </li>
                             </ul>
