@@ -1,4 +1,4 @@
-﻿using AccountingSystem.Data;
+using AccountingSystem.Data;
 using AccountingSystem.Models.Inventory;
 using AccountingSystem.Models.Settings;
 using AccountingSystem.ViewModels;
@@ -45,6 +45,8 @@ namespace AccountingSystem.Controllers.ApiControllers
                     }).ToList();
             return Ok(currencies);
         }
+
+        [Authorize(Roles = AccountingSystem.Models.Identity.SystemRoles.Finance)]
 
         [HttpPost("Create")]
         public async Task<ActionResult> Add(CurrencyViewModel currency)
@@ -102,6 +104,8 @@ namespace AccountingSystem.Controllers.ApiControllers
             }
         }
 
+        [Authorize(Roles = AccountingSystem.Models.Identity.SystemRoles.Finance)]
+
         [HttpPut("ChangeActivation/{id}")]
         public async Task<ActionResult> ChangeActivation(int id)
         {
@@ -138,6 +142,8 @@ namespace AccountingSystem.Controllers.ApiControllers
                 }
             }
         }
+
+        [Authorize(Roles = AccountingSystem.Models.Identity.SystemRoles.Finance)]
 
         [HttpPut("Update")]
         public async Task<ActionResult> Update(CurrencyViewModel currency)
@@ -192,6 +198,8 @@ namespace AccountingSystem.Controllers.ApiControllers
                 }
             }
         }
+
+        [Authorize(Roles = AccountingSystem.Models.Identity.SystemRoles.Finance)]
 
         [HttpPut("ChangeToMain/{id}")]
         public async Task<ActionResult> ChangeToMain(int id)
@@ -279,6 +287,9 @@ namespace AccountingSystem.Controllers.ApiControllers
         }
 
 
+        [Authorize(Roles = AccountingSystem.Models.Identity.SystemRoles.Finance)]
+
+
         [HttpPost("CurrencyConversion/Create")]
         public async Task<ActionResult> SaveExchanges(List<CurrencyConversionViewModel> currencyConversions)
         {            
@@ -334,3 +345,4 @@ namespace AccountingSystem.Controllers.ApiControllers
         }
     }
 }
+

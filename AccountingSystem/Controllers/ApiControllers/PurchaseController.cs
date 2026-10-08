@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore.Query.Internal;
 
 namespace AccountingSystem.Controllers.ApiControllers;
 
-[Authorize]
+[Authorize(Roles = AccountingSystem.Models.Identity.SystemRoles.Purchases)]
 [ApiController]
 [Route("api/[controller]")]
 public class PurchaseController(ApplicationDbContext context, IHttpContextAccessor accessor) : ControllerBase

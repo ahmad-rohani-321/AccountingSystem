@@ -4,6 +4,10 @@
     ViewData["UsersSettings"] = "active";
 }
 
+@section Styles {
+    <link href="~/lib/tom-select/dist/css/tom-select.bootstrap5.css" rel="stylesheet" />
+}
+
 <div class="row row-deck row-cards">
     <div class="card">
         <div class="card-header">
@@ -37,7 +41,10 @@
                     <div class="col-md-6"><div class="mb-3"><label class="form-label" for="newUserName">یوزر نوم</label><input type="text" dir="ltr" class="form-control" id="newUserName" placeholder="یوزر نوم" /></div></div>
                     <div class="col-md-6"><div class="mb-3"><label class="form-label" for="newEmail">د یوزر ایمېل</label><input type="email" dir="ltr" class="form-control" id="newEmail" placeholder="د یوزر ایمېل" /></div></div>
                 </div>
-                <div class="mb-3"><label class="form-label" for="newPassword">پټ نوم</label><input type="password" dir="ltr" class="form-control" id="newPassword" placeholder="پټ نوم" /></div>
+                <div class="row mb-3">
+                    <div class="col-md-6"><div class="mb-3"><label class="form-label" for="newPassword">پټ نوم</label><input type="password" dir="ltr" class="form-control" id="newPassword" placeholder="پټ نوم" /></div></div>
+                    <div class="col-md-6"><div class="mb-3"><label class="form-label" for="newRole">صلاحیت</label><select class="form-select" id="newRole"><option value="">صلاحیت انتخاب کړئ</option></select></div></div>
+                </div>
             </div>
             <div class="modal-footer align-items-end">
                 <button class="btn btn-primary" id="btnCreateUser" type="submit">ثبت <i class="fas fa-save ms-2"></i></button>
@@ -64,7 +71,10 @@
                     <div class="col-md-6"><div class="mb-3"><label class="form-label" for="editUserName">یوزر نوم</label><input type="text" dir="ltr" class="form-control" id="editUserName" placeholder="یوزر نوم" /></div></div>
                     <div class="col-md-6"><div class="mb-3"><label class="form-label" for="editEmail">ایمېل</label><input type="email" dir="ltr" class="form-control" id="editEmail" placeholder="ایمېل" /></div></div>
                 </div>
-                <div class="mb-3"><label class="form-label" for="editPhoneNumber">د اړیکې شمېره</label><input type="text" dir="ltr" class="form-control" id="editPhoneNumber" placeholder="د اړیکې شمېره" /></div>
+                <div class="row mb-3">
+                    <div class="col-md-6"><div class="mb-3"><label class="form-label" for="editPhoneNumber">د اړیکې شمېره</label><input type="text" dir="ltr" class="form-control" id="editPhoneNumber" placeholder="د اړیکې شمېره" /></div></div>
+                    <div class="col-md-6"><div class="mb-3"><label class="form-label" for="editRole">صلاحیت</label><select class="form-select" id="editRole"><option value="">صلاحیت انتخاب کړئ</option></select></div></div>
+                </div>
             </div>
             <div class="modal-footer align-items-end">
                 <button class="btn btn-primary" id="btnSaveUser" type="submit">ثبت <i class="fas fa-save ms-2"></i></button>
@@ -92,10 +102,32 @@
 @section Scripts {
     <script src="~/lib/just-validate/dist/just-validate.production.min.js"></script>
     <script src="~/lib/moment-jalali/dist/jalali-moment.browser.js"></script>
+    <script src="~/lib/tom-select/dist/js/tom-select.complete.min.js"></script>
     <script>
+        var newRoleSelect = new TomSelect("#newRole", { create: false, allowEmptyOption: true, controlInput: null });
+        var editRoleSelect = new TomSelect("#editRole", { create: false, allowEmptyOption: true, controlInput: null });
+
         $(document).ready(function() {
+            loadRoles();
             loadUsers();
         });
+
+        function loadRoles() {
+            $.ajax({
+                url: "/api/Users/GetRoles",
+                type: "GET",
+                success: function(data) {
+                    data.forEach(function(role) {
+                        var option = { value: role.name, text: role.pashtoName };
+                        newRoleSelect.addOption(option);
+                        editRoleSelect.addOption(option);
+                    });
+                    newRoleSelect.refreshOptions(false);
+                    editRoleSelect.refreshOptions(false);
+                },
+                error: function(response) { showToast("warning", response.responseText || "صلاحیتونه ترلاسه نه سول."); }
+            });
+        }
 
         function loadUsers() {
             $.ajax({
@@ -121,6 +153,7 @@
                         }
                         $("<h3>").addClass("h3 mb-1 text-break").text(user.firstName + " " + user.lastName).appendTo(body);
                         $("<div>").addClass("text-muted mb-3 text-break").attr("dir", "ltr").text(user.userName).appendTo(body);
+                        $("<div>").addClass("text-muted mb-2").text(user.role).appendTo(body);
                         $("<span>").addClass(user.isActive ? "badge bg-success-lt" : "badge bg-danger-lt").text(user.isActive ? "فعال" : "غیر فعال").appendTo(body);
                         var actions = $("<div>").addClass("d-flex flex-wrap justify-content-center gap-2 mt-3").appendTo(body);
                         $("<button>").attr("type", "button").text("تغیر").addClass("btn btn-sm btn-primary btn-edit-user").attr("data-user", JSON.stringify(user)).appendTo(actions);
@@ -151,6 +184,7 @@
 
         $("#createUserButton").on("click", function() {
             $("#createUserForm")[0].reset();
+            newRoleSelect.clear();
             createUserFormValidator.refresh();
             $("#createUserModal").modal("show");
         });
@@ -161,7 +195,8 @@
         .addField("#newLastName", [{ rule: "required", errorMessage: "تخلص اړین دی" }])
         .addField("#newUserName", [{ rule: "required", errorMessage: "یوزر نوم اړین دی" }])
         .addField("#newEmail", [{ rule: "required", errorMessage: "ایمېل اړین دی" }, { rule: "email", errorMessage: "صحیح ایمېل ولیکئ" }])
-        .addField("#newPassword", [{ rule: "required", errorMessage: "پټ نوم اړین دی" }, { rule: "password", errorMessage: "پټ نوم لږ تر لږه ۸ توري او یو عدد ولري" }]);
+        .addField("#newPassword", [{ rule: "required", errorMessage: "پټ نوم اړین دی" }, { rule: "password", errorMessage: "پټ نوم لږ تر لږه ۸ توري او یو عدد ولري" }])
+        .addField("#newRole", [{ rule: "required", errorMessage: "صلاحیت انتخاب کړئ" }]);
         createUserFormValidator.onSuccess(function(event) {
             event.preventDefault();
             checkUserDuplicate($("#newUserName").val(), $("#newFirstName").val(), "", function() {
@@ -170,7 +205,7 @@
                     url: "/api/Users/CreateUser",
                     type: "POST",
                     contentType: "application/json",
-                    data: JSON.stringify({ firstName: $("#newFirstName").val(), lastName: $("#newLastName").val(), userName: $("#newUserName").val(), email: $("#newEmail").val(), password: $("#newPassword").val() }),
+                    data: JSON.stringify({ firstName: $("#newFirstName").val(), lastName: $("#newLastName").val(), userName: $("#newUserName").val(), email: $("#newEmail").val(), password: $("#newPassword").val(), role: newRoleSelect.getValue() }),
                     success: function() { $("#createUserModal").modal("hide"); showToast("success", "نوی یوزر په بریالیتوب سره جوړ سو."); loadUsers(); },
                     error: function(response) { showToast("warning", response.responseText || "نوی یوزر جوړ نه سو."); },
                     complete: function() { submitButton.prop("disabled", false); }
@@ -186,6 +221,7 @@
             $("#editUserName").val(user.userName);
             $("#editEmail").val(user.email);
             $("#editPhoneNumber").val(user.phoneNumber);
+            editRoleSelect.setValue(user.role);
             $("#editUserModal").modal("show");
         });
 
@@ -222,7 +258,8 @@
         .addField("#editFirstName", [{ rule: "required", errorMessage: "نوم اړین دی" }])
         .addField("#editLastName", [{ rule: "required", errorMessage: "تخلص اړین دی" }])
         .addField("#editUserName", [{ rule: "required", errorMessage: "یوزر نوم اړین دی" }])
-        .addField("#editEmail", [{ rule: "required", errorMessage: "ایمېل اړین دی" }, { rule: "email", errorMessage: "صحیح ایمېل ولیکئ" }]);
+        .addField("#editEmail", [{ rule: "required", errorMessage: "ایمېل اړین دی" }, { rule: "email", errorMessage: "صحیح ایمېل ولیکئ" }])
+        .addField("#editRole", [{ rule: "required", errorMessage: "صلاحیت انتخاب کړئ" }]);
         editUserFormValidator.onSuccess(function(event) {
             event.preventDefault();
             checkUserDuplicate($("#editUserName").val(), $("#editFirstName").val(), $("#editUserId").val(), function() {
@@ -231,7 +268,7 @@
                     url: "/api/Users/UpdateUser",
                     type: "PUT",
                     contentType: "application/json",
-                    data: JSON.stringify({ id: $("#editUserId").val(), firstName: $("#editFirstName").val(), lastName: $("#editLastName").val(), userName: $("#editUserName").val(), email: $("#editEmail").val(), phoneNumber: $("#editPhoneNumber").val() }),
+                    data: JSON.stringify({ id: $("#editUserId").val(), firstName: $("#editFirstName").val(), lastName: $("#editLastName").val(), userName: $("#editUserName").val(), email: $("#editEmail").val(), phoneNumber: $("#editPhoneNumber").val(), role: editRoleSelect.getValue() }),
                     success: function() { $("#editUserModal").modal("hide"); showToast("success", "د یوزر معلومات په بریالیتوب سره تغیر سول."); loadUsers(); },
                     error: function(response) { showToast("warning", response.responseText || "د یوزر معلومات تغیر نه سول."); },
                     complete: function() { submitButton.prop("disabled", false); }

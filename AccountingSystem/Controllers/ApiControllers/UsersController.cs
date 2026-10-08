@@ -12,12 +12,13 @@ namespace AccountingSystem.Controllers.ApiControllers;
 [Route("api/[controller]")]
 [ApiController]
 [Authorize]
-public class UsersController(UserManager<User> userManager, ApplicationDbContext context) : ControllerBase
+public class UsersController(UserManager<User> userManager, RoleManager<Role> roleManager, ApplicationDbContext context) : ControllerBase
 {
     private readonly UserManager<User> _userManager = userManager;
+    private readonly RoleManager<Role> _roleManager = roleManager;
     private readonly ApplicationDbContext _context = context;
 
-    [HttpGet("GetCurrencyUser")]
+    [HttpGet("GetCurrentUser")]
     public async Task<ActionResult> GetCurrentUser()
     {
         var user = await _userManager.GetUserAsync(User);
@@ -29,8 +30,8 @@ public class UsersController(UserManager<User> userManager, ApplicationDbContext
         return Ok(new { user.FirstName, user.LastName, user.ProfilePhoto });
     }
 
-    [HttpGet("GetCurrenctUserRoles")]
-    public async Task<ActionResult> GetCurrenctUserRoles()
+    [HttpGet("GetCurrentUserRoles")]
+    public async Task<ActionResult> GetCurrentUserRoles()
     {
         var user = await _userManager.GetUserAsync(User);
         if (user == null)
@@ -38,8 +39,24 @@ public class UsersController(UserManager<User> userManager, ApplicationDbContext
             return NotFound("یوزر ونه موندل سو.");
         }
 
-        IList<string> userRoles = await _userManager.GetRolesAsync(user);
-        return Ok(string.Join(',', userRoles));
+        var userRoles = await _userManager.GetRolesAsync(user);
+        var rolePashtoNames = await _roleManager.Roles
+            .Where(x => userRoles.Contains(x.Name))
+            .Select(x => x.PashtoName)
+            .ToListAsync();
+        return Ok(string.Join(',', rolePashtoNames));
+    }
+
+    [Authorize(Roles = "Administrator")]
+    [HttpGet("GetRoles")]
+    public async Task<ActionResult> GetRoles()
+    {
+        var roles = await _roleManager.Roles
+            .Where(x => SystemRoles.All.Contains(x.Name))
+            .OrderBy(x => x.Name)
+            .Select(x => new { x.Name, x.PashtoName })
+            .ToListAsync();
+        return Ok(roles);
     }
 
     [Authorize(Roles = "Administrator")]
@@ -60,7 +77,8 @@ public class UsersController(UserManager<User> userManager, ApplicationDbContext
     public async Task<ActionResult> CreateUser(CreateUserViewModel request)
     {
         if (request == null || string.IsNullOrWhiteSpace(request.FirstName) || string.IsNullOrWhiteSpace(request.LastName) ||
-            string.IsNullOrWhiteSpace(request.UserName) || string.IsNullOrWhiteSpace(request.Email) || string.IsNullOrWhiteSpace(request.Password))
+            string.IsNullOrWhiteSpace(request.UserName) || string.IsNullOrWhiteSpace(request.Email) ||
+            string.IsNullOrWhiteSpace(request.Password) || string.IsNullOrWhiteSpace(request.Role))
         {
             return BadRequest("ټول اړین معلومات ولیکئ.");
         }
@@ -75,6 +93,10 @@ public class UsersController(UserManager<User> userManager, ApplicationDbContext
         else if (await FirstNameExists(request.FirstName, null))
         {
             return BadRequest("دغه نوم مخکې موجود دی.");
+        }
+        else if (!SystemRoles.All.Contains(request.Role) || !await _roleManager.RoleExistsAsync(request.Role))
+        {
+            return BadRequest("انتخاب سوی صلاحیت اعتبار نه لري.");
         }
 
         var currentUser = await _userManager.GetUserAsync(User);
@@ -97,6 +119,13 @@ public class UsersController(UserManager<User> userManager, ApplicationDbContext
         if (!result.Succeeded)
         {
             return BadRequest(string.Join(" ", result.Errors.Select(x => x.Description)));
+        }
+
+        var roleResult = await _userManager.AddToRoleAsync(user, request.Role);
+        if (!roleResult.Succeeded)
+        {
+            await _userManager.DeleteAsync(user);
+            return BadRequest(string.Join(" ", roleResult.Errors.Select(x => x.Description)));
         }
 
         await _context.UserHistories.AddAsync(new UserHistory()
@@ -123,19 +152,26 @@ public class UsersController(UserManager<User> userManager, ApplicationDbContext
         var users = await _userManager.Users
             .Where(x => x.Id != currentUser.Id)
             .OrderBy(x => x.UserName)
-            .Select(x => new
-            {
-                x.Id,
-                x.FirstName,
-                x.LastName,
-                x.UserName,
-                x.Email,
-                x.PhoneNumber,
-                x.ProfilePhoto,
-                x.IsActive
-            })
             .ToListAsync();
-        return Ok(users);
+
+        var result = new List<object>();
+        foreach (var user in users)
+        {
+            var roles = await _userManager.GetRolesAsync(user);
+            result.Add(new
+            {
+                user.Id,
+                user.FirstName,
+                user.LastName,
+                user.UserName,
+                user.Email,
+                user.PhoneNumber,
+                user.ProfilePhoto,
+                user.IsActive,
+                Role = roles.FirstOrDefault() ?? string.Empty
+            });
+        }
+        return Ok(result);
     }
 
     [Authorize(Roles = "Administrator")]
@@ -166,7 +202,7 @@ public class UsersController(UserManager<User> userManager, ApplicationDbContext
     {
         if (request == null || string.IsNullOrWhiteSpace(request.Id) || string.IsNullOrWhiteSpace(request.FirstName) ||
             string.IsNullOrWhiteSpace(request.LastName) || string.IsNullOrWhiteSpace(request.UserName) ||
-            string.IsNullOrWhiteSpace(request.Email))
+            string.IsNullOrWhiteSpace(request.Email) || string.IsNullOrWhiteSpace(request.Role))
         {
             return BadRequest("ټول اړین معلومات ولیکئ.");
         }
@@ -189,6 +225,10 @@ public class UsersController(UserManager<User> userManager, ApplicationDbContext
         {
             return BadRequest("دغه نوم مخکې موجود دی.");
         }
+        else if (!SystemRoles.All.Contains(request.Role) || !await _roleManager.RoleExistsAsync(request.Role))
+        {
+            return BadRequest("انتخاب سوی صلاحیت اعتبار نه لري.");
+        }
 
         user.FirstName = request.FirstName.Trim();
         user.LastName = request.LastName.Trim();
@@ -200,6 +240,31 @@ public class UsersController(UserManager<User> userManager, ApplicationDbContext
         if (!result.Succeeded)
         {
             return BadRequest(string.Join(" ", result.Errors.Select(x => x.Description)));
+        }
+
+        var currentRoles = await _userManager.GetRolesAsync(user);
+        if (currentRoles.Count != 1 || currentRoles[0] != request.Role)
+        {
+            if (currentRoles.Count > 0)
+            {
+                var removeResult = await _userManager.RemoveFromRolesAsync(user, currentRoles);
+                if (!removeResult.Succeeded)
+                {
+                    return BadRequest(string.Join(" ", removeResult.Errors.Select(x => x.Description)));
+                }
+            }
+
+            var roleResult = await _userManager.AddToRoleAsync(user, request.Role);
+            if (!roleResult.Succeeded)
+            {
+                if (currentRoles.Count > 0)
+                {
+                    await _userManager.AddToRolesAsync(user, currentRoles);
+                }
+                return BadRequest(string.Join(" ", roleResult.Errors.Select(x => x.Description)));
+            }
+
+            await _userManager.UpdateSecurityStampAsync(user);
         }
 
         await _context.UserHistories.AddAsync(new UserHistory()

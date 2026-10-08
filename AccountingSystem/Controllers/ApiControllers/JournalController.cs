@@ -9,7 +9,7 @@ using System.Security.Cryptography.Xml;
 
 namespace AccountingSystem.Controllers.ApiControllers
 {
-    [Authorize]
+    [Authorize(Roles = AccountingSystem.Models.Identity.SystemRoles.Finance)]
     [Route("api/[controller]")]
     [ApiController]
     public class JournalController(ApplicationDbContext context, IHttpContextAccessor accessor, IWebHostEnvironment environment) : ControllerBase

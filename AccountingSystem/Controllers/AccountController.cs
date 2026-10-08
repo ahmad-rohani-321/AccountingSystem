@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace AccountingSystem.Controllers
 {
-    [Authorize]
+    [Authorize(Roles = AccountingSystem.Models.Identity.SystemRoles.Finance)]
     public class AccountController : Controller
     {
         public IActionResult Index() => View();

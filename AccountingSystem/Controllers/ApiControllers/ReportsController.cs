@@ -14,6 +14,7 @@ namespace AccountingSystem.Controllers.ApiControllers
         private readonly ApplicationDbContext _context = context;
 
         [HttpGet("GetAccountBalancesDashboard")]
+        [Authorize(Roles = AccountingSystem.Models.Identity.SystemRoles.Finance)]
         public async Task<ActionResult> GetAccountBalancesDashboard(string accountTypeId = null, string accountId = null)
         {
             int[] accountTypeIds = [1, 2, 3, 4, 5, 8, 9];
@@ -80,6 +81,7 @@ namespace AccountingSystem.Controllers.ApiControllers
         }
 
         [HttpGet("GetSalesDashboard")]
+        [Authorize(Roles = AccountingSystem.Models.Identity.SystemRoles.Sales)]
         public async Task<ActionResult> GetSalesDashboard(string period = "month", DateTime? startDate = null, DateTime? endDate = null)
         {
             if (!TryGetDateRange(period, startDate, endDate, out var start, out var end))

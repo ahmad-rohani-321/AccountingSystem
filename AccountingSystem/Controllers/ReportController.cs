@@ -6,7 +6,9 @@ namespace AccountingSystem.Controllers
     [Authorize]
     public class ReportController : Controller
     {
+        [Authorize(Roles = AccountingSystem.Models.Identity.SystemRoles.Sales)]
         public IActionResult SalesDashboard() => View();
+        [Authorize(Roles = AccountingSystem.Models.Identity.SystemRoles.Finance)]
         public IActionResult AccountBalancesDashboard() => View();
     }
 }

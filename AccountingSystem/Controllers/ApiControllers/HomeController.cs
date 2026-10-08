@@ -6,7 +6,7 @@ using System.Globalization;
 
 namespace AccountingSystem.Controllers.ApiControllers;
 
-[Authorize]
+    [Authorize(Roles = AccountingSystem.Models.Identity.SystemRoles.Administrator)]
 [Route("api/[controller]")]
 [ApiController]
 public class HomeController(ApplicationDbContext context) : ControllerBase

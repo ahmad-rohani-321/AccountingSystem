@@ -9,10 +9,11 @@ using AccountingSystem.Models.Accounting;
 using AccountingSystem.Models.Purchase;
 using AccountingSystem.Models.Sales;
 using AccountingSystem.Models.Shares;
+using System.Security.Claims;
 
 namespace AccountingSystem.Data
 {
-    public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : 
+    public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options, IHttpContextAccessor httpContextAccessor) : 
         IdentityDbContext<User, 
             Role, 
             string, 
@@ -22,9 +23,22 @@ namespace AccountingSystem.Data
             IdentityRoleClaim<string>, 
             IdentityUserToken<string>> (options)
     {
+        private string CurrentUserId => httpContextAccessor.HttpContext?.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
+        private bool IsAdministrator => httpContextAccessor.HttpContext?.User.IsInRole(SystemRoles.Administrator) == true;
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+
+            // Administrators can see all transaction records. Other roles can only
+            // see records created by the currently signed-in user.
+            modelBuilder.Entity<Sales>().HasQueryFilter(x => IsAdministrator || x.CreatedByUserId == CurrentUserId);
+            modelBuilder.Entity<SaleDetails>().HasQueryFilter(x => IsAdministrator || x.CreatedByUserId == CurrentUserId);
+            modelBuilder.Entity<Purchase>().HasQueryFilter(x => IsAdministrator || x.CreatedByUserId == CurrentUserId);
+            modelBuilder.Entity<PurchaseDetails>().HasQueryFilter(x => IsAdministrator || x.CreatedByUserId == CurrentUserId);
+            modelBuilder.Entity<JournalEntry>().HasQueryFilter(x => IsAdministrator || x.CreatedByUserId == CurrentUserId);
+            modelBuilder.Entity<StockTransactions>().HasQueryFilter(x => IsAdministrator || x.CreatedByUserId == CurrentUserId);
+            modelBuilder.Entity<Share>().HasQueryFilter(x => IsAdministrator || x.CreatedByUserId == CurrentUserId);
 
             // Change AspNet default Identity table names to remove 'AspNet'
             modelBuilder.Entity<User>(entity =>

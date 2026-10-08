@@ -9,7 +9,7 @@ using System.Security.Claims;
 
 namespace AccountingSystem.Controllers.ApiControllers
 {
-    [Authorize]
+    [Authorize(Roles = AccountingSystem.Models.Identity.SystemRoles.Finance)]
     [Route("api/[controller]")]
     [ApiController]
     public class SharesController(ApplicationDbContext context, IHttpContextAccessor accessor) : ControllerBase
@@ -159,5 +159,6 @@ namespace AccountingSystem.Controllers.ApiControllers
                 return BadRequest(ex.Message);
             }
         }
+
     }
 }

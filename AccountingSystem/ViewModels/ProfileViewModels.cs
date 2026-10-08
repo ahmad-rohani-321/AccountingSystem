@@ -20,6 +20,7 @@ public class ChangePasswordViewModel
 public class UserUpdateViewModel : ProfileUpdateViewModel
 {
     public string Id { get; set; } = default!;
+    public string Role { get; set; } = default!;
 }
 
 public class CreateUserViewModel
@@ -29,4 +30,5 @@ public class CreateUserViewModel
     public string UserName { get; set; } = default!;
     public string Email { get; set; } = default!;
     public string Password { get; set; } = default!;
+    public string Role { get; set; } = default!;
 }

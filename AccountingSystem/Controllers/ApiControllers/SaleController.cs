@@ -8,7 +8,7 @@ using System.Security.Claims;
 
 namespace AccountingSystem.Controllers.ApiControllers;
 
-[Authorize]
+[Authorize(Roles = AccountingSystem.Models.Identity.SystemRoles.Sales)]
 [Route("api/[controller]")]
 [ApiController]
 public class SaleController(ApplicationDbContext context, IHttpContextAccessor accessor) : ControllerBase

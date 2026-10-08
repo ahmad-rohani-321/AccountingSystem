@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace AccountingSystem.Controllers
 {
-    [Authorize]
+    [Authorize(Roles = AccountingSystem.Models.Identity.SystemRoles.Stock)]
     public class InventoryController : Controller
     {
         public IActionResult Stocks() => View();

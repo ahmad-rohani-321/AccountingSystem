@@ -1,4 +1,4 @@
-﻿using AccountingSystem.Data;
+using AccountingSystem.Data;
 using AccountingSystem.Models.Identity;
 using AccountingSystem.ViewModels;
 using Microsoft.AspNetCore.Authorization;
@@ -242,6 +242,8 @@ namespace AccountingSystem.Controllers.ApiControllers
             return Ok(data);
         }
 
+        [Authorize(Roles = AccountingSystem.Models.Identity.SystemRoles.Finance)]
+
         [HttpPost("CreatePersonAccount")]
         public async Task<ActionResult> CreatePeoplAccount(PeopleAccountViewModel personModel)
         {
@@ -377,6 +379,8 @@ namespace AccountingSystem.Controllers.ApiControllers
             }
         }
 
+        [Authorize(Roles = AccountingSystem.Models.Identity.SystemRoles.Finance)]
+
         [HttpPost("CreateAccount")]
         public async Task<ActionResult> CreateAccount(AccountsViewModel model)
         {
@@ -495,6 +499,8 @@ namespace AccountingSystem.Controllers.ApiControllers
             }
         }
 
+        [Authorize(Roles = AccountingSystem.Models.Identity.SystemRoles.Finance)]
+
         [HttpPut("UpdateAccountActivation/{id}")]
         public async Task<ActionResult> UpdateAccountActivation(int id)
         {
@@ -518,6 +524,8 @@ namespace AccountingSystem.Controllers.ApiControllers
             await _context.SaveChangesAsync();
             return Ok();
         }
+
+        [Authorize(Roles = AccountingSystem.Models.Identity.SystemRoles.Finance)]
 
         [HttpPut("UpdatePersonAccount")]
         public async Task<ActionResult> UpdatePersonAccount(PeopleAccountViewModel personModel)
@@ -583,6 +591,8 @@ namespace AccountingSystem.Controllers.ApiControllers
                 }
             }
         }
+
+        [Authorize(Roles = AccountingSystem.Models.Identity.SystemRoles.Finance)]
 
         [HttpPut("UpdateAccount")]
         public async Task<ActionResult> UpdateAccount(AccountsViewModel model)
@@ -671,3 +681,4 @@ namespace AccountingSystem.Controllers.ApiControllers
         #endregion
     }
 }
+

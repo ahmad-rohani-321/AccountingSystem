@@ -1,4 +1,4 @@
-﻿using AccountingSystem.Data;
+using AccountingSystem.Data;
 using AccountingSystem.Models.Inventory;
 using AccountingSystem.ViewModels;
 using Microsoft.AspNetCore.Authorization;
@@ -17,6 +17,8 @@ namespace AccountingSystem.Controllers.ApiControllers
         private readonly IHttpContextAccessor _accessor = accessor;
         private readonly IWebHostEnvironment _environemnt = environment;
         #region stock related
+
+        [Authorize(Roles = AccountingSystem.Models.Identity.SystemRoles.Stock)]
 
         [HttpPost("CreateStock")]
         public async Task<ActionResult> CreateStock(StockViewModel model)
@@ -66,6 +68,8 @@ namespace AccountingSystem.Controllers.ApiControllers
             }
         }
 
+        [Authorize(Roles = AccountingSystem.Models.Identity.SystemRoles.Stock)]
+
         [HttpPut("UpdateStock")]
         public async Task<ActionResult> UpdateStock(StockViewModel model)
         {
@@ -112,6 +116,8 @@ namespace AccountingSystem.Controllers.ApiControllers
                 }
             }
         }
+
+        [Authorize(Roles = AccountingSystem.Models.Identity.SystemRoles.Stock)]
 
         [HttpPut("ChangeStockActivation/{id}")]
         public async Task<ActionResult> ChangeStockActivation(int id)
@@ -205,6 +211,7 @@ namespace AccountingSystem.Controllers.ApiControllers
                 }).ToList();
             return Ok(data);
         }
+        [Authorize(Roles = AccountingSystem.Models.Identity.SystemRoles.Stock)]
         [HttpPost("CreateCategory")]
         public async Task<ActionResult> CreateCategory(CategoryViewModel model)
         {
@@ -248,6 +255,7 @@ namespace AccountingSystem.Controllers.ApiControllers
                 }
             }
         }
+        [Authorize(Roles = AccountingSystem.Models.Identity.SystemRoles.Stock)]
         [HttpPut("UpdateCategory")]
         public async Task<ActionResult> UpdateCategory(CategoryViewModel model)
         {
@@ -291,6 +299,7 @@ namespace AccountingSystem.Controllers.ApiControllers
                 }
             }
         }
+        [Authorize(Roles = AccountingSystem.Models.Identity.SystemRoles.Stock)]
         [HttpPut("ChangeCategoryActivation/{id}")]
         public async Task<ActionResult> UpdateCategory(int id)
         {
@@ -358,6 +367,7 @@ namespace AccountingSystem.Controllers.ApiControllers
                 }).ToList();
             return Ok(data);
         }
+        [Authorize(Roles = AccountingSystem.Models.Identity.SystemRoles.Stock)]
         [HttpPost("CreateUnit")]
         public async Task<ActionResult> CreateUnit(UnitsViewModel model)
         {
@@ -401,6 +411,7 @@ namespace AccountingSystem.Controllers.ApiControllers
                 }
             }
         }
+        [Authorize(Roles = AccountingSystem.Models.Identity.SystemRoles.Stock)]
         [HttpPut("UpdateUnit")]
         public async Task<ActionResult> UpdateUnit(UnitsViewModel model)
         {
@@ -444,6 +455,7 @@ namespace AccountingSystem.Controllers.ApiControllers
                 }
             }
         }
+        [Authorize(Roles = AccountingSystem.Models.Identity.SystemRoles.Stock)]
         [HttpPut("ChangeUnitActivation/{id}")]
         public async Task<ActionResult> UpdateUnit(int id)
         {
@@ -580,6 +592,8 @@ namespace AccountingSystem.Controllers.ApiControllers
             // Fallback (should be unreachable).
             return Ok(prefix + (max + 1).ToString().PadLeft(pad, '0'));
         }
+
+        [Authorize(Roles = AccountingSystem.Models.Identity.SystemRoles.Stock)]
 
         [HttpPost("CreateItem")]
         public async Task<ActionResult> CreateItem(ItemsViewModel request)
@@ -718,6 +732,8 @@ namespace AccountingSystem.Controllers.ApiControllers
             }
 
         }
+
+        [Authorize(Roles = AccountingSystem.Models.Identity.SystemRoles.Stock)]
 
         [HttpPut("UpdateItem")]
         public async Task<ActionResult> UpdateItem(ItemsViewModel request)
@@ -911,6 +927,8 @@ namespace AccountingSystem.Controllers.ApiControllers
             return Ok(getData);
         }
 
+        [Authorize(Roles = AccountingSystem.Models.Identity.SystemRoles.Stock)]
+
         [HttpPut("ChangeItemActivation/{id}")]
         public async Task<ActionResult> ChangeItemActivation(int id)
         {
@@ -964,6 +982,8 @@ namespace AccountingSystem.Controllers.ApiControllers
                 }
             }
         }
+
+        [Authorize(Roles = AccountingSystem.Models.Identity.SystemRoles.Stock)]
 
         [HttpPost("NewItemStockEntry")]
         public async Task<ActionResult> NewItemStockEntry(List<StockItemRequestViewModel> request)
@@ -1100,6 +1120,8 @@ namespace AccountingSystem.Controllers.ApiControllers
             return Ok(data);
         }
         
+        [Authorize(Roles = AccountingSystem.Models.Identity.SystemRoles.Stock)]
+        
         [HttpPost("SaveStockExchange")]
         public async Task<ActionResult> SaveStockExchange(StockItemsViewModel request)
         {
@@ -1191,6 +1213,8 @@ namespace AccountingSystem.Controllers.ApiControllers
                 }
             }
         }
+        
+        [Authorize(Roles = AccountingSystem.Models.Identity.SystemRoles.Stock)]
         
         [HttpPost("ExportOrDemageItem")]
         public async Task<ActionResult> ExportOrDemageItem(StockItemsViewModel request)
@@ -1516,3 +1540,4 @@ namespace AccountingSystem.Controllers.ApiControllers
         }
     }
 }
+
