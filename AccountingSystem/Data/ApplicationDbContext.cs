@@ -39,6 +39,9 @@ namespace AccountingSystem.Data
             modelBuilder.Entity<JournalEntry>().HasQueryFilter(x => IsAdministrator || x.CreatedByUserId == CurrentUserId);
             modelBuilder.Entity<StockTransactions>().HasQueryFilter(x => IsAdministrator || x.CreatedByUserId == CurrentUserId);
             modelBuilder.Entity<Share>().HasQueryFilter(x => IsAdministrator || x.CreatedByUserId == CurrentUserId);
+            modelBuilder.Entity<SharesDivider>()
+                .HasIndex(x => new { x.SharesCalculatorID, x.AccountId })
+                .IsUnique();
 
             // Change AspNet default Identity table names to remove 'AspNet'
             modelBuilder.Entity<User>(entity =>
@@ -422,6 +425,11 @@ namespace AccountingSystem.Data
                 {
                     ID = 15,
                     TypeName = "معاش"
+                },
+                new JournalTransactionType()
+                {
+                    ID = 16,
+                    TypeName = "د ونډو وېش"
                 }
             );
         }
@@ -459,6 +467,8 @@ namespace AccountingSystem.Data
 
         #region Shares
         public DbSet<Share> Shares { get; set; }
+        public DbSet<SharesCalculator> SharesCalculators { get; set; }
+        public DbSet<SharesDivider> SharesDividers { get; set; }
         #endregion
 
         #region Purchase

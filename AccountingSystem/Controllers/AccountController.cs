@@ -10,5 +10,7 @@ namespace AccountingSystem.Controllers
         public IActionResult Accounts() => View();
         public IActionResult Contributors() => View();
         public IActionResult Shares(int accountId) => View(accountId);
+        [Authorize(Roles = AccountingSystem.Models.Identity.SystemRoles.Administrator)]
+        public IActionResult SharesDivider() => View();
     }
 }

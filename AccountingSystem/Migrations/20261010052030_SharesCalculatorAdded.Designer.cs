@@ -3,6 +3,7 @@ using System;
 using AccountingSystem.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace AccountingSystem.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20261010052030_SharesCalculatorAdded")]
+    partial class SharesCalculatorAdded
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.9");
@@ -148,11 +151,6 @@ namespace AccountingSystem.Migrations
                         {
                             ID = 15,
                             TypeName = "معاش"
-                        },
-                        new
-                        {
-                            ID = 16,
-                            TypeName = "د ونډو وېش"
                         });
                 });
 
@@ -233,7 +231,7 @@ namespace AccountingSystem.Migrations
                             AccountTypeID = 10,
                             Code = "Walkin",
                             CreatedByUserId = "f5b9b7e7-2d3a-4b4d-a1b5-1b3f2a7a9e01",
-                            CreationDate = new DateTime(2026, 10, 10, 13, 29, 44, 521, DateTimeKind.Local).AddTicks(9507),
+                            CreationDate = new DateTime(2026, 10, 10, 9, 50, 23, 684, DateTimeKind.Local).AddTicks(7643),
                             IsActive = true,
                             Name = "عادي"
                         });
@@ -316,7 +314,7 @@ namespace AccountingSystem.Migrations
                             AccountID = 1,
                             Address = "",
                             CreatedByUserId = "f5b9b7e7-2d3a-4b4d-a1b5-1b3f2a7a9e01",
-                            CreationDate = new DateTime(2026, 10, 10, 13, 29, 44, 522, DateTimeKind.Local).AddTicks(1531),
+                            CreationDate = new DateTime(2026, 10, 10, 9, 50, 23, 685, DateTimeKind.Local).AddTicks(1704),
                             Email = "",
                             FirstPhone = "",
                             NIC = "",
@@ -555,7 +553,7 @@ namespace AccountingSystem.Migrations
                             LockoutEnabled = false,
                             NormalizedEmail = "ADMIN@ADMIN.COM",
                             NormalizedUserName = "ADMIN",
-                            PasswordHash = "AQAAAAIAAYagAAAAEGpnI+vpkmmdtjP2pS25kcoDWMrMM0kLU078E8EO7N6wbQIEMspnBRB8p/aq7SKT7A==",
+                            PasswordHash = "AQAAAAIAAYagAAAAEFCeadf9QEdgvqWYfRSFrz6kRFvoPVot/aaJ1HrQcDp9xJ6msiNkE7v/vUlJXzQK+Q==",
                             PhoneNumberConfirmed = false,
                             ProfilePhoto = "",
                             SecurityStamp = "2c9a4d9b-4f5a-4b8b-9a7c-2b1c3d4e5f61",
@@ -611,7 +609,7 @@ namespace AccountingSystem.Migrations
                         {
                             UserId = "f5b9b7e7-2d3a-4b4d-a1b5-1b3f2a7a9e01",
                             RoleId = "65a02658-9b8d-4505-95af-5edd8634bb35",
-                            CreationDate = new DateTime(2026, 10, 10, 13, 29, 44, 519, DateTimeKind.Local).AddTicks(47)
+                            CreationDate = new DateTime(2026, 10, 10, 9, 50, 23, 679, DateTimeKind.Local).AddTicks(839)
                         });
                 });
 
@@ -990,7 +988,7 @@ namespace AccountingSystem.Migrations
                         {
                             ID = 1,
                             CreatedByUserId = "f5b9b7e7-2d3a-4b4d-a1b5-1b3f2a7a9e01",
-                            CreationDate = new DateTime(2026, 10, 10, 13, 29, 44, 521, DateTimeKind.Local).AddTicks(5131),
+                            CreationDate = new DateTime(2026, 10, 10, 9, 50, 23, 683, DateTimeKind.Local).AddTicks(4733),
                             Description = "اصلي ګدام د ټولو موادو لپاره دی.",
                             IsActive = true,
                             Name = "عمومي ګدام"
@@ -1248,7 +1246,7 @@ namespace AccountingSystem.Migrations
                         {
                             ID = 1,
                             CreatedByUserId = "f5b9b7e7-2d3a-4b4d-a1b5-1b3f2a7a9e01",
-                            CreationDate = new DateTime(2026, 10, 10, 13, 29, 44, 522, DateTimeKind.Local).AddTicks(6184),
+                            CreationDate = new DateTime(2026, 10, 10, 9, 50, 23, 686, DateTimeKind.Local).AddTicks(3579),
                             CurrencyName = "افغانۍ",
                             CurrencySymbole = "AFN",
                             IsActive = true,
@@ -1258,7 +1256,7 @@ namespace AccountingSystem.Migrations
                         {
                             ID = 2,
                             CreatedByUserId = "f5b9b7e7-2d3a-4b4d-a1b5-1b3f2a7a9e01",
-                            CreationDate = new DateTime(2026, 10, 10, 13, 29, 44, 522, DateTimeKind.Local).AddTicks(6194),
+                            CreationDate = new DateTime(2026, 10, 10, 9, 50, 23, 686, DateTimeKind.Local).AddTicks(3597),
                             CurrencyName = "ډالر",
                             CurrencySymbole = "USD",
                             IsActive = true,
@@ -1351,9 +1349,6 @@ namespace AccountingSystem.Migrations
                     b.Property<DateTime>("CreationDate")
                         .HasColumnType("TEXT");
 
-                    b.Property<decimal>("DividableAmount")
-                        .HasColumnType("TEXT");
-
                     b.Property<DateTime>("EndDate")
                         .HasColumnType("TEXT");
 
@@ -1369,19 +1364,10 @@ namespace AccountingSystem.Migrations
                     b.Property<decimal>("OurLoans")
                         .HasColumnType("TEXT");
 
-                    b.Property<decimal>("Payables")
-                        .HasColumnType("TEXT");
-
                     b.Property<decimal>("Purchases")
                         .HasColumnType("TEXT");
 
-                    b.Property<decimal>("Receivables")
-                        .HasColumnType("TEXT");
-
                     b.Property<string>("Remarks")
-                        .HasColumnType("TEXT");
-
-                    b.Property<decimal>("SaleProfit")
                         .HasColumnType("TEXT");
 
                     b.Property<decimal>("Saleries")
@@ -1408,46 +1394,20 @@ namespace AccountingSystem.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
-                    b.Property<int>("AccountId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<decimal>("Amount")
-                        .HasColumnType("TEXT");
-
                     b.Property<string>("CreatedByUserId")
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime>("CreationDate")
                         .HasColumnType("TEXT");
 
-                    b.Property<int>("CurrencyId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<decimal>("Percentage")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Remarks")
-                        .HasColumnType("TEXT");
-
-                    b.Property<decimal>("ShareAmount")
-                        .HasColumnType("TEXT");
-
                     b.Property<int>("SharesCalculatorID")
                         .HasColumnType("INTEGER");
 
-                    b.Property<decimal>("Weight")
-                        .HasColumnType("TEXT");
-
                     b.HasKey("ID");
-
-                    b.HasIndex("AccountId");
 
                     b.HasIndex("CreatedByUserId");
 
-                    b.HasIndex("CurrencyId");
-
-                    b.HasIndex("SharesCalculatorID", "AccountId")
-                        .IsUnique();
+                    b.HasIndex("SharesCalculatorID");
 
                     b.ToTable("SharesDividers");
                 });
@@ -2048,21 +2008,9 @@ namespace AccountingSystem.Migrations
 
             modelBuilder.Entity("AccountingSystem.Models.Shares.SharesDivider", b =>
                 {
-                    b.HasOne("AccountingSystem.Models.Accounts.Account", "Account")
-                        .WithMany()
-                        .HasForeignKey("AccountId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.HasOne("AccountingSystem.Models.Identity.User", "CreatedByUser")
                         .WithMany()
                         .HasForeignKey("CreatedByUserId");
-
-                    b.HasOne("AccountingSystem.Models.Settings.Currency", "Currency")
-                        .WithMany()
-                        .HasForeignKey("CurrencyId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
 
                     b.HasOne("AccountingSystem.Models.Shares.SharesCalculator", "SharesCalculator")
                         .WithMany()
@@ -2070,11 +2018,7 @@ namespace AccountingSystem.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Account");
-
                     b.Navigation("CreatedByUser");
-
-                    b.Navigation("Currency");
 
                     b.Navigation("SharesCalculator");
                 });

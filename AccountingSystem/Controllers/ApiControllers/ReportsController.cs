@@ -178,6 +178,107 @@ namespace AccountingSystem.Controllers.ApiControllers
             });
         }
 
+        [HttpGet("GetPurchasesDashboard")]
+        [Authorize(Roles = AccountingSystem.Models.Identity.SystemRoles.Purchases)]
+        public async Task<ActionResult> GetPurchasesDashboard(string period = "month", DateTime? startDate = null, DateTime? endDate = null)
+        {
+            if (!TryGetDateRange(period, startDate, endDate, out var start, out var end))
+            {
+                return BadRequest("صحیح نېټه او موده انتخاب کړئ.");
+            }
+
+            var purchases = await _context.Purchases.AsNoTracking()
+                .Where(x => x.CreationDate >= start && x.CreationDate < end)
+                .Select(x => new
+                {
+                    x.ID, x.PurchaseNo, x.CreationDate, x.TotalAmount, x.ReceivedAmount,
+                    x.RemainingAmount, x.IsHolded, x.IsRefunded, x.CanAffectStock,
+                    x.CurrencyID, CurrencyName = x.Currency.CurrencyName,
+                    SupplierName = x.Account.Name,
+                    PurchaserName = x.CreatedByUser.FirstName + " " + x.CreatedByUser.LastName
+                }).ToListAsync();
+
+            var completed = purchases.Where(x => !x.IsHolded && !x.IsRefunded).ToList();
+            var purchaseIds = completed.Select(x => x.ID).ToArray();
+            var details = await _context.PurchaseDetails.AsNoTracking()
+                .Where(x => purchaseIds.Contains(x.PurchaseID))
+                .Select(x => new
+                {
+                    x.PurchaseID, x.ItemID, ItemName = x.Item.NativeName,
+                    x.Quantity, x.UnitConversion.ExchangedAmount
+                }).ToListAsync();
+
+            var journal = await _context.JournalEntries.AsNoTracking()
+                .Where(x => (x.TransactionTypeID == 6 || x.TransactionTypeID == 10) &&
+                    x.CreationDate >= start && x.CreationDate < end)
+                .Select(x => new
+                {
+                    x.TransactionTypeID, x.Debit, x.Credit,
+                    CurrencyName = x.AccountBalance.Currency.CurrencyName
+                }).ToListAsync();
+
+            var currencySummary = completed.GroupBy(x => new { x.CurrencyID, x.CurrencyName })
+                .Select(x => new
+                {
+                    x.Key.CurrencyID, x.Key.CurrencyName,
+                    PurchasesCount = x.Count(),
+                    TotalAmount = x.Sum(p => p.TotalAmount),
+                    PaidAmount = x.Sum(p => p.ReceivedAmount),
+                    RemainingAmount = x.Sum(p => p.RemainingAmount)
+                }).OrderBy(x => x.CurrencyName).ToList();
+
+            var topItems = details.Where(x => x.ExchangedAmount > 0)
+                .GroupBy(x => new { x.ItemID, x.ItemName })
+                .Select(x => new
+                {
+                    x.Key.ItemID, x.Key.ItemName,
+                    Quantity = x.Sum(d => d.Quantity / d.ExchangedAmount),
+                    PurchasesCount = x.Select(d => d.PurchaseID).Distinct().Count()
+                }).OrderByDescending(x => x.Quantity).Take(10).ToList();
+
+            var topSuppliers = completed.GroupBy(x => x.SupplierName)
+                .Select(x => new { SupplierName = x.Key, PurchasesCount = x.Count() })
+                .OrderByDescending(x => x.PurchasesCount).Take(10).ToList();
+
+            var topPurchasers = completed.GroupBy(x => x.PurchaserName)
+                .Select(x => new { PurchaserName = x.Key, PurchasesCount = x.Count() })
+                .OrderByDescending(x => x.PurchasesCount).Take(10).ToList();
+
+            var monthly = (end - start).TotalDays > 62;
+            var calendar = new PersianCalendar();
+            var chart = completed.GroupBy(x => monthly ? x.CreationDate.Date.AddDays(1 - calendar.GetDayOfMonth(x.CreationDate)) : x.CreationDate.Date)
+                .Select(x => new { Date = x.Key, PurchasesCount = x.Count() })
+                .OrderBy(x => x.Date).ToList();
+
+            var journalActivity = journal.GroupBy(x => new { x.TransactionTypeID, x.CurrencyName })
+                .Select(x => new
+                {
+                    x.Key.TransactionTypeID, x.Key.CurrencyName,
+                    EntryCount = x.Count(), Debit = x.Sum(j => j.Debit), Credit = x.Sum(j => j.Credit)
+                }).OrderBy(x => x.TransactionTypeID).ThenBy(x => x.CurrencyName).ToList();
+
+            return Ok(new
+            {
+                StartDate = start, EndDate = end.AddDays(-1),
+                CompletedCount = completed.Count,
+                HoldCount = purchases.Count(x => x.IsHolded && !x.IsRefunded),
+                RefundedCount = purchases.Count(x => x.IsRefunded),
+                StockAffectedCount = completed.Count(x => x.CanAffectStock),
+                CurrencySummary = currencySummary,
+                Chart = chart,
+                TopItems = topItems,
+                TopSuppliers = topSuppliers,
+                TopPurchasers = topPurchasers,
+                JournalActivity = journalActivity,
+                RecentPurchases = purchases.OrderByDescending(x => x.CreationDate).ThenByDescending(x => x.ID).Take(15)
+                    .Select(x => new
+                    {
+                        x.PurchaseNo, x.CreationDate, x.SupplierName, x.CurrencyName,
+                        x.TotalAmount, x.ReceivedAmount, x.RemainingAmount, x.IsHolded, x.IsRefunded
+                    })
+            });
+        }
+
         private bool TryGetDateRange(string period, DateTime? startDate, DateTime? endDate, out DateTime start, out DateTime end)
         {
             var today = DateTime.Today;

@@ -74,6 +74,15 @@
                                         شریکان
                                     </a>
                                 </li>
+                                @if (User.IsInRole("Administrator"))
+                                {
+                                <li>
+                                    <a class="dropdown-item @ViewData["accountsharesdivider"]" asp-controller="Account" asp-action="SharesDivider">
+                                        <i class="fa-solid fa-chart-pie"></i>
+                                        د ونډو وېش
+                                    </a>
+                                </li>
+                                }
                             </ul>
                         </li>
 
@@ -229,7 +238,7 @@
                         </li>
 
 
-                        <li class="nav-item dropdown @ViewData["Reports"] @((User.IsInRole("Administrator") || User.IsInRole("Seller") || User.IsInRole("Finance Manager")) ? "" : "d-none")">
+                        <li class="nav-item dropdown @ViewData["Reports"] @((User.IsInRole("Administrator") || User.IsInRole("Seller") || User.IsInRole("Purchaser") || User.IsInRole("Finance Manager")) ? "" : "d-none")">
                             <a class="nav-link dropdown-toggle"
                                id="navbarDropdown"
                                role="button"
@@ -246,6 +255,12 @@
                                     <a class="dropdown-item @ViewData["SalesDashboardReports"]" href="@Url.Action("SalesDashboard", "Report")">
                                         <i class="fa-solid fa-chart-line me-2"></i>
                                         د فروش ډشبورډ
+                                    </a>
+                                </li>
+                                <li class="@((User.IsInRole("Administrator") || User.IsInRole("Purchaser")) ? "" : "d-none")">
+                                    <a class="dropdown-item @ViewData["PurchasesDashboardReports"]" href="@Url.Action("PurchasesDashboard", "Report")">
+                                        <i class="fa-solid fa-chart-column me-2"></i>
+                                        د خرید ډشبورډ
                                     </a>
                                 </li>
                                 <li class="@((User.IsInRole("Administrator") || User.IsInRole("Finance Manager")) ? "" : "d-none")">

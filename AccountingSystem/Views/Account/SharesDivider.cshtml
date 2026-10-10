@@ -1,0 +1,96 @@
+@{
+    ViewData["Title"] = "د ونډو وېش";
+    ViewData["account-tab"] = "active";
+    ViewData["accountsharesdivider"] = "active";
+}
+
+@section Styles {
+    <style>
+        .shares-divider .card { border-radius: 14px; box-shadow: 0 3px 16px rgba(24, 36, 51, .04); }
+        .shares-divider .summary-card { min-height: 122px; }
+        .shares-divider .summary-value { font-size: 1.55rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+        .shares-divider .currency-name { font-size: .8rem; font-weight: 500; }
+        .shares-divider .table td, .shares-divider .table th { padding: .8rem 1rem; vertical-align: middle; white-space: nowrap; }
+        .shares-divider .formula-card { background: linear-gradient(135deg, var(--tblr-primary), #6f42c1); color: #fff; }
+        .shares-divider .formula-card .text-muted { color: rgba(255, 255, 255, .75) !important; }
+    </style>
+}
+
+<div class="shares-divider">
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-4">
+        <div><h2 class="mb-1">د ونډو وېش</h2><div class="text-muted" id="divisionPeriod">د حساب معلومات ترلاسه کېږي...</div></div>
+        <button type="button" class="btn btn-primary" id="saveDivision" disabled><i class="fa-solid fa-chart-pie ms-2"></i>ونډې ووېشئ</button>
+    </div>
+    <div class="row row-deck row-cards mb-4">
+        <div class="col-6 col-lg-3"><div class="card summary-card"><div class="card-body"><div class="text-muted mb-2">د فروش مجموعه</div><div class="summary-value text-primary" id="sales">—</div><div class="currency-name text-muted main-currency"></div></div></div></div>
+        <div class="col-6 col-lg-3"><div class="card summary-card"><div class="card-body"><div class="text-muted mb-2">د فروش ګټه</div><div class="summary-value text-green" id="saleProfit">—</div><div class="currency-name text-muted main-currency"></div></div></div></div>
+        <div class="col-6 col-lg-3"><div class="card summary-card"><div class="card-body"><div class="text-muted mb-2">د خرید مجموعه</div><div class="summary-value text-orange" id="purchases">—</div><div class="currency-name text-muted main-currency"></div></div></div></div>
+        <div class="col-6 col-lg-3"><div class="card summary-card"><div class="card-body"><div class="text-muted mb-2">مصارف</div><div class="summary-value text-danger" id="expenses">—</div><div class="currency-name text-muted main-currency"></div></div></div></div>
+        <div class="col-6 col-lg-3"><div class="card summary-card"><div class="card-body"><div class="text-muted mb-2">ورکړې</div><div class="summary-value text-yellow" id="payables">—</div><div class="currency-name text-muted main-currency"></div></div></div></div>
+        <div class="col-6 col-lg-3"><div class="card summary-card"><div class="card-body"><div class="text-muted mb-2">ترلاسه کېدونکي</div><div class="summary-value text-cyan" id="receivables">—</div><div class="currency-name text-muted main-currency"></div></div></div></div>
+        <div class="col-6 col-lg-3"><div class="card summary-card"><div class="card-body"><div class="text-muted mb-2">معاشونه</div><div class="summary-value text-purple" id="salaries">—</div><div class="currency-name text-muted main-currency"></div></div></div></div>
+        <div class="col-6 col-lg-3"><div class="card summary-card formula-card"><div class="card-body"><div class="text-muted mb-2">د وېش وړ مجموعه</div><div class="summary-value" id="dividableAmount">—</div><div class="currency-name text-muted main-currency"></div></div></div></div>
+    </div>
+    <div class="card">
+        <div class="card-header"><div><h3 class="card-title">د شریکانو برخه</h3><div class="text-muted mt-1">هره ونډه د مبلغ او د پانګونې د مودې له مخې حسابېږي.</div></div></div>
+        <div class="table-responsive"><table class="table table-hover table-vcenter mb-0"><thead><tr><th>شریک</th><th>حساب کوډ</th><th>د ونډو شمېر</th><th>د ونډو مجموعه</th><th>وزن</th><th>فیصدي</th><th>وېشل سوی مبلغ</th></tr></thead><tbody id="divisionRows"><tr><td colspan="7" class="text-center text-muted py-5">معلومات ترلاسه کېږي...</td></tr></tbody></table></div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/lib/moment-jalali/dist/jalali-moment.browser.js"></script>
+    <script>
+        $(document).ready(function () {
+            var number = new Intl.NumberFormat(undefined, { maximumFractionDigits: 3 });
+            var calculation = null;
+            loadDivision();
+
+            function loadDivision() {
+                $("#saveDivision").prop("disabled", true);
+                $.ajax({ url: "/api/Shares/DividerPreview", type: "GET",
+                    success: function (result) {
+                        calculation = result;
+                        $.each(["sales", "saleProfit", "purchases", "expenses", "payables", "receivables", "salaries", "dividableAmount"], function (_, name) { $("#" + name).text(number.format(result[name])); });
+                        $(".main-currency").text(result.mainCurrencyName);
+                        $("#divisionPeriod").text("د " + moment(result.startDate).format("jYYYY/jMM/jDD") + " څخه تر " + moment(result.endDate).format("jYYYY/jMM/jDD") + " — اصلي اسعار: " + result.mainCurrencyName);
+                        loadRows(result.allocations);
+                        $("#saveDivision").prop("disabled", !result.allocations.length);
+                    },
+                    error: function (response) {
+                        calculation = null;
+                        $("#divisionRows").html('<tr><td colspan="7" class="text-center text-muted py-5">معلومات نسته</td></tr>');
+                        showToast("warning", response.responseText || "د ونډو معلومات ترلاسه نه سول.");
+                    }
+                });
+            }
+
+            function loadRows(rows) {
+                var table = $("#divisionRows").empty();
+                if (!rows.length) { table.append('<tr><td colspan="7" class="text-center text-muted py-5">د وېش لپاره ونډې نسته</td></tr>'); return; }
+                $.each(rows, function (_, item) {
+                    var row = $("<tr>");
+                    $("<td>").addClass("fw-semibold").text(item.accountName).appendTo(row);
+                    $("<td>").text(item.accountCode).appendTo(row);
+                    $("<td>").text(number.format(item.sharesCount)).appendTo(row);
+                    $("<td>").text(number.format(item.shareAmount) + " " + calculation.mainCurrencyName).appendTo(row);
+                    $("<td>").text(number.format(item.weight)).appendTo(row);
+                    $("<td>").text(number.format(item.percentage) + "%").appendTo(row);
+                    $("<td>").addClass(item.amount >= 0 ? "text-green fw-bold" : "text-danger fw-bold").text(number.format(item.amount) + " " + calculation.mainCurrencyName).appendTo(row);
+                    table.append(row);
+                });
+            }
+
+            $("#saveDivision").on("click", function () {
+                if (!calculation || !calculation.allocations.length) return;
+                sweetAlert("تاسو اطمناني یاست؟", "حساب سوی مبلغ به د شریکانو په حسابونو کې ثبت سي.").then(function (result) {
+                    if (!result.isConfirmed) return;
+                    $("#saveDivision").prop("disabled", true);
+                    $.ajax({ url: "/api/Shares/Divide", type: "POST",
+                        success: function () { showToast("success", "ونډې په بریالیتوب سره ووېشل سوې."); loadDivision(); },
+                        error: function (response) { $("#saveDivision").prop("disabled", false); showToast("warning", response.responseText || "د ونډو په وېش کې ستونزه رامنځته سوه."); }
+                    });
+                });
+            });
+        });
+    </script>
+}
